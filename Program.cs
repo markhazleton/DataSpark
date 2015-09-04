@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace sql2csv
+namespace Sql2Csv
 {
     class Program
     {
@@ -13,16 +13,25 @@ namespace sql2csv
             var myExportConfig = new ExportConfiguration();
             var path = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
             myExportConfig.ConfigPath = System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty);
-            myExportConfig.GetFromXML();
-            Console.WriteLine(string.Format("GotExport **** ConfigPath: {0}", myExportConfig.ConfigPath));
-            Console.WriteLine(string.Format("          **** DataPath: {0}", myExportConfig.DataPath));
-            Console.WriteLine(string.Format("          **** ScriptPath: {0}", myExportConfig.ScriptPath));
-            Console.WriteLine(string.Format("          **** ConfigList: {0}", myExportConfig.DatabaseConfigurationListPath));
-            var myExport = new Export();
-            var myConfigList = new SiteConfigurationList();
-            myConfigList.DataFolderPath = myExportConfig.DatabaseConfigurationListPath;
-            myConfigList.GetFromXML();
-            myExport.ProcessExtractSQL(ref myConfigList, ref myExportConfig);
+            myExportConfig.GetFromXml();
+
+            Console.WriteLine("          **** ");
+            Console.WriteLine("          **** ");
+            Console.WriteLine("          **** ");
+
+
+            Console.WriteLine(string.Format("          **** Configuration Path: {0}", myExportConfig.ConfigPath));
+            Console.WriteLine(string.Format("          **** Data Path: {0}", myExportConfig.DataPath));
+            Console.WriteLine(string.Format("          **** Script Path: {0}", myExportConfig.ScriptPath));
+            Console.WriteLine(string.Format("          **** Configuration List: {0}", myExportConfig.DatabaseConfigurationListPath));
+
+            Console.WriteLine("          **** ");
+            Console.WriteLine("          **** ");
+            Console.WriteLine("          **** ");
+
+            var myConfigList = new SiteConfigurationCollection() { DataFolderPath = myExportConfig.DatabaseConfigurationListPath };
+            myConfigList.GetFromXml();
+            Export.ProcessExtractSql(myConfigList, myExportConfig);
         }
     }
 }
