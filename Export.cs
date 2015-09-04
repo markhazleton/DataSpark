@@ -82,6 +82,7 @@ public class Export
                     RecConn.Open();
                     using (var myCommand = new System.Data.SqlClient.SqlCommand(sSQL, RecConn))
                     {
+                        myCommand.CommandTimeout = 60000;
                         var myDR = myCommand.ExecuteReader();
                         dataTable.Load(myDR);
                     }
