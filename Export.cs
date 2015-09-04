@@ -22,9 +22,12 @@ public class Export
 
         var ext = new List<string> { ".sql" };
         IEnumerable<string> mySQLFiles;
+        IEnumerable<string> allSQLFiles;
         try
         {
-            mySQLFiles = Directory.GetFiles(myExportConfig.ScriptPath, "*.*", SearchOption.AllDirectories).Where(s => ext.Any(e => s.EndsWith(e)));
+            allSQLFiles = Directory.GetFiles(myExportConfig.ScriptPath).ToList();
+
+            mySQLFiles = Directory.GetFiles(myExportConfig.ScriptPath, "*.*", SearchOption.AllDirectories).Where(s => ext.Any(e => s.EndsWith(e))).ToList();
             foreach (DBConfiguration mySite in mySiteList)
             {
                 foreach (string myFile in mySQLFiles)

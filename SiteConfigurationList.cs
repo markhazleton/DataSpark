@@ -26,13 +26,23 @@ public class SiteConfigurationList : List<DBConfiguration>
 
         if ((this != null))
         {
-            var oXS = new XmlSerializer(typeof(SiteConfigurationList));
-            using (var writer = new StringWriter())
+            try
             {
-                oXS.Serialize(writer, this);
-                myXML.LoadXml(writer.ToString());
+                var oXS = new XmlSerializer(typeof(SiteConfigurationList));
+                using (var writer = new StringWriter())
+                {
+                    oXS.Serialize(writer, this);
+                    myXML.LoadXml(writer.ToString());
+                }
+                myXML.Save(_DataFolderPath);
+
             }
-            myXML.Save(_DataFolderPath);
+            catch (Exception ex)
+            {
+                Console.WriteLine(String.Format("Error on Save Site Configuration List: {0}", ex.ToString()));
+                sReturn = ex.ToString();
+            }
+
         }
         return sReturn;
     }
