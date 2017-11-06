@@ -1,4 +1,12 @@
-﻿namespace Sql2Csv
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Xml.Serialization;
+using System.Xml;
+
+
+
+namespace Sql2Csv
 {
 public class DbConfiguration
 {
