@@ -68,7 +68,7 @@ namespace Sql2Csv
                 Console.WriteLine(string.Format("Site Configuration Collection  **** ERROR: {0}", ex));
 
                 var myList = new SiteConfigurationCollection();
-                myList.Add(new DbConfiguration() { ConnectionString = "Data Source=HAPXSSQLL01\\FAC_LIVE;Initial Catalog=FreeFlight_App;Integrated Security=True;", SiteName = "FreeFlight" });
+                myList.Add(new DbConfiguration() { ConnectionString = "************ CONNECTION STRING ************;", SiteName = "*** SITENAME ****" });
                 myList._DataFolderPath = _DataFolderPath.Replace(".xml", "_new.xml");
                 myList.SaveXml();
             }

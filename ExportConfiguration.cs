@@ -60,7 +60,7 @@ namespace Sql2Csv
                 ex.ConfigPath = System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty);
                 ex.ScriptPath = String.Format("{0}/script/", System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty));
                 ex.DataPath = String.Format("{0}/data/", System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty));
-                ex.DatabaseConfigurationListPath = String.Format("{0}/", System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty));
+                ex.DatabaseConfigurationListPath = String.Format("{0}/config/", System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty));
                 ex.SaveXml();
                 Console.WriteLine("{0} Exception caught.", e);
             }
