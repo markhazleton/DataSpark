@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Xml.Serialization;
 using System.Xml;
+using System.Xml.Serialization;
 
 namespace Sql2Csv
 {
@@ -11,14 +11,8 @@ namespace Sql2Csv
         private string _DataFolderPath = string.Empty;
         public string DataFolderPath
         {
-            get
-            {
-                return _DataFolderPath;
-            }
-            set
-            {
-                _DataFolderPath = value;
-            }
+            get { return _DataFolderPath; }
+            set { _DataFolderPath = $"{Path.GetDirectoryName(value)}\\SiteConfiguration.xml"; }
         }
 
         public string SaveXml()

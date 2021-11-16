@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
 using System.Linq;
+using System.Text;
 
 namespace Sql2Csv
 {
@@ -74,12 +75,12 @@ namespace Sql2Csv
         {
             using (var dataTable = new DataTable())
             {
-                using (var RecConn = new System.Data.SqlClient.SqlConnection { ConnectionString = wpm_SQLDBConnString })
+                using (var RecConn = new SqlConnection { ConnectionString = wpm_SQLDBConnString })
                 {
                     try
                     {
                         RecConn.Open();
-                        using (var myCommand = new System.Data.SqlClient.SqlCommand(sSQL, RecConn))
+                        using (var myCommand = new SqlCommand(sSQL, RecConn))
                         {
                             myCommand.CommandTimeout = 60000;
                             var myDR = myCommand.ExecuteReader();

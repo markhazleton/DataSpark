@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Xml.Serialization;
+using System.Reflection;
 using System.Xml;
+using System.Xml.Serialization;
 
 namespace Sql2Csv
 {
@@ -55,17 +55,37 @@ namespace Sql2Csv
             }
             catch (Exception e)
             {
-                ExportConfiguration ex = new ExportConfiguration();
-                var path = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
-                ex.ConfigPath = System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty);
-                ex.ScriptPath = String.Format("{0}/script/", System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty));
-                ex.DataPath = String.Format("{0}/data/", System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty));
-                ex.DatabaseConfigurationListPath = String.Format("{0}/config/", System.IO.Path.GetDirectoryName(path).Replace("file:\\", string.Empty));
-                ex.SaveXml();
+                ExportConfiguration myExportConfig = new ExportConfiguration();
+                var path = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+                myExportConfig.ConfigPath = $"{path}\\config\\";
+                myExportConfig.ScriptPath = $"{path}\\script\\";
+                myExportConfig.DataPath = $"{path}\\data\\";
+                myExportConfig.DatabaseConfigurationListPath = $"{path}\\config\\";
+                EnsurePathExists(myExportConfig.ConfigPath);
+                EnsurePathExists(myExportConfig.DataPath);
+                EnsurePathExists(myExportConfig.ScriptPath);
+                EnsurePathExists(myExportConfig.DatabaseConfigurationListPath);
+
+                myExportConfig.SaveXml();
                 Console.WriteLine("{0} Exception caught.", e);
             }
-
             return this;
+        }
+        public static void EnsurePathExists(string path)
+        {
+            // ... Set to folder path we must ensure exists.
+            try
+            {
+                // ... If the directory doesn't exist, create it.
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+            }
+            catch (Exception)
+            {
+                // Fail silently.
+            }
         }
     }
 }
