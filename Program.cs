@@ -9,7 +9,7 @@ namespace Sql2Csv
         static void Main(string[] args)
         {
             var myExportConfig = new ExportConfiguration();
-            var path = Path.GetDirectoryName( Assembly.GetEntryAssembly().Location);
+            var path = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             myExportConfig.ConfigPath = $"{path}\\config\\";
             myExportConfig.GetFromXml();
 
