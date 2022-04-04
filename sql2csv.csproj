@@ -38,14 +38,6 @@
     <SignManifests>false</SignManifests>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="data\**" />
-    <Compile Remove="scripts\**" />
-    <EmbeddedResource Remove="data\**" />
-    <EmbeddedResource Remove="scripts\**" />
-    <None Remove="data\**" />
-    <None Remove="scripts\**" />
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
       <Visible>False</Visible>
       <ProductName>.NET Framework 3.5 SP1</ProductName>
@@ -56,5 +48,9 @@
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="data\" CopyToPublishDirectory="PreserveNewest" />
+    <Folder Include="scripts\" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
