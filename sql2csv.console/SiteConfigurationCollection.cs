@@ -43,7 +43,7 @@ public class SiteConfigurationCollection : List<DbConfiguration>
         return ReturnStrimg;
     }
 
-    public SiteConfigurationCollection GetFromXml()
+    public SiteConfigurationCollection GetFromXml(string defaultConnection, string defaultName)
     {
         Clear();
         var x = new XmlSerializer(typeof(SiteConfigurationCollection));
@@ -51,20 +51,30 @@ public class SiteConfigurationCollection : List<DbConfiguration>
 
         try
         {
-            using (var objStreamReader = new StreamReader(_DataFolderPath))
+            if (File.Exists(_DataFolderPath))
             {
+                using var objStreamReader = new StreamReader(_DataFolderPath);
                 var myY = (SiteConfigurationCollection)x.Deserialize(objStreamReader);
                 AddRange(myY);
+            }
+            else
+            {
+                var myList = new SiteConfigurationCollection
+                {
+                    new DbConfiguration() { ConnectionString = defaultConnection, SiteName = defaultName}
+                };
+                myList._DataFolderPath = _DataFolderPath.Replace(".xml", "_new.xml");
+                myList.SaveXml();
+                AddRange(myList);
+
+
+
+
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine(string.Format("Site Configuration Collection  **** ERROR: {0}", ex));
-
-            var myList = new SiteConfigurationCollection();
-            myList.Add(new DbConfiguration() { ConnectionString = "************ CONNECTION STRING ************;", SiteName = "*** SITENAME ****" });
-            myList._DataFolderPath = _DataFolderPath.Replace(".xml", "_new.xml");
-            myList.SaveXml();
         }
         return this;
     }
