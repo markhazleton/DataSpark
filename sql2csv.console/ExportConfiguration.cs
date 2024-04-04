@@ -6,13 +6,39 @@ using System.Xml.Serialization;
 
 namespace Sql2Csv;
 
+/// <summary>
+/// Represents the export configuration for SQL to CSV conversion.
+/// </summary>
 public class ExportConfiguration
 {
+    /// <summary>
+    /// Gets or sets the path to the SQL script file.
+    /// </summary>
     public string ScriptPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the path to the output CSV data file.
+    /// </summary>
     public string DataPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the path to the configuration file.
+    /// </summary>
     public string ConfigPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the path to the database configuration list file.
+    /// </summary>
     public string DatabaseConfigurationListPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the target database.
+    /// </summary>
     public string TargetDatabaseName { get; set; }
+
+    /// <summary>
+    /// Validates the paths and ensures that the required directories exist.
+    /// </summary>
     public void ValidatePaths()
     {
         var path = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
@@ -21,19 +47,22 @@ public class ExportConfiguration
         DataPath ??= $"{path}\\data\\";
         DatabaseConfigurationListPath ??= $"{path}\\config\\";
 
-
         EnsurePathExists(ConfigPath);
         EnsurePathExists(DataPath);
         EnsurePathExists(ScriptPath);
         EnsurePathExists(DatabaseConfigurationListPath);
     }
 
+    /// <summary>
+    /// Saves the export configuration as an XML file.
+    /// </summary>
+    /// <returns>The path of the saved XML file.</returns>
     public string SaveXml()
     {
         var sReturn = string.Empty;
         var myXml = new XmlDocument();
 
-        if ((this != null))
+        if (this != null)
         {
             var oXS = new XmlSerializer(typeof(ExportConfiguration));
             using (var writer = new StringWriter())
@@ -45,6 +74,11 @@ public class ExportConfiguration
         }
         return sReturn;
     }
+
+    /// <summary>
+    /// Retrieves the export configuration from an XML file.
+    /// </summary>
+    /// <returns>The export configuration object.</returns>
     public ExportConfiguration GetFromXml()
     {
         var x = new XmlSerializer(typeof(ExportConfiguration));
@@ -76,12 +110,15 @@ public class ExportConfiguration
         }
         return this;
     }
+
+    /// <summary>
+    /// Ensures that the specified directory path exists.
+    /// </summary>
+    /// <param name="path">The directory path to ensure.</param>
     public static void EnsurePathExists(string path)
     {
-        // ... Set to folder path we must ensure exists.
         try
         {
-            // ... If the directory doesn't exist, create it.
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);

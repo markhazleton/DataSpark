@@ -3,9 +3,17 @@ using System;
 
 namespace Sql2Csv;
 
+/// <summary>
+/// A static class that creates a SQLite database and table, and performs operations on the table.
+/// </summary>
 public static class SqliteDatabaseCreator
 {
-    const string STR_Db = "Data Source=mydatabase.db;";
+    private const string STR_Db = "Data Source=mydatabase.db;";
+
+    /// <summary>
+    /// Creates a SQLite database and table if they don't exist, and inserts initial data into the table.
+    /// </summary>
+    /// <returns>The connection string of the created database.</returns>
     public static string CreateDatabaseAndTable()
     {
         try
@@ -26,20 +34,21 @@ public static class SqliteDatabaseCreator
             {
                 // Create the test table if it doesn't exist
                 var createTableQuery = @"
-                    CREATE TABLE test (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT NOT NULL
-                    )";
+                        CREATE TABLE test (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL
+                        )";
                 using (var command = new SqliteCommand(createTableQuery, connection))
                 {
                     command.ExecuteNonQuery();
                 }
+
                 // Insert records into the test table
                 var insertDataQuery = @"
-                    INSERT INTO test (name) VALUES ('John Doe');
-                    INSERT INTO test (name) VALUES ('Jane Doe');
-                    INSERT INTO test (name) VALUES ('Jim Beam');
-                ";
+                        INSERT INTO test (name) VALUES ('John Doe');
+                        INSERT INTO test (name) VALUES ('Jane Doe');
+                        INSERT INTO test (name) VALUES ('Jim Beam');
+                    ";
                 using (var command = new SqliteCommand(insertDataQuery, connection))
                 {
                     command.ExecuteNonQuery();
@@ -49,7 +58,8 @@ public static class SqliteDatabaseCreator
             {
                 Console.WriteLine("Table 'test' already exists. Skipping table creation and initial data insertion.");
             }
-            // select data from the test table
+
+            // Select data from the test table
             var selectDataQuery = "SELECT * FROM test";
             using (var command = new SqliteCommand(selectDataQuery, connection))
             {
@@ -60,9 +70,6 @@ public static class SqliteDatabaseCreator
                     Console.WriteLine($"{reader.GetInt32(0)}\t{reader.GetString(1)}");
                 }
             }
-
-
-
         }
         catch (Exception ex)
         {
@@ -73,6 +80,5 @@ public static class SqliteDatabaseCreator
         Console.WriteLine($"Database '{STR_Db}' accessed successfully.");
         return STR_Db;
     }
-
 }
 

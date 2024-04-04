@@ -6,15 +6,26 @@ using System.Xml.Serialization;
 
 namespace Sql2Csv;
 
+/// <summary>
+/// Represents a collection of site configurations.
+/// </summary>
 public class SiteConfigurationCollection : List<DbConfiguration>
 {
     private string _DataFolderPath = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the data folder path.
+    /// </summary>
     public string DataFolderPath
     {
         get { return _DataFolderPath; }
         set { _DataFolderPath = $"{Path.GetDirectoryName(value)}\\SiteConfiguration.xml"; }
     }
 
+    /// <summary>
+    /// Saves the collection as an XML file.
+    /// </summary>
+    /// <returns>The error message if an exception occurs, otherwise an empty string.</returns>
     public string SaveXml()
     {
         var ReturnStrimg = string.Empty;
@@ -43,6 +54,12 @@ public class SiteConfigurationCollection : List<DbConfiguration>
         return ReturnStrimg;
     }
 
+    /// <summary>
+    /// Loads the collection from an XML file.
+    /// </summary>
+    /// <param name="defaultConnection">The default connection string.</param>
+    /// <param name="defaultName">The default site name.</param>
+    /// <returns>The loaded SiteConfigurationCollection.</returns>
     public SiteConfigurationCollection GetFromXml(string defaultConnection, string defaultName)
     {
         Clear();
@@ -60,9 +77,9 @@ public class SiteConfigurationCollection : List<DbConfiguration>
             else
             {
                 var myList = new SiteConfigurationCollection
-                {
-                    new DbConfiguration() { ConnectionString = defaultConnection, SiteName = defaultName}
-                };
+                    {
+                        new DbConfiguration() { ConnectionString = defaultConnection, SiteName = defaultName}
+                    };
                 myList._DataFolderPath = _DataFolderPath.Replace(".xml", "_new.xml");
                 myList.SaveXml();
                 AddRange(myList);

@@ -4,8 +4,14 @@ using System.Text;
 
 namespace Sql2Csv;
 
+/// <summary>
+/// Represents a class that exports tables from a SQLite database to CSV files.
+/// </summary>
 public class SqliteToCsvExporter(string sqliteFilename)
 {
+    /// <summary>
+    /// Exports all tables from the SQLite database to CSV files.
+    /// </summary>
     public void ExportTablesToCsv()
     {
         using (var connection = new SqliteConnection($"Data Source={sqliteFilename};"))
@@ -21,6 +27,11 @@ public class SqliteToCsvExporter(string sqliteFilename)
         }
     }
 
+    /// <summary>
+    /// Retrieves the names of all tables in the SQLite database.
+    /// </summary>
+    /// <param name="connection">The SQLite connection.</param>
+    /// <returns>An array of table names.</returns>
     private static string[] GetTableNames(SqliteConnection connection)
     {
         var tables = new System.Collections.Generic.List<string>();
@@ -34,9 +45,14 @@ public class SqliteToCsvExporter(string sqliteFilename)
             }
         }
 
-        return [.. tables];
+        return tables.ToArray();
     }
 
+    /// <summary>
+    /// Exports a table from the SQLite database to a CSV file.
+    /// </summary>
+    /// <param name="connection">The SQLite connection.</param>
+    /// <param name="tableName">The name of the table to export.</param>
     private static void ExportTableToCsv(SqliteConnection connection, string tableName)
     {
         var csvFilePath = $"{tableName}_extract.csv";
