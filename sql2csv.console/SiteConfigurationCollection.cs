@@ -66,10 +66,6 @@ public class SiteConfigurationCollection : List<DbConfiguration>
                 myList._DataFolderPath = _DataFolderPath.Replace(".xml", "_new.xml");
                 myList.SaveXml();
                 AddRange(myList);
-
-
-
-
             }
         }
         catch (Exception ex)

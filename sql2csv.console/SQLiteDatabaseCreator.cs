@@ -8,37 +8,71 @@ public static class SqliteDatabaseCreator
     const string STR_Db = "Data Source=mydatabase.db;";
     public static string CreateDatabaseAndTable()
     {
-        // Create a connection to the database
-        using (var connection = new SqliteConnection(STR_Db))
+        try
         {
+            using var connection = new SqliteConnection(STR_Db);
             connection.Open();
 
-            // Create a test table
-            var createTableQuery = @"
-                    CREATE TABLE IF NOT EXISTS test (
+            // Check if the 'test' table already exists
+            var checkTableExistsQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='test';";
+            bool tableExists;
+            using (var command = new SqliteCommand(checkTableExistsQuery, connection))
+            {
+                using var reader = command.ExecuteReader();
+                tableExists = reader.HasRows;  // true if table exists
+            }
+
+            if (!tableExists)
+            {
+                // Create the test table if it doesn't exist
+                var createTableQuery = @"
+                    CREATE TABLE test (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT NOT NULL
                     )";
-
-            using (var command = new SqliteCommand(createTableQuery, connection))
-            {
-                command.ExecuteNonQuery();
-            }
-
-            // Insert a few records into the test table
-            var insertDataQuery = @"
+                using (var command = new SqliteCommand(createTableQuery, connection))
+                {
+                    command.ExecuteNonQuery();
+                }
+                // Insert records into the test table
+                var insertDataQuery = @"
                     INSERT INTO test (name) VALUES ('John Doe');
                     INSERT INTO test (name) VALUES ('Jane Doe');
                     INSERT INTO test (name) VALUES ('Jim Beam');
                 ";
-            using (var command = new SqliteCommand(insertDataQuery, connection))
-            {
-                command.ExecuteNonQuery();
+                using (var command = new SqliteCommand(insertDataQuery, connection))
+                {
+                    command.ExecuteNonQuery();
+                }
             }
-            connection.Close();
+            else
+            {
+                Console.WriteLine("Table 'test' already exists. Skipping table creation and initial data insertion.");
+            }
+            // select data from the test table
+            var selectDataQuery = "SELECT * FROM test";
+            using (var command = new SqliteCommand(selectDataQuery, connection))
+            {
+                using var reader = command.ExecuteReader();
+                Console.WriteLine("id\tname");
+                while (reader.Read())
+                {
+                    Console.WriteLine($"{reader.GetInt32(0)}\t{reader.GetString(1)}");
+                }
+            }
+
+
+
         }
-        Console.WriteLine($"Database '{STR_Db}' created with a 'test' table and sample data inserted.");
-        return $"Data Source={STR_Db}";
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+            return null;  // Return null to indicate that an error occurred
+        }
+
+        Console.WriteLine($"Database '{STR_Db}' accessed successfully.");
+        return STR_Db;
     }
+
 }
 

@@ -13,14 +13,21 @@ public class ExportConfiguration
     public string ConfigPath { get; set; }
     public string DatabaseConfigurationListPath { get; set; }
     public string TargetDatabaseName { get; set; }
-    public ExportConfiguration(string newScriptPath, string newDataPath)
+    public void ValidatePaths()
     {
-        DataPath = newDataPath;
-        ScriptPath = newScriptPath;
+        var path = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+        ConfigPath ??= $"{path}\\config\\";
+        ScriptPath ??= $"{path}\\script\\";
+        DataPath ??= $"{path}\\data\\";
+        DatabaseConfigurationListPath ??= $"{path}\\config\\";
+
+
+        EnsurePathExists(ConfigPath);
+        EnsurePathExists(DataPath);
+        EnsurePathExists(ScriptPath);
+        EnsurePathExists(DatabaseConfigurationListPath);
     }
-    public ExportConfiguration()
-    {
-    }
+
     public string SaveXml()
     {
         var sReturn = string.Empty;
@@ -43,15 +50,13 @@ public class ExportConfiguration
         var x = new XmlSerializer(typeof(ExportConfiguration));
         try
         {
-            using (var objStreamReader = new StreamReader(string.Format("{0}\\ExportConfiguration.xml", ConfigPath)))
-            {
-                var myY = (ExportConfiguration)x.Deserialize(objStreamReader);
-                ConfigPath = myY.ConfigPath;
-                DataPath = myY.DataPath;
-                ScriptPath = myY.ScriptPath;
-                DatabaseConfigurationListPath = myY.DatabaseConfigurationListPath;
-                TargetDatabaseName = myY.TargetDatabaseName;
-            }
+            using var objStreamReader = new StreamReader(string.Format("{0}\\ExportConfiguration.xml", ConfigPath));
+            var myY = (ExportConfiguration)x.Deserialize(objStreamReader);
+            ConfigPath = myY.ConfigPath;
+            DataPath = myY.DataPath;
+            ScriptPath = myY.ScriptPath;
+            DatabaseConfigurationListPath = myY.DatabaseConfigurationListPath;
+            TargetDatabaseName = myY.TargetDatabaseName;
         }
         catch (Exception e)
         {

@@ -35,13 +35,11 @@ using (var connection = new SqliteConnection(connectionString))
                     SELECT Id, Name FROM People
                 ";
 
-    using (var reader = selectCmd.ExecuteReader())
+    using var reader = selectCmd.ExecuteReader();
+    while (reader.Read())
     {
-        while (reader.Read())
-        {
-            var id = reader.GetInt32(0);
-            var name = reader.GetString(1);
-            Console.WriteLine($"ID: {id}, Name: {name}");
-        }
+        var id = reader.GetInt32(0);
+        var name = reader.GetString(1);
+        Console.WriteLine($"ID: {id}, Name: {name}");
     }
 }

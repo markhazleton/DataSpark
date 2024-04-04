@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Microsoft.Data.Sqlite;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -27,41 +27,24 @@ public static class Export
         try
         {
             allSQLFiles = Directory.GetFiles(myExportConfig.ScriptPath).ToList();
+            if(!allSQLFiles.Any())
+            {
+                Console.WriteLine("No SQL files found in the script path.");
+                // Create a default.sql file with the sql statement to be executed
+                var defaultSql = "SELECT id,name FROM Test";
+                var defaultSqlPath = Path.Combine(myExportConfig.ScriptPath, "default.sql");
+                File.WriteAllText(defaultSqlPath, defaultSql);
+                Console.WriteLine($"Created default.sql file with the following content: {defaultSql}");
+                mySQLFiles = [defaultSqlPath];
+            }
+
 
             mySQLFiles = Directory.GetFiles(myExportConfig.ScriptPath, "*.*", SearchOption.AllDirectories).Where(s => ext.Any(e => s.EndsWith(e))).ToList();
             foreach (DbConfiguration mySite in mySiteList)
             {
                 foreach (string myFile in mySQLFiles)
                 {
-                    try
-                    {
-                        var myStopWatch = new Stopwatch();
-                        myStopWatch.Start();
-                        Sql = File.ReadAllText(myFile);
-                        Dt = GetDataTable(Sql, mySite.ConnectionString);
-
-                        var SiteDataFolder = myExportConfig.DataPath;
-                        if (!Directory.Exists(SiteDataFolder))
-                        {
-                            Directory.CreateDirectory(SiteDataFolder);
-                        }
-                        var SiteFileName = string.Format("{0}\\{1}-{2}.txt", SiteDataFolder, mySite.SiteName, myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty));
-
-                        SiteFileName = string.Format("{0}\\{1}.csv", SiteDataFolder, myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty));
-                        using (var writer = new StreamWriter(SiteFileName, false))
-                        {
-                            WriteDataTableCsv(Dt, writer, true);
-                        }
-
-                        myStopWatch.Stop();
-                        Message = string.Format("{1} - {0} time:{2}", myFile.Replace(myExportConfig.ScriptPath, string.Empty), mySite.SiteName, myStopWatch.ElapsedMilliseconds);
-                        Response.AppendLine(Message);
-                        Console.WriteLine(Message);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("{0} Exception caught.", e);
-                    }
+                    ProcessSqlFile(myExportConfig, Response, ref Sql, ref Dt, ref Message, mySite, myFile);
                 }
             }
         }
@@ -70,30 +53,59 @@ public static class Export
             Console.WriteLine("{0} Exception caught.", e);
         }
         return Response.ToString();
-    }
-    private static DataTable GetDataTable(string sSQL, string wpm_SQLDBConnString)
-    {
-        using (var dataTable = new DataTable())
+
+        static void ProcessSqlFile(ExportConfiguration myExportConfig, StringBuilder Response, ref string Sql, ref DataTable Dt, ref string Message, DbConfiguration mySite, string myFile)
         {
-            using (var RecConn = new SqlConnection { ConnectionString = wpm_SQLDBConnString })
+            try
             {
-                try
+                var myStopWatch = new Stopwatch();
+                myStopWatch.Start();
+                Sql = File.ReadAllText(myFile);
+                Dt = GetDataTable(Sql, mySite.ConnectionString);
+
+                var SiteDataFolder = myExportConfig.DataPath;
+                if (!Directory.Exists(SiteDataFolder))
                 {
-                    RecConn.Open();
-                    using (var myCommand = new SqlCommand(sSQL, RecConn))
-                    {
-                        myCommand.CommandTimeout = 60000;
-                        var myDR = myCommand.ExecuteReader();
-                        dataTable.Load(myDR);
-                    }
+                    Directory.CreateDirectory(SiteDataFolder);
                 }
-                catch (Exception e)
+                var SiteFileName = string.Format("{0}\\{1}-{2}.txt", SiteDataFolder, mySite.SiteName, myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty));
+
+                SiteFileName = string.Format("{0}\\{1}.csv", SiteDataFolder, myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty));
+                using (var writer = new StreamWriter(SiteFileName, false))
                 {
-                    Console.WriteLine("{0} Exception caught.", e);
+                    WriteDataTableCsv(Dt, writer, true);
                 }
+
+                myStopWatch.Stop();
+                Message = string.Format("{1} - {0} time:{2}", myFile.Replace(myExportConfig.ScriptPath, string.Empty), mySite.SiteName, myStopWatch.ElapsedMilliseconds);
+                Response.AppendLine(Message);
+                Console.WriteLine(Message);
             }
-            return dataTable;
+            catch (Exception e)
+            {
+                Console.WriteLine("{0} Exception caught.", e);
+            }
         }
+    }
+    private static DataTable GetDataTable(string sSQL, string SQLDBConnString)
+    {
+        using var dataTable = new DataTable();
+        using (var RecConn = new SqliteConnection { ConnectionString = SQLDBConnString })
+        {
+            try
+            {
+                RecConn.Open();
+                using var myCommand = new SqliteCommand(sSQL, RecConn);
+                myCommand.CommandTimeout = 600;
+                var myDR = myCommand.ExecuteReader();
+                dataTable.Load(myDR);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("{0} Exception caught.", e);
+            }
+        }
+        return dataTable;
     }
     public static void WriteDataTable(DataTable sourceTable, TextWriter writer, bool includeHeaders)
     {
@@ -169,6 +181,7 @@ public static class Export
             case "DOUBLE":
             case "INT16":
             case "INT32":
+            case "INT64":
                 return value.ToString();
             case "DATETIME":
                 if (((DateTime)value).TimeOfDay.TotalSeconds == 0)
