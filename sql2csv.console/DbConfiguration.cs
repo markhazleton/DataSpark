@@ -8,7 +8,7 @@ public class DbConfiguration
     /// <summary>
     /// Gets or sets the name of the site.
     /// </summary>
-    public string SiteName { get; set; }
+    public string DatabaseName { get; set; }
 
     /// <summary>
     /// Gets or sets the connection string.
@@ -19,9 +19,15 @@ public class DbConfiguration
     /// Initializes a new instance of the <see cref="DbConfiguration"/> class with the specified database name.
     /// </summary>
     /// <param name="db">The name of the database.</param>
-    public DbConfiguration(string db)
+    public DbConfiguration(string db, string conectionString)
     {
-        SiteName = db;
+        DatabaseName = db;
+        ConnectionString = conectionString;
+    }
+    public DbConfiguration(string dbFile)
+    {
+        DatabaseName = dbFile.Replace(".db", string.Empty);
+        ConnectionString = $"Data Source={dbFile}"; ;
     }
 
     /// <summary>

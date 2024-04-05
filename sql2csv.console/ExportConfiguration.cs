@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Reflection;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -11,104 +10,31 @@ namespace Sql2Csv;
 /// </summary>
 public class ExportConfiguration
 {
-    /// <summary>
-    /// Gets or sets the path to the SQL script file.
-    /// </summary>
-    public string ScriptPath { get; set; }
+    private readonly string _rootPath;
 
-    /// <summary>
-    /// Gets or sets the path to the output CSV data file.
-    /// </summary>
-    public string DataPath { get; set; }
-
-    /// <summary>
-    /// Gets or sets the path to the configuration file.
-    /// </summary>
-    public string ConfigPath { get; set; }
-
-    /// <summary>
-    /// Gets or sets the path to the database configuration list file.
-    /// </summary>
-    public string DatabaseConfigurationListPath { get; set; }
-
-    /// <summary>
-    /// Gets or sets the name of the target database.
-    /// </summary>
-    public string TargetDatabaseName { get; set; }
+    public ExportConfiguration()
+    {
+        _rootPath = "C:\\Temp\\SQL2CSV";
+    }
+    public ExportConfiguration(string path)
+    {
+        _rootPath = path;
+    }
 
     /// <summary>
     /// Validates the paths and ensures that the required directories exist.
     /// </summary>
-    public void ValidatePaths()
+    private void ValidatePaths()
     {
-        var path = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-        ConfigPath ??= $"{path}\\config\\";
-        ScriptPath ??= $"{path}\\script\\";
-        DataPath ??= $"{path}\\data\\";
-        DatabaseConfigurationListPath ??= $"{path}\\config\\";
+        ConfigPath ??= $"{_rootPath}\\config\\";
+        ScriptPath ??= $"{_rootPath}\\script\\";
+        DataPath ??= $"{_rootPath}\\data\\";
+        DatabaseConfigurationListPath ??= $"{_rootPath}\\config\\";
 
         EnsurePathExists(ConfigPath);
         EnsurePathExists(DataPath);
         EnsurePathExists(ScriptPath);
         EnsurePathExists(DatabaseConfigurationListPath);
-    }
-
-    /// <summary>
-    /// Saves the export configuration as an XML file.
-    /// </summary>
-    /// <returns>The path of the saved XML file.</returns>
-    public string SaveXml()
-    {
-        var sReturn = string.Empty;
-        var myXml = new XmlDocument();
-
-        if (this != null)
-        {
-            var oXS = new XmlSerializer(typeof(ExportConfiguration));
-            using (var writer = new StringWriter())
-            {
-                oXS.Serialize(writer, this);
-                myXml.LoadXml(writer.ToString());
-            }
-            myXml.Save(string.Format("{0}\\ExportConfiguration.xml", ConfigPath));
-        }
-        return sReturn;
-    }
-
-    /// <summary>
-    /// Retrieves the export configuration from an XML file.
-    /// </summary>
-    /// <returns>The export configuration object.</returns>
-    public ExportConfiguration GetFromXml()
-    {
-        var x = new XmlSerializer(typeof(ExportConfiguration));
-        try
-        {
-            using var objStreamReader = new StreamReader(string.Format("{0}\\ExportConfiguration.xml", ConfigPath));
-            var myY = (ExportConfiguration)x.Deserialize(objStreamReader);
-            ConfigPath = myY.ConfigPath;
-            DataPath = myY.DataPath;
-            ScriptPath = myY.ScriptPath;
-            DatabaseConfigurationListPath = myY.DatabaseConfigurationListPath;
-            TargetDatabaseName = myY.TargetDatabaseName;
-        }
-        catch (Exception e)
-        {
-            ExportConfiguration myExportConfig = new ExportConfiguration();
-            var path = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-            myExportConfig.ConfigPath = $"{path}\\config\\";
-            myExportConfig.ScriptPath = $"{path}\\script\\";
-            myExportConfig.DataPath = $"{path}\\data\\";
-            myExportConfig.DatabaseConfigurationListPath = $"{path}\\config\\";
-            EnsurePathExists(myExportConfig.ConfigPath);
-            EnsurePathExists(myExportConfig.DataPath);
-            EnsurePathExists(myExportConfig.ScriptPath);
-            EnsurePathExists(myExportConfig.DatabaseConfigurationListPath);
-
-            myExportConfig.SaveXml();
-            Console.WriteLine("{0} Exception caught.", e);
-        }
-        return this;
     }
 
     /// <summary>
@@ -129,4 +55,101 @@ public class ExportConfiguration
             // Fail silently.
         }
     }
+
+    /// <summary>
+    /// Retrieves the export configuration from an XML file.
+    /// </summary>
+    /// <returns>The export configuration object.</returns>
+    public ExportConfiguration GetFromXml()
+    {
+        var x = new XmlSerializer(typeof(ExportConfiguration));
+        try
+        {
+            ConfigPath = $"{_rootPath}\\config\\";
+            var path = string.Format("{0}ExportConfiguration.xml", ConfigPath);
+            // Check if the file exists
+            if (!File.Exists(path))
+            {
+                SaveXml();
+            }
+            using var objStreamReader = new StreamReader(string.Format("{0}\\ExportConfiguration.xml", ConfigPath));
+            var myY = (ExportConfiguration)x.Deserialize(objStreamReader);
+            ConfigPath = myY.ConfigPath;
+            DataPath = myY.DataPath;
+            ScriptPath = myY.ScriptPath;
+            DatabaseConfigurationListPath = myY.DatabaseConfigurationListPath;
+            TargetDatabaseName = myY.TargetDatabaseName;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("{0} Exception caught.", e);
+        }
+        SaveXml();
+        DisplayExportConfig();
+        return this;
+    }
+
+    public void DisplayExportConfig()
+    {
+        Console.WriteLine("          **** ");
+        Console.WriteLine("          **** ");
+        Console.WriteLine("          **** ");
+        Console.WriteLine($"          **** Configuration Path: {ConfigPath}");
+        Console.WriteLine($"          **** Data Path: {DataPath}");
+        Console.WriteLine($"          **** Script Path: {ScriptPath}");
+        Console.WriteLine(
+            string.Format("          **** Configuration List: {0}", DatabaseConfigurationListPath));
+        Console.WriteLine("          **** ");
+        Console.WriteLine("          **** ");
+        Console.WriteLine("          **** ");
+    }
+
+
+
+    /// <summary>
+    /// Saves the export configuration as an XML file.
+    /// </summary>
+    /// <returns>The path of the saved XML file.</returns>
+    public string SaveXml()
+    {
+        ValidatePaths();
+        var sReturn = string.Empty;
+        var myXml = new XmlDocument();
+
+        if (this != null)
+        {
+            var oXS = new XmlSerializer(typeof(ExportConfiguration));
+            using (var writer = new StringWriter())
+            {
+                oXS.Serialize(writer, this);
+                myXml.LoadXml(writer.ToString());
+            }
+            myXml.Save(string.Format("{0}\\ExportConfiguration.xml", ConfigPath));
+        }
+        return sReturn;
+    }
+
+    /// <summary>
+    /// Gets or sets the path to the configuration file.
+    /// </summary>
+    public string ConfigPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the path to the database configuration list file.
+    /// </summary>
+    public string DatabaseConfigurationListPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the path to the output CSV data file.
+    /// </summary>
+    public string DataPath { get; set; }
+    /// <summary>
+    /// Gets or sets the path to the SQL script file.
+    /// </summary>
+    public string ScriptPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the target database.
+    /// </summary>
+    public string TargetDatabaseName { get; set; }
 }

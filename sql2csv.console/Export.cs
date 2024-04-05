@@ -79,7 +79,7 @@ public static class Export
             {
                 Directory.CreateDirectory(SiteDataFolder);
             }
-            var SiteFileName = string.Format("{0}\\{1}-{2}.txt", SiteDataFolder, mySite.SiteName, myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty));
+            var SiteFileName = string.Format("{0}\\{1}-{2}.txt", SiteDataFolder, mySite.DatabaseName, myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty));
 
             SiteFileName = string.Format("{0}\\{1}.csv", SiteDataFolder, myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty));
             using (var writer = new StreamWriter(SiteFileName, false))
@@ -88,7 +88,7 @@ public static class Export
             }
 
             myStopWatch.Stop();
-            Message = string.Format("{1} - {0} time:{2}", myFile.Replace(myExportConfig.ScriptPath, string.Empty), mySite.SiteName, myStopWatch.ElapsedMilliseconds);
+            Message = string.Format("{1} - {0} time:{2}", myFile.Replace(myExportConfig.ScriptPath, string.Empty), mySite.DatabaseName, myStopWatch.ElapsedMilliseconds);
             Response.AppendLine(Message);
             Console.WriteLine(Message);
         }
@@ -174,7 +174,7 @@ public static class Export
     /// <param name="mySiteList">The collection of site configurations.</param>
     /// <param name="myExportConfig">The export configuration.</param>
     /// <returns>The exported data in CSV format.</returns>
-    public static string ProcessExtractSql(SiteConfigurationCollection mySiteList, ExportConfiguration myExportConfig)
+    public static string ProcessExtractSql(DbConfigurationCollection mySiteList, ExportConfiguration myExportConfig)
     {
         var Response = new StringBuilder();
         var Sql = string.Empty;

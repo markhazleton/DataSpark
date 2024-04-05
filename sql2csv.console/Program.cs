@@ -1,44 +1,34 @@
-﻿using System;
+﻿
+using Sql2Csv;
+using System;
 using System.IO;
-using System.Reflection;
 
-namespace Sql2Csv;
+var _rootPath = "C:\\Temp\\SQL2CSV";
+var myExportConfig = new ExportConfiguration(_rootPath);
+myExportConfig.GetFromXml();
 
-class Program
+var defaultConnectionString = (new SqliteDatabaseCreator(_rootPath)).ConnectionString;
+Console.WriteLine($"Default database connection string: {defaultConnectionString}");
+
+var databaseCollection = new DbConfigurationCollection(myExportConfig.DataPath);
+databaseCollection.GetFromXml(defaultConnectionString, "default");
+Console.WriteLine($"Database count: {databaseCollection.Count}");
+
+foreach (var db in databaseCollection)
 {
-    static void Main(string[] args)
-    {
-        var myExportConfig = new ExportConfiguration();
-        var path = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-        myExportConfig.ConfigPath = $"{path}\\config\\";
-        myExportConfig.GetFromXml();
-        myExportConfig.ValidatePaths();
-        DisplayExportConfig(myExportConfig);
+    Directory.CreateDirectory(db.DatabaseName);
 
-        var defaultDb = SqliteDatabaseCreator.CreateDatabaseAndTable();
-        Console.WriteLine($"Default database connection string: {defaultDb}");
+    Console.WriteLine($"Database: {db.DatabaseName}, Connection string: {db.ConnectionString}");
+    var exporter = new SqliteToCsvExporter(db);
+    exporter.ExportTablesToCsv();
 
-        var myConfigList = new SiteConfigurationCollection()
-        {
-            DataFolderPath = myExportConfig.DatabaseConfigurationListPath
-        };
-        myConfigList.GetFromXml(defaultDb, "default");
-        Export.ProcessExtractSql(myConfigList, myExportConfig);
-        Console.ReadKey();
+    SqliteSchemaReporter.ReportTablesAndColumns(db.ConnectionString);
 
-        static void DisplayExportConfig(ExportConfiguration myExportConfig)
-        {
-            Console.WriteLine("          **** ");
-            Console.WriteLine("          **** ");
-            Console.WriteLine("          **** ");
-            Console.WriteLine($"          **** Configuration Path: {myExportConfig.ConfigPath}");
-            Console.WriteLine($"          **** Data Path: {myExportConfig.DataPath}");
-            Console.WriteLine($"          **** Script Path: {myExportConfig.ScriptPath}");
-            Console.WriteLine(
-                string.Format("          **** Configuration List: {0}", myExportConfig.DatabaseConfigurationListPath));
-            Console.WriteLine("          **** ");
-            Console.WriteLine("          **** ");
-            Console.WriteLine("          **** ");
-        }
-    }
+    SqliteCodeGenerator.GenerateDtoClasses(db.ConnectionString, db.DatabaseName);
+
+
+
+
 }
+Console.WriteLine("Press any key to end...");
+Console.ReadKey();
