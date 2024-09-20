@@ -1,6 +1,6 @@
 # sql2csv
 
-A console application for Sqlite datbase that runs a set of SQL scripts and save the output to CSV files
+A console application for SQLite database that runs a set of SQL scripts and save the output to CSV files
 
 # SQLite Database Utilities
 

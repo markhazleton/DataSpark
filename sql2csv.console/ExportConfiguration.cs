@@ -66,13 +66,13 @@ public class ExportConfiguration
         try
         {
             ConfigPath = $"{_rootPath}\\config\\";
-            var path = string.Format("{0}ExportConfiguration.xml", ConfigPath);
+            var path = $"{ConfigPath}ExportConfiguration.xml";
             // Check if the file exists
             if (!File.Exists(path))
             {
                 SaveXml();
             }
-            using var objStreamReader = new StreamReader(string.Format("{0}\\ExportConfiguration.xml", ConfigPath));
+            using var objStreamReader = new StreamReader($"{ConfigPath}\\ExportConfiguration.xml");
             var myY = (ExportConfiguration)x.Deserialize(objStreamReader);
             ConfigPath = myY.ConfigPath;
             DataPath = myY.DataPath;
@@ -82,7 +82,7 @@ public class ExportConfiguration
         }
         catch (Exception e)
         {
-            Console.WriteLine("{0} Exception caught.", e);
+            Console.WriteLine($"{e} Exception caught.");
         }
         SaveXml();
         DisplayExportConfig();
@@ -97,8 +97,7 @@ public class ExportConfiguration
         Console.WriteLine($"          **** Configuration Path: {ConfigPath}");
         Console.WriteLine($"          **** Data Path: {DataPath}");
         Console.WriteLine($"          **** Script Path: {ScriptPath}");
-        Console.WriteLine(
-            string.Format("          **** Configuration List: {0}", DatabaseConfigurationListPath));
+        Console.WriteLine($"          **** Configuration List: {DatabaseConfigurationListPath}");
         Console.WriteLine("          **** ");
         Console.WriteLine("          **** ");
         Console.WriteLine("          **** ");
@@ -124,7 +123,7 @@ public class ExportConfiguration
                 oXS.Serialize(writer, this);
                 myXml.LoadXml(writer.ToString());
             }
-            myXml.Save(string.Format("{0}\\ExportConfiguration.xml", ConfigPath));
+            myXml.Save($"{ConfigPath}\\ExportConfiguration.xml");
         }
         return sReturn;
     }

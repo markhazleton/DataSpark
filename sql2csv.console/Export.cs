@@ -38,7 +38,7 @@ public static class Export
             }
             catch (Exception e)
             {
-                Console.WriteLine("{0} Exception caught.", e);
+                Console.WriteLine($"{e} Exception caught.");
             }
         }
         return dataTable;
@@ -51,8 +51,7 @@ public static class Export
     /// <returns>True if the value is numeric, otherwise false.</returns>
     private static bool IsNumeric(string value)
     {
-        int n;
-        return int.TryParse(value, out n);
+        return int.TryParse(value, out _);
     }
 
     /// <summary>
@@ -79,22 +78,22 @@ public static class Export
             {
                 Directory.CreateDirectory(SiteDataFolder);
             }
-            var SiteFileName = string.Format("{0}\\{1}-{2}.txt", SiteDataFolder, mySite.DatabaseName, myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty));
+            var SiteFileName = $"{SiteDataFolder}\\{mySite.DatabaseName}-{myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty)}.txt";
 
-            SiteFileName = string.Format("{0}\\{1}.csv", SiteDataFolder, myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty));
+            SiteFileName = $"{SiteDataFolder}\\{myFile.Replace(myExportConfig.ScriptPath, string.Empty).Replace(".sql", string.Empty)}.csv";
             using (var writer = new StreamWriter(SiteFileName, false))
             {
                 WriteDataTableCsv(Dt, writer, true);
             }
 
             myStopWatch.Stop();
-            Message = string.Format("{1} - {0} time:{2}", myFile.Replace(myExportConfig.ScriptPath, string.Empty), mySite.DatabaseName, myStopWatch.ElapsedMilliseconds);
+            Message = $"{mySite.DatabaseName} - {myFile.Replace(myExportConfig.ScriptPath, string.Empty)} time:{myStopWatch.ElapsedMilliseconds}";
             Response.AppendLine(Message);
             Console.WriteLine(Message);
         }
         catch (Exception e)
         {
-            Console.WriteLine("{0} Exception caught.", e);
+            Console.WriteLine($"{e} Exception caught.");
         }
     }
 
@@ -129,7 +128,7 @@ public static class Export
             case "DBNULL":
                 return String.Concat("\"", value.ToString().Replace("\"", "\"\""), "\"");
             default:
-                Console.WriteLine(string.Format("New Type:{0}", valType.Name.ToUpper()));
+                Console.WriteLine($"New Type:{valType.Name.ToUpper()}");
                 return String.Concat("\"", value.ToString().Replace("\"", "\"\""), "\"");
         }
     }
@@ -141,14 +140,7 @@ public static class Export
     /// <returns>The quoted value.</returns>
     private static string QuoteValue(string value)
     {
-        if (IsNumeric(value))
-        {
-            return value;
-        }
-        else
-        {
-            return value;
-        }
+        return value;
     }
 
     /// <summary>
@@ -164,7 +156,7 @@ public static class Export
         }
         else
         {
-            return string.Format("{0}{1}{0}", STR_Quote, value);
+            return $"{STR_Quote}{value}{STR_Quote}";
         }
     }
 
@@ -210,7 +202,7 @@ public static class Export
         }
         catch (Exception e)
         {
-            Console.WriteLine("{0} Exception caught.", e);
+            Console.WriteLine($"{e} Exception caught.");
         }
         return Response.ToString();
     }
@@ -231,7 +223,6 @@ public static class Export
         }
         foreach (DataRow row in sourceTable.Rows)
         {
-            row.ItemArray.Select(field => field.ToString());
             myRow = string.Join(STR_VBTab, row.ItemArray.Select(obj => QuoteValue(obj.ToString())));
             writer.WriteLine(myRow);
         }

@@ -5,12 +5,12 @@ using System.Text;
 namespace Sql2Csv;
 
 /// <summary>
-/// Represents a class that exports tables from a Sqlite database to CSV files.
+/// Represents a class that exports tables from a SQLite database to CSV files.
 /// </summary>
-public class SqliteToCsvExporter(DbConfiguration db)
+public class SQLiteToCsvExporter(DbConfiguration db)
 {
     /// <summary>
-    /// Exports all tables from the Sqlite database to CSV files.
+    /// Exports all tables from the SQLite database to CSV files.
     /// </summary>
     public void ExportTablesToCsv()
     {
@@ -24,9 +24,9 @@ public class SqliteToCsvExporter(DbConfiguration db)
     }
 
     /// <summary>
-    /// Retrieves the names of all tables in the Sqlite database.
+    /// Retrieves the names of all tables in the SQLite database.
     /// </summary>
-    /// <param name="connection">The Sqlite connection.</param>
+    /// <param name="connection">The SQLite connection.</param>
     /// <returns>An array of table names.</returns>
     private static string[] GetTableNames(SqliteConnection connection)
     {
@@ -40,7 +40,7 @@ public class SqliteToCsvExporter(DbConfiguration db)
                 tables.Add(reader["name"].ToString());
             }
         }
-        return tables.ToArray();
+        return [.. tables];
     }
 
     /// <summary>

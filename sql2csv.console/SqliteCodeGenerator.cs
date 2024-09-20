@@ -5,20 +5,20 @@ using System.Text;
 
 namespace Sql2Csv;
 
-public class SqliteCodeGenerator
+public class SQLiteCodeGenerator
 {
 
-    private static string ConvertSqliteTypeToCSharpType(string sqliteType)
+    private static string ConvertSQLiteTypeToCSharpType(string SQLiteType)
     {
-        switch (sqliteType.ToUpper())
+        return SQLiteType.ToUpper() switch
         {
-            case "INTEGER": return "int";
-            case "TEXT": return "string";
-            case "BLOB": return "byte[]";
-            case "REAL": return "double";
-            case "NUMERIC": return "decimal";
-            default: return "dynamic"; // Fallback for types not directly mapped
-        }
+            "INTEGER" => "int",
+            "TEXT" => "string",
+            "BLOB" => "byte[]",
+            "REAL" => "double",
+            "NUMERIC" => "decimal",
+            _ => "dynamic",// Fallback for types not directly mapped
+        };
     }
 
     private static string GenerateClassContent(string tableName, System.Collections.Generic.Dictionary<string, string> columns)
@@ -43,7 +43,6 @@ public class SqliteCodeGenerator
     {
         var sb = new StringBuilder();
         var dtoName = $"{tableName}DTO";
-        var parameterList = string.Join(", ", columns.Select(c => $"{c.Value} {c.Key.ToLower()}"));
 
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Data.Sqlite;");
@@ -61,7 +60,7 @@ public class SqliteCodeGenerator
         sb.AppendLine("    {");
         sb.AppendLine("        using (var connection = new SqliteConnection(_connectionString))");
         sb.AppendLine("        {");
-        sb.AppendLine($"            var command = new SqliteCommand(\"INSERT INTO {tableName} ({string.Join(", ", columns.Keys)}) VALUES ({string.Join(", ", columns.Keys.Select(k => "@" + k.ToLower()))})\", connection);");
+        sb.AppendLine($"            var command = new SqliteCommand(\"INSERT INTO {tableName} ({string.Join(", ", columns.Keys)}) VALUES ({string.Join(", ", columns.Keys.Select(k => $"@{k.ToLower()}"))})\", connection);");
         foreach (var column in columns)
         {
             sb.AppendLine($"            command.Parameters.AddWithValue(\"@{column.Key.ToLower()}\", dto.{column.Key});");
@@ -123,7 +122,7 @@ public class SqliteCodeGenerator
             while (reader.Read())
             {
                 var columnName = reader["name"].ToString();
-                var dataType = ConvertSqliteTypeToCSharpType(reader["type"].ToString());
+                var dataType = ConvertSQLiteTypeToCSharpType(reader["type"].ToString());
                 columns.Add(columnName, dataType);
             }
         }
@@ -144,7 +143,7 @@ public class SqliteCodeGenerator
             }
         }
 
-        return tables.ToArray();
+        return [.. tables];
     }
 
     private static void WriteToFile(string content, string fileName, string directory)

@@ -4,17 +4,17 @@ using System;
 namespace Sql2Csv;
 
 /// <summary>
-/// A static class that creates a Sqlite database and table, and performs operations on the table.
+/// A static class that creates a SQLite database and table, and performs operations on the table.
 /// </summary>
-public class SqliteDatabaseCreator
+public class SQLiteDatabaseCreator
 {
-    private string _connectionString;
+    private readonly string _connectionString;
 
     /// <summary>
-    /// Creates a Sqlite database and table if they don't exist, and inserts initial data into the table.
+    /// Creates a SQLite database and table if they don't exist, and inserts initial data into the table.
     /// </summary>
     /// <returns>The connection string of the created database.</returns>
-    public SqliteDatabaseCreator(string _rootPath)
+    public SQLiteDatabaseCreator(string _rootPath)
     {
         try
         {
@@ -24,7 +24,7 @@ public class SqliteDatabaseCreator
             connection.Open();
 
             // Check if the 'test' table already exists
-            var checkTableExistsQuery = "SELECT name FROM Sqlite_master WHERE type='table' AND name='test';";
+            var checkTableExistsQuery = "SELECT name FROM SQLite_master WHERE type='table' AND name='test';";
             bool tableExists;
             using (var command = new SqliteCommand(checkTableExistsQuery, connection))
             {
@@ -78,7 +78,6 @@ public class SqliteDatabaseCreator
             Console.WriteLine($"An error occurred: {ex.Message}");
         }
     }
-
     public string ConnectionString => _connectionString;
 }
 

@@ -31,7 +31,7 @@ public class DbConfigurationCollection : List<DbConfiguration>
         foreach (var dbFile in dbFiles)
         {
             //  check to make sure it is not already in the collection
-            if (this.Any(x => x.ConnectionString == $"Data Source={dbFile}")) continue;
+            if (this.Any(x => string.Compare(x.ConnectionString, $"Data Source={dbFile}", StringComparison.Ordinal) == 0)) continue;
             Add(new DbConfiguration(dbFile));
         }
         SaveXml();
@@ -47,7 +47,7 @@ public class DbConfigurationCollection : List<DbConfiguration>
     {
         Clear();
         var x = new XmlSerializer(typeof(DbConfigurationCollection));
-        Console.WriteLine(string.Format("Site Configuration Collection  **** Path: {0}", GetFileName()));
+        Console.WriteLine($"Site Configuration Collection  **** Path: {GetFileName()}");
 
         try
         {
@@ -69,7 +69,7 @@ public class DbConfigurationCollection : List<DbConfiguration>
         }
         catch (Exception ex)
         {
-            Console.WriteLine(string.Format("Site Configuration Collection  **** ERROR: {0}", ex));
+            Console.WriteLine($"Site Configuration Collection  **** ERROR: {ex}");
         }
         return this;
     }
@@ -98,7 +98,7 @@ public class DbConfigurationCollection : List<DbConfiguration>
             }
             catch (Exception ex)
             {
-                Console.WriteLine(String.Format("Error on Save Site Configuration List: {0}", ex));
+                Console.WriteLine($"Error on Save Site Configuration List: {ex}");
                 ReturnStrimg = ex.ToString();
             }
 
