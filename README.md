@@ -58,6 +58,7 @@ dotnet run --project sql2csv.console generate --path "C:\Data\Databases" --outpu
 ### Commands
 
 #### 🔄 Export Command
+
 Exports all tables from discovered databases to CSV files:
 
 ```bash
@@ -65,15 +66,18 @@ dotnet run export [options]
 ```
 
 **Options:**
+
 - `--path`: Directory containing SQLite database files (default: `%LOCALAPPDATA%\SQL2CSV\data`)
 - `--output`: Output directory for CSV files (default: `%LOCALAPPDATA%\SQL2CSV\export`)
 
 **Example:**
+
 ```bash
 dotnet run export --path "C:\MyDatabases" --output "C:\MyExports"
 ```
 
 #### 📊 Schema Command
+
 Generates detailed schema reports for all discovered databases:
 
 ```bash
@@ -81,14 +85,17 @@ dotnet run schema [options]
 ```
 
 **Options:**
+
 - `--path`: Directory containing SQLite database files
 
 **Example:**
+
 ```bash
 dotnet run schema --path "C:\ProjectDatabases"
 ```
 
 #### 🏗️ Generate Command
+
 Generates modern C# DTO classes from database schemas:
 
 ```bash
@@ -96,11 +103,13 @@ dotnet run generate [options]
 ```
 
 **Options:**
+
 - `--path`: Directory containing SQLite database files
 - `--output`: Output directory for generated code (default: `%LOCALAPPDATA%\SQL2CSV\generated`)
 - `--namespace`: Namespace for generated classes (default: `Sql2Csv.Generated`)
 
 **Example:**
+
 ```bash
 dotnet run generate --path "C:\Data" --output "C:\Code\Models" --namespace "MyCompany.Data.Models"
 ```
@@ -159,6 +168,7 @@ sql2csv/
 The core library contains all business logic and can be referenced by multiple projects:
 
 **Services:**
+
 - `ApplicationService`: Main orchestration service
 - `DatabaseDiscoveryService`: Discovers and validates SQLite database files
 - `ExportService`: High-performance CSV export with rich metadata
@@ -166,11 +176,13 @@ The core library contains all business logic and can be referenced by multiple p
 - `CodeGenerationService`: Template-based C# code generation
 
 **Models:**
+
 - `DatabaseConfiguration`: Database connection settings
 - `TableInfo`, `ColumnInfo`: Schema information models
 - Domain entities for database operations
 
 **Interfaces:**
+
 - `IDatabaseDiscoveryService`: Database discovery contract
 - `IExportService`: CSV export contract
 - `ISchemaService`: Schema operations contract
@@ -231,12 +243,14 @@ dotnet publish sql2csv.console/Sql2Csv.csproj -c Release -r osx-x64 --self-conta
 ## 📊 Output Examples
 
 ### CSV Export
+
 - Creates a directory structure: `{DatabaseName}/{TableName}_extract.csv`
 - Includes column headers (configurable)
 - Properly escapes CSV values using CsvHelper
 - Supports custom delimiters and encoding
 
 ### Generated C# DTOs
+
 ```csharp
 namespace MyCompany.Data.Models;
 
@@ -263,6 +277,7 @@ public record User
 ```
 
 ### Schema Reports
+
 - Detailed table and column information
 - Data types and constraints
 - Primary key and foreign key relationships
@@ -271,16 +286,19 @@ public record User
 ## 🎯 Use Cases
 
 ### Data Migration
+
 - **Legacy System Migration**: Export data from old SQLite databases
 - **Database Consolidation**: Merge multiple SQLite databases
 - **Platform Migration**: Move data to different database systems
 
 ### Code Generation
+
 - **API Development**: Generate DTOs for web APIs
 - **ORM Mapping**: Create entity classes for Entity Framework
 - **Data Access Layer**: Generate strongly-typed data models
 
 ### Analysis & Reporting
+
 - **Data Analysis**: Export to CSV for Excel/Power BI analysis
 - **Backup & Archive**: Create human-readable backups
 - **Documentation**: Generate schema documentation
@@ -384,4 +402,3 @@ Give a ⭐️ if this project helped you!
 <div align="center">
   <p>Made with ❤️ by <a href="https://github.com/markhazleton">Mark Hazleton</a></p>
 </div>
-
