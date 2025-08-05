@@ -9,7 +9,7 @@ namespace Sql2Csv.Web.Services;
 /// </summary>
 public interface IWebDatabaseService
 {
-    Task<(bool Success, string? ErrorMessage, string? FilePath)> SaveUploadedFileAsync(IFormFile file, CancellationToken cancellationToken = default);
+    Task<(bool Success, string? ErrorMessage, string? FilePath, int TableCount)> SaveUploadedFileAsync(IFormFile file, CancellationToken cancellationToken = default);
     Task<DatabaseAnalysisViewModel> AnalyzeDatabaseAsync(string filePath, CancellationToken cancellationToken = default);
     Task<List<ExportResultViewModel>> ExportTablesToCsvAsync(string filePath, List<string> tableNames, CancellationToken cancellationToken = default);
     Task<List<GeneratedCodeViewModel>> GenerateCodeAsync(string filePath, List<string> tableNames, string namespaceName, CancellationToken cancellationToken = default);
@@ -24,6 +24,7 @@ public class WebDatabaseService : IWebDatabaseService
     private readonly ISchemaService _schemaService;
     private readonly IExportService _exportService;
     private readonly ICodeGenerationService _codeGenerationService;
+    private readonly IPersistedFileService _persistedFileService;
     private readonly ILogger<WebDatabaseService> _logger;
     private readonly string _tempDirectory;
     private readonly HashSet<string> _tempFiles = [];
@@ -32,11 +33,13 @@ public class WebDatabaseService : IWebDatabaseService
         ISchemaService schemaService,
         IExportService exportService,
         ICodeGenerationService codeGenerationService,
+        IPersistedFileService persistedFileService,
         ILogger<WebDatabaseService> logger)
     {
         _schemaService = schemaService;
         _exportService = exportService;
         _codeGenerationService = codeGenerationService;
+        _persistedFileService = persistedFileService;
         _logger = logger;
         _tempDirectory = Path.Combine(Path.GetTempPath(), "Sql2Csv.Web");
 
@@ -44,14 +47,14 @@ public class WebDatabaseService : IWebDatabaseService
         Directory.CreateDirectory(_tempDirectory);
     }
 
-    public async Task<(bool Success, string? ErrorMessage, string? FilePath)> SaveUploadedFileAsync(IFormFile file, CancellationToken cancellationToken = default)
+    public async Task<(bool Success, string? ErrorMessage, string? FilePath, int TableCount)> SaveUploadedFileAsync(IFormFile file, CancellationToken cancellationToken = default)
     {
         try
         {
             // Validate file
             if (file == null || file.Length == 0)
             {
-                return (false, "No file selected", null);
+                return (false, "No file selected", null, 0);
             }
 
             // Validate file extension
@@ -60,13 +63,13 @@ public class WebDatabaseService : IWebDatabaseService
 
             if (!allowedExtensions.Contains(fileExtension))
             {
-                return (false, "Invalid file type. Only SQLite database files (.db, .sqlite, .sqlite3) are allowed.", null);
+                return (false, "Invalid file type. Only SQLite database files (.db, .sqlite, .sqlite3) are allowed.", null, 0);
             }
 
             // Validate file size (max 50MB)
             if (file.Length > 50 * 1024 * 1024)
             {
-                return (false, "File size too large. Maximum size is 50MB.", null);
+                return (false, "File size too large. Maximum size is 50MB.", null, 0);
             }
 
             // Generate unique filename
@@ -74,34 +77,47 @@ public class WebDatabaseService : IWebDatabaseService
             var filePath = Path.Combine(_tempDirectory, fileName);
 
             // Save file
-            using var fileStream = new FileStream(filePath, FileMode.Create);
-            await file.CopyToAsync(fileStream, cancellationToken);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream, cancellationToken);
+            } // Ensure stream is disposed before database validation
 
             // Track temp file for cleanup
             _tempFiles.Add(filePath);
 
             // Validate it's a valid SQLite file by trying to open it
-            var connectionString = $"Data Source={filePath}";
+            var connectionString = $"Data Source={filePath};Mode=ReadOnly;Cache=Shared;";
+            int tableCount = 0;
             try
             {
-                var tables = await _schemaService.GetTableNamesAsync(connectionString, cancellationToken);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(TimeSpan.FromSeconds(10)); // 10 second timeout for validation
+
+                var tables = await _schemaService.GetTableNamesAsync(connectionString, cts.Token);
+                tableCount = tables.Count();
                 // If we can get tables, the file is valid
+                _logger.LogInformation("Validated SQLite file with {TableCount} tables", tableCount);
+
+                // Force garbage collection to ensure database connections are cleaned up
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
             }
             catch (Exception ex)
             {
                 // Cleanup invalid file
                 File.Delete(filePath);
                 _tempFiles.Remove(filePath);
-                return (false, $"Invalid SQLite database file: {ex.Message}", null);
+                return (false, $"Invalid SQLite database file: {ex.Message}", null, 0);
             }
 
-            _logger.LogInformation("Successfully uploaded and validated database file: {FileName}", file.FileName);
-            return (true, null, filePath);
+            _logger.LogInformation("Successfully uploaded and validated database file: {FileName} with {TableCount} tables", file.FileName, tableCount);
+            return (true, null, filePath, tableCount);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error uploading file: {FileName}", file?.FileName);
-            return (false, $"Error uploading file: {ex.Message}", null);
+            return (false, $"Error uploading file: {ex.Message}", null, 0);
         }
     }
 
@@ -111,11 +127,26 @@ public class WebDatabaseService : IWebDatabaseService
 
         try
         {
-            var connectionString = $"Data Source={filePath}";
+            _logger.LogInformation("Starting database analysis for file: {FilePath}", filePath);
+
+            // Validate file exists
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException($"Database file not found: {filePath}");
+            }
+
+            var connectionString = $"Data Source={filePath};Mode=ReadOnly;Cache=Shared;";
             var databaseName = Path.GetFileNameWithoutExtension(filePath);
 
-            // Get all tables
-            var tablesInfo = await _schemaService.GetTablesAsync(connectionString, cancellationToken);
+            _logger.LogInformation("Getting tables information for database: {DatabaseName}", databaseName);
+
+            // Get all tables with timeout
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(30)); // 30 second timeout
+
+            var tablesInfo = await _schemaService.GetTablesAsync(connectionString, cts.Token);
+
+            _logger.LogInformation("Found {TableCount} tables in database", tablesInfo.Count());
 
             // Convert to view models
             var tableViewModels = new List<TableInfoViewModel>();
@@ -139,10 +170,30 @@ public class WebDatabaseService : IWebDatabaseService
                 });
             }
 
-            // Generate schema report
-            var schemaReport = await _schemaService.GenerateSchemaReportAsync(connectionString, cancellationToken);
+            _logger.LogInformation("Generating schema report for database");
+
+            // Generate schema report with timeout
+            string? schemaReport = null;
+            try
+            {
+                using var reportCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                reportCts.CancelAfter(TimeSpan.FromSeconds(15)); // 15 second timeout for schema report
+
+                schemaReport = await _schemaService.GenerateSchemaReportAsync(connectionString, reportCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Schema report generation timed out, continuing without report");
+                schemaReport = "Schema report generation timed out.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to generate schema report, continuing without report");
+                schemaReport = $"Failed to generate schema report: {ex.Message}";
+            }
 
             stopwatch.Stop();
+            _logger.LogInformation("Database analysis completed in {Duration}ms", stopwatch.ElapsedMilliseconds);
 
             return new DatabaseAnalysisViewModel
             {

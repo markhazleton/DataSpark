@@ -13,6 +13,17 @@ public class FileUploadViewModel
 
     public string? ErrorMessage { get; set; }
     public bool IsValid => string.IsNullOrEmpty(ErrorMessage);
+
+    [Display(Name = "Save file for future use")]
+    public bool SaveForFutureUse { get; set; }
+
+    [Display(Name = "File Description")]
+    public string? FileDescription { get; set; }
+
+    public List<PersistedDatabaseFile> AvailableFiles { get; set; } = [];
+
+    [Display(Name = "Use existing file")]
+    public string? SelectedFileId { get; set; }
 }
 
 /// <summary>
@@ -118,4 +129,27 @@ public enum CodeLanguage
     CSharp,
     TypeScript,
     Python
+}
+
+/// <summary>
+/// View model for managing persisted files
+/// </summary>
+public class FileManagementViewModel
+{
+    public List<PersistedDatabaseFile> Files { get; set; } = [];
+    public long TotalStorageSize { get; set; }
+    public string FormattedStorageSize => FormatFileSize(TotalStorageSize);
+
+    private static string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
 }

@@ -4,15 +4,30 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
-> A powerful, modern .NET 9 console application and library for exporting SQLite databases to CSV format with advanced features including code generation and schema reporting.
+> A powerful, modern .NET 9 solution for working with SQLite databases, featuring both a console application and web interface for exporting to CSV, generating C# code, and analyzing database schemas.
 
 ## ✨ Features
+
+### 🌐 Web Application
+
+- 🎯 **Interactive Web Interface**: Modern ASP.NET Core web application for database analysis
+- 📁 **File Upload & Management**: Upload SQLite databases with drag-and-drop support
+- 💾 **File Persistence**: Save uploaded files for later use with metadata tracking
+- 🔍 **Real-time Analysis**: Instant database schema analysis and table browsing
+- 📊 **Web-based Export**: Export selected tables to CSV directly from the browser
+- 🏗️ **Code Generation**: Generate C# DTO classes with custom namespaces
+- 📱 **Responsive Design**: Works seamlessly on desktop and mobile devices
+
+### 🖥️ Console Application
 
 - 🔍 **Database Discovery**: Automatically discovers SQLite databases in specified directories
 - 📊 **CSV Export**: High-performance export of all tables to CSV format with CsvHelper
 - 📋 **Schema Reporting**: Generates detailed schema reports for databases
 - 🏗️ **Code Generation**: Generates modern C# DTO classes from database schemas
 - ⚡ **Async/Await**: Fully asynchronous operations for optimal performance
+
+### 🏛️ Architecture & Quality
+
 - 🏛️ **Clean Architecture**: Modular design with proper separation of concerns
 - 💉 **Dependency Injection**: Uses Microsoft.Extensions.DependencyInjection
 - 📝 **Structured Logging**: Comprehensive logging with Microsoft.Extensions.Logging
@@ -35,12 +50,31 @@ cd sql2csv
 
 # Build the solution
 dotnet build
-
-# Run the application
-dotnet run --project sql2csv.console
 ```
 
-### Basic Usage
+### Web Application
+
+The web application provides an intuitive interface for database analysis:
+
+```bash
+# Run the web application
+dotnet run --project sql2csv.web
+
+# Open browser to http://localhost:5000
+```
+
+**Features:**
+
+- **Upload SQLite files**: Drag and drop or browse to select database files
+- **Save for later**: Persist uploaded files for future analysis
+- **Manage files**: View, organize, and delete saved database files
+- **Interactive analysis**: Browse tables, view schemas, and analyze data
+- **Export to CSV**: Select specific tables to export to CSV format
+- **Generate code**: Create C# DTO classes from database schemas
+
+### Console Application
+
+For automation and scripting scenarios:
 
 ```bash
 # Export all databases to CSV
@@ -144,12 +178,20 @@ The application uses `appsettings.json` for configuration:
 
 This solution follows Clean Architecture principles with clear separation of concerns:
 
-```
+```text
 sql2csv/
+├── 🌐 sql2csv.web/               # Web Application
+│   ├── Controllers/              # MVC controllers
+│   ├── Models/                   # View models and DTOs
+│   ├── Services/                 # Web-specific services
+│   ├── Views/                    # Razor views and layouts
+│   ├── wwwroot/                  # Static files (CSS, JS, images)
+│   ├── Program.cs               # Web app entry point
+│   └── appsettings.json         # Web app configuration
 ├── 📱 sql2csv.console/           # Console Application
 │   ├── Presentation/             # CLI commands and UI logic
-│   ├── Program.cs               # Application entry point
-│   └── appsettings.json         # Configuration
+│   ├── Program.cs               # Console app entry point
+│   └── appsettings.json         # Console app configuration
 ├── 📚 Sql2Csv.Core/             # Core Library
 │   ├── Configuration/           # Configuration models
 │   ├── Interfaces/              # Service contracts  
@@ -163,7 +205,34 @@ sql2csv/
 
 ### Core Components
 
-#### 🎯 Sql2Csv.Core Library
+#### � Web Application
+
+The web application provides an intuitive interface for database operations:
+
+**Controllers:**
+
+- `HomeController`: Main application flow, file upload, and analysis
+- File management endpoints for CRUD operations
+
+**Services:**
+
+- `WebDatabaseService`: Web-specific database operations with timeout handling
+- `PersistedFileService`: File persistence and metadata management
+
+**Models:**
+
+- `FileUploadViewModel`: File upload and selection interface
+- `FileManagementViewModel`: Persisted file management
+- `PersistedDatabaseFile`: File metadata and tracking
+
+**Features:**
+
+- **File Upload**: Drag-and-drop SQLite file upload with validation
+- **File Persistence**: Save uploaded files with metadata for reuse
+- **Interactive Analysis**: Real-time database schema browsing
+- **Export & Generation**: Web-based CSV export and C# code generation
+
+#### �🎯 Sql2Csv.Core Library
 
 The core library contains all business logic and can be referenced by multiple projects:
 
@@ -188,7 +257,7 @@ The core library contains all business logic and can be referenced by multiple p
 - `ISchemaService`: Schema operations contract
 - `ICodeGenerationService`: Code generation contract
 
-#### 🖥️ Console Application
+#### 🖥️ CLI Application
 
 The console application provides a modern CLI interface:
 
@@ -285,6 +354,13 @@ public record User
 
 ## 🎯 Use Cases
 
+### Interactive Database Analysis
+
+- **Quick Database Exploration**: Upload and analyze SQLite databases instantly
+- **Schema Documentation**: Generate visual schema reports for documentation
+- **Team Collaboration**: Share database files and analysis results
+- **Development Workflow**: Analyze development databases during coding
+
 ### Data Migration
 
 - **Legacy System Migration**: Export data from old SQLite databases
@@ -373,6 +449,15 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - Write unit tests for new functionality
 
 ## 📋 Roadmap
+
+### ✅ Completed Features
+
+- ✅ **Web Application**: Interactive ASP.NET Core web interface with file persistence
+- ✅ **File Management**: Upload, save, and manage SQLite database files
+- ✅ **Real-time Analysis**: Instant database schema analysis and browsing
+- ✅ **Web Export & Generation**: Browser-based CSV export and C# code generation
+
+### 🚀 Upcoming Features
 
 - [ ] **Web API**: REST API for remote database operations
 - [ ] **Docker Support**: Containerized deployment options
