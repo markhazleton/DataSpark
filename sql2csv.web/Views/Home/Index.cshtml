@@ -1,0 +1,164 @@
+@model Sql2Csv.Web.Models.FileUploadViewModel
+@{
+    ViewData["Title"] = "SQLite to CSV Converter";
+}
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Hero Section -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gradient mb-4">
+            SQLite to CSV Converter
+        </h1>
+        <p class="text-xl text-secondary-600 max-w-2xl mx-auto">
+            Upload your SQLite database and explore its schema, export tables to CSV, or generate model classes.
+            A complete database analysis and export tool built with .NET 9.0.
+        </p>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="card max-w-2xl mx-auto">
+        <div class="card-header">
+            <h2 class="text-2xl font-semibold text-secondary-900">Upload Database</h2>
+            <p class="text-secondary-600 mt-2">
+                Select a SQLite database file (.db, .sqlite, .sqlite3) to get started. Maximum file size: 50MB.
+            </p>
+        </div>
+
+        <form asp-action="Upload" method="post" enctype="multipart/form-data" id="upload-form">
+            <div class="space-y-6">
+                <!-- File Upload Zone -->
+                <div class="upload-zone" x-data="{ dragging: false }" @@dragover.prevent="dragging = true"
+                    @@dragleave="dragging = false" @@drop.prevent="dragging = false" :class="{ 'dragover': dragging }">
+                    <input type="file" name="DatabaseFile" id="database-file" accept=".db,.sqlite,.sqlite3"
+                        class="sr-only" />
+                    <label for="database-file" class="cursor-pointer block">
+                        <div class="flex flex-col items-center">
+                            <svg class="mx-auto h-12 w-12 text-secondary-400" stroke="currentColor" fill="none"
+                                viewBox="0 0 48 48">
+                                <path
+                                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="mt-4">
+                                <p class="text-sm text-secondary-900">
+                                    <span class="font-medium text-primary-600 hover:text-primary-500">Click to
+                                        upload</span>
+                                    or drag and drop
+                                </p>
+                                <p class="text-xs text-secondary-500 mt-1">SQLite files only (MAX. 50MB)</p>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Selected File Display -->
+                <div id="selected-file-name" class="hidden">
+                    <div class="flex items-center p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                        <svg class="h-5 w-5 text-primary-600 mr-3" xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-sm text-primary-800 font-medium"></span>
+                    </div>
+                </div>
+
+                <!-- Error Display -->
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div id="file-error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-800">@Model.ErrorMessage</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div id="file-error" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-800"></p>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Submit Button -->
+                <div class="flex justify-center">
+                    <button type="submit"
+                        class="btn-primary px-8 py-3 text-base font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                        <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        Analyze Database
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Features Section -->
+    <div class="mt-16">
+        <h2 class="text-3xl font-bold text-center text-secondary-900 mb-12">Features</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="text-center">
+                <div class="bg-primary-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-secondary-900 mb-2">Schema Analysis</h3>
+                <p class="text-secondary-600">Explore your database structure with detailed table and column
+                    information, including data types and constraints.</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-primary-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-secondary-900 mb-2">CSV Export</h3>
+                <p class="text-secondary-600">Export individual tables or entire databases to CSV format with
+                    customizable options and high performance.</p>
+            </div>
+            <div class="text-center">
+                <div class="bg-primary-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-secondary-900 mb-2">Code Generation</h3>
+                <p class="text-secondary-600">Generate C# model classes from your database schema to accelerate
+                    development and ensure type safety.</p>
+            </div>
+        </div>
+    </div>
+</div>
