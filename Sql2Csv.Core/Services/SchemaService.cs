@@ -125,12 +125,15 @@ public sealed class SchemaService : ISchemaService
 
             while (await reader.ReadAsync(cancellationToken))
             {
+                var isPrimaryKey = reader.GetBoolean(reader.GetOrdinal("pk"));
+                var notNull = reader.GetBoolean(reader.GetOrdinal("notnull"));
+
                 var column = new ColumnInfo
                 {
                     Name = reader.GetString(reader.GetOrdinal("name")),
                     DataType = reader.GetString(reader.GetOrdinal("type")),
-                    IsNullable = !reader.GetBoolean(reader.GetOrdinal("notnull")),
-                    IsPrimaryKey = reader.GetBoolean(reader.GetOrdinal("pk")),
+                    IsNullable = !notNull && !isPrimaryKey, // Primary keys are never nullable
+                    IsPrimaryKey = isPrimaryKey,
                     DefaultValue = reader.IsDBNull(reader.GetOrdinal("dflt_value")) ? null : reader.GetString(reader.GetOrdinal("dflt_value"))
                 };
 
@@ -156,6 +159,10 @@ public sealed class SchemaService : ISchemaService
         try
         {
             var report = new StringBuilder();
+            report.AppendLine("Database Schema Report");
+            report.AppendLine(new string('=', 50));
+            report.AppendLine();
+
             var tables = await GetTablesAsync(connectionString, cancellationToken);
 
             foreach (var table in tables)

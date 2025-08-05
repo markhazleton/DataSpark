@@ -1,5 +1,7 @@
 using System.CommandLine;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Sql2Csv.Core.Configuration;
 using Sql2Csv.Core.Services;
 
 namespace Sql2Csv.Presentation.Commands;
@@ -32,12 +34,12 @@ public static class CommandFactory
         var pathOption = new Option<string>(
             "--path",
             description: "Path to directory containing SQLite databases",
-            getDefaultValue: () => GetDefaultDataPath());
+            getDefaultValue: () => GetDefaultDataPath(services));
 
         var outputOption = new Option<string>(
             "--output",
             description: "Output directory for CSV files",
-            getDefaultValue: () => GetDefaultExportPath());
+            getDefaultValue: () => GetDefaultExportPath(services));
 
         exportCommand.AddOption(pathOption);
         exportCommand.AddOption(outputOption);
@@ -59,7 +61,7 @@ public static class CommandFactory
         var pathOption = new Option<string>(
             "--path",
             description: "Path to directory containing SQLite databases",
-            getDefaultValue: () => GetDefaultDataPath());
+            getDefaultValue: () => GetDefaultDataPath(services));
 
         schemaCommand.AddOption(pathOption);
 
@@ -80,12 +82,12 @@ public static class CommandFactory
         var pathOption = new Option<string>(
             "--path",
             description: "Path to directory containing SQLite databases",
-            getDefaultValue: () => GetDefaultDataPath());
+            getDefaultValue: () => GetDefaultDataPath(services));
 
         var outputOption = new Option<string>(
             "--output",
             description: "Output directory for generated code",
-            getDefaultValue: () => GetDefaultGeneratedPath());
+            getDefaultValue: () => GetDefaultGeneratedPath(services));
 
         var namespaceOption = new Option<string>(
             "--namespace",
@@ -106,12 +108,24 @@ public static class CommandFactory
         return generateCommand;
     }
 
-    private static string GetDefaultDataPath() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SQL2CSV", "data");
+    private static string GetDefaultDataPath(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var options = scope.ServiceProvider.GetRequiredService<IOptions<Sql2CsvOptions>>().Value;
+        return Path.Combine(options.RootPath, options.Paths.Data);
+    }
 
-    private static string GetDefaultExportPath() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SQL2CSV", "export");
+    private static string GetDefaultExportPath(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var options = scope.ServiceProvider.GetRequiredService<IOptions<Sql2CsvOptions>>().Value;
+        return Path.Combine(options.RootPath, "export");
+    }
 
-    private static string GetDefaultGeneratedPath() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SQL2CSV", "generated");
+    private static string GetDefaultGeneratedPath(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var options = scope.ServiceProvider.GetRequiredService<IOptions<Sql2CsvOptions>>().Value;
+        return Path.Combine(options.RootPath, "generated");
+    }
 }

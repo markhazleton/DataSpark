@@ -1,4 +1,5 @@
 using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -93,6 +94,13 @@ public sealed class ExportService : IExportService
         {
             var encoding = Encoding.GetEncoding(_options.Export.Encoding);
 
+            // Ensure output directory exists
+            var outputDirectory = Path.GetDirectoryName(outputFilePath);
+            if (!string.IsNullOrEmpty(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+
             await using var connection = new SqliteConnection(databaseConfig.ConnectionString);
             await connection.OpenAsync(cancellationToken);
 
@@ -103,7 +111,13 @@ public sealed class ExportService : IExportService
             using var reader = await command.ExecuteReaderAsync(cancellationToken);
             await using var fileStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write);
             await using var writer = new StreamWriter(fileStream, encoding);
-            using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+
+            // Configure CSV writer with custom delimiter
+            var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = _options.Export.Delimiter
+            };
+            using var csv = new CsvWriter(writer, csvConfig);
 
             // Write headers if configured
             if (_options.Export.IncludeHeaders)
