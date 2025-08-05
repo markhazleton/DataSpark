@@ -316,6 +316,101 @@ public class HomeController : Controller
         }
     }
 
+    public async Task<IActionResult> AnalyzeTable(string tableName)
+    {
+        var filePath = TempData["DatabaseFilePath"] as string;
+        var fileName = TempData["DatabaseFileName"] as string;
+
+        _logger.LogInformation("AnalyzeTable action called with TableName: {TableName}, FilePath: {FilePath}", tableName, filePath);
+
+        if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(tableName))
+        {
+            _logger.LogWarning("Missing file path or table name, redirecting to Index");
+            return RedirectToAction("Index");
+        }
+
+        // Check if file exists before attempting analysis
+        if (!System.IO.File.Exists(filePath))
+        {
+            _logger.LogError("File not found at path: {FilePath}", filePath);
+            TempData["ErrorMessage"] = "The selected database file is no longer available.";
+            return RedirectToAction("Index");
+        }
+
+        try
+        {
+            _logger.LogInformation("Starting table analysis for table: {TableName} in file: {FilePath}", tableName, filePath);
+
+            // Add timeout to the analysis operation
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)); // 5 minute timeout for table analysis
+
+            var analysis = await _databaseService.AnalyzeTableAsync(filePath, tableName, cts.Token);
+
+            // Keep the file path for subsequent operations
+            TempData.Keep("DatabaseFilePath");
+            TempData.Keep("DatabaseFileName");
+
+            _logger.LogInformation("Table analysis completed successfully for table: {TableName}", tableName);
+            return View(analysis);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogError("Table analysis timed out for table: {TableName} in file: {FilePath}", tableName, filePath);
+            TempData["ErrorMessage"] = "Table analysis timed out. The table might be too large.";
+            return RedirectToAction("Analyze");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing table: {TableName} in file: {FilePath}", tableName, filePath);
+            TempData["ErrorMessage"] = "An error occurred while analyzing the table.";
+            return RedirectToAction("Analyze");
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetTableData(string tableName, [FromForm] DataTablesRequest request)
+    {
+        var filePath = TempData["DatabaseFilePath"] as string;
+
+        if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(tableName))
+        {
+            return Json(new TableDataResult { Error = "Missing file path or table name" });
+        }
+
+        // Check if file exists
+        if (!System.IO.File.Exists(filePath))
+        {
+            return Json(new TableDataResult { Error = "Database file not found" });
+        }
+
+        try
+        {
+            _logger.LogInformation("Getting table data for table: {TableName}, Start: {Start}, Length: {Length}",
+                tableName, request.Start, request.Length);
+
+            // Add timeout to the operation
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)); // 2 minute timeout
+
+            var result = await _databaseService.GetTableDataAsync(filePath, tableName, request, cts.Token);
+
+            // Keep the file path for subsequent operations
+            TempData.Keep("DatabaseFilePath");
+            TempData.Keep("DatabaseFileName");
+
+            return Json(result);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogError("GetTableData timed out for table: {TableName}", tableName);
+            return Json(new TableDataResult { Error = "Operation timed out" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting table data for table: {TableName}", tableName);
+            return Json(new TableDataResult { Error = ex.Message });
+        }
+    }
+
     public IActionResult About()
     {
         return View();
