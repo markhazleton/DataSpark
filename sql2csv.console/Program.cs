@@ -1,24 +1,71 @@
 ﻿
-using Sql2Csv;
-using System;
-using System.IO;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Sql2Csv.Core.Configuration;
+using Sql2Csv.Core.Interfaces;
+using Sql2Csv.Infrastructure.Services;
+using Sql2Csv.Application.Services;
+using Sql2Csv.Presentation.Commands;
+using System.CommandLine;
 
-var _rootPath = "C:\\Temp\\SQL2CSV";
-var myExportConfig = new ExportConfiguration(_rootPath);
-myExportConfig.GetFromXml();
-var defaultConnectionString = (new SQLiteDatabaseCreator(_rootPath)).ConnectionString;
-Console.WriteLine($"Default database connection string: {defaultConnectionString}");
-var databaseCollection = new DbConfigurationCollection(myExportConfig.DataPath);
-databaseCollection.GetFromXml(defaultConnectionString, "default");
-Console.WriteLine($"Database count: {databaseCollection.Count}");
-foreach (var db in databaseCollection)
+namespace Sql2Csv;
+
+/// <summary>
+/// The main program class.
+/// </summary>
+public static class Program
 {
-    Directory.CreateDirectory(db.DatabaseName);
-    Console.WriteLine($"Database: {db.DatabaseName}, Connection string: {db.ConnectionString}");
-    var exporter = new SQLiteToCsvExporter(db);
-    exporter.ExportTablesToCsv();
-    SqliteSchemaReporter.ReportTablesAndColumns(db.ConnectionString);
-    SQLiteCodeGenerator.GenerateDtoClasses(db.ConnectionString, db.DatabaseName);
+    /// <summary>
+    /// The main entry point for the application.
+    /// </summary>
+    /// <param name="args">The command line arguments.</param>
+    /// <returns>The exit code.</returns>
+    public static async Task<int> Main(string[] args)
+    {
+        try
+        {
+            var host = CreateHostBuilder(args).Build();
+
+            var rootCommand = CommandFactory.CreateRootCommand(host.Services);
+            return await rootCommand.InvokeAsync(args);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// Creates the host builder.
+    /// </summary>
+    /// <param name="args">The command line arguments.</param>
+    /// <returns>The host builder.</returns>
+    private static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureAppConfiguration((context, config) =>
+            {
+                config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                config.AddCommandLine(args);
+            })
+            .ConfigureServices((context, services) =>
+            {
+                // Configure options
+                services.Configure<Sql2CsvOptions>(
+                    context.Configuration.GetSection(Sql2CsvOptions.SectionName));
+
+                // Register services
+                services.AddScoped<IDatabaseDiscoveryService, DatabaseDiscoveryService>();
+                services.AddScoped<IExportService, ExportService>();
+                services.AddScoped<ISchemaService, SchemaService>();
+                services.AddScoped<ICodeGenerationService, CodeGenerationService>();
+                services.AddScoped<ApplicationService>();
+            })
+            .ConfigureLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddConsole();
+            });
 }
-Console.WriteLine("Press any key to end...");
-Console.ReadKey();
