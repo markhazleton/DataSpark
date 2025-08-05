@@ -1,6 +1,6 @@
 using System.CommandLine;
 using Microsoft.Extensions.DependencyInjection;
-using Sql2Csv.Application.Services;
+using Sql2Csv.Core.Services;
 
 namespace Sql2Csv.Presentation.Commands;
 

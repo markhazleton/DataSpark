@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using Sql2Csv.Core.Configuration;
 using Sql2Csv.Core.Interfaces;
 
-namespace Sql2Csv.Application.Services;
+namespace Sql2Csv.Core.Services;
 
 /// <summary>
 /// Main application service that orchestrates the export operations.

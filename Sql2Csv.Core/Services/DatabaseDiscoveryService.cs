@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Sql2Csv.Core.Models;
 using Sql2Csv.Core.Interfaces;
 
-namespace Sql2Csv.Infrastructure.Services;
+namespace Sql2Csv.Core.Services;
 
 /// <summary>
 /// Service for discovering database files.

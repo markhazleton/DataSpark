@@ -5,8 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Sql2Csv.Core.Configuration;
 using Sql2Csv.Core.Interfaces;
-using Sql2Csv.Infrastructure.Services;
-using Sql2Csv.Application.Services;
+using Sql2Csv.Core.Services;
 using Sql2Csv.Presentation.Commands;
 using System.CommandLine;
 

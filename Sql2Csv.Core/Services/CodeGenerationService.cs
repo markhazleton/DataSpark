@@ -5,7 +5,7 @@ using Sql2Csv.Core.Configuration;
 using Sql2Csv.Core.Interfaces;
 using System.Text;
 
-namespace Sql2Csv.Infrastructure.Services;
+namespace Sql2Csv.Core.Services;
 
 /// <summary>
 /// Service for generating code from database schema.

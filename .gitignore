@@ -10,6 +10,11 @@
 *.userosscache
 *.sln.docstates
 
+# IDE files
+*.swp
+*.swo
+*~
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -30,6 +35,10 @@ bld/
 # Visual Studio 2015/2017 cache/options directory
 .vs/
 .vscode/
+
+# JetBrains Rider
+.idea/
+*.sln.iml
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
@@ -56,6 +65,10 @@ BenchmarkDotNet.Artifacts/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+**/Properties/launchSettings.json
+
+# .NET 5+
+global.json
 
 # StyleCop
 StyleCopReport.xml
@@ -339,3 +352,88 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# Backup folder for Package Reference Convert tool in Visual Studio 2017
+MigrationBackup/
+
+# Ionide (cross platform F# VS Code tools) working folder
+.ionide/
+
+# Fody - auto-generated XML schema
+FodyWeavers.xsd
+
+# VS Code files for those working on multiple tools
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/
+
+# Windows Installer files from build outputs
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# User secrets
+secrets.json
+**/appsettings.*.json
+!**/appsettings.json
+!**/appsettings.Development.json
+
+# Temporary ASP.NET files
+Temporary ASP.NET Files/
+
+# .NET Core CLI tools
+.dotnet/
+
+# Common IDE temp/backup files
+*.orig
+*.rej
+*.tmp_proj
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# CSV output files (for this specific project)
+*.csv
+!sample*.csv
+!test*.csv
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+logs/
+*.log*
+
+# Coverage reports
+coverage/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
