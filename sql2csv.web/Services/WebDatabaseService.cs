@@ -182,7 +182,7 @@ public class WebDatabaseService : IWebDatabaseService
                 using var reportCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 reportCts.CancelAfter(TimeSpan.FromSeconds(15)); // 15 second timeout for schema report
 
-                schemaReport = await _schemaService.GenerateSchemaReportAsync(connectionString, reportCts.Token);
+                schemaReport = await _schemaService.GenerateSchemaReportAsync(connectionString, format: "text", cancellationToken: reportCts.Token);
             }
             catch (OperationCanceledException)
             {

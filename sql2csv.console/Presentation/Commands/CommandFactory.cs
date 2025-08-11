@@ -81,15 +81,25 @@ public static class CommandFactory
             description: "Output directory for CSV files",
             getDefaultValue: () => GetDefaultExportPath(services));
 
+        var delimiterOption = new Option<string?>(
+            "--delimiter",
+            description: "Optional CSV delimiter override (defaults to configured option)");
+
+        var headersOption = new Option<bool?>(
+            "--headers",
+            description: "Override to include (true) or exclude (false) headers; omit to use configured option");
+
         exportCommand.AddOption(pathOption);
         exportCommand.AddOption(outputOption);
+        exportCommand.AddOption(delimiterOption);
+        exportCommand.AddOption(headersOption);
 
-        exportCommand.SetHandler(async (path, output) =>
+        exportCommand.SetHandler(async (path, output, delimiter, headers) =>
         {
             using var scope = services.CreateScope();
             var app = scope.ServiceProvider.GetRequiredService<ApplicationService>();
-            await app.ExportDatabasesAsync(path, output);
-        }, pathOption, outputOption);
+            await app.ExportDatabasesAsync(path, output, delimiter, headers);
+        }, pathOption, outputOption, delimiterOption, headersOption);
 
         return exportCommand;
     }
@@ -103,14 +113,20 @@ public static class CommandFactory
             description: "Path to directory containing SQLite databases",
             getDefaultValue: () => GetDefaultDataPath(services));
 
-        schemaCommand.AddOption(pathOption);
+        var formatOption = new Option<string>(
+            name: "--format",
+            description: "Output format: text (default), json, markdown",
+            getDefaultValue: () => "text");
 
-        schemaCommand.SetHandler(async (path) =>
+        schemaCommand.AddOption(pathOption);
+        schemaCommand.AddOption(formatOption);
+
+        schemaCommand.SetHandler(async (path, format) =>
         {
             using var scope = services.CreateScope();
             var app = scope.ServiceProvider.GetRequiredService<ApplicationService>();
-            await app.GenerateSchemaReportsAsync(path);
-        }, pathOption);
+            await app.GenerateSchemaReportsAsync(path, format);
+        }, pathOption, formatOption);
 
         return schemaCommand;
     }

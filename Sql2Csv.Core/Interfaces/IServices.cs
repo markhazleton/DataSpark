@@ -39,6 +39,27 @@ public interface IExportService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The export result.</returns>
     Task<ExportResult> ExportTableToCsvAsync(DatabaseConfiguration databaseConfig, string tableName, string outputFilePath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Exports all tables from a database to CSV files with optional runtime overrides.
+    /// </summary>
+    /// <param name="databaseConfig">The database configuration.</param>
+    /// <param name="outputDirectory">The output directory.</param>
+    /// <param name="delimiter">Optional delimiter override; if null uses configured option.</param>
+    /// <param name="includeHeaders">Optional include headers override; if null uses configured option.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task<IEnumerable<ExportResult>> ExportDatabaseToCsvAsync(DatabaseConfiguration databaseConfig, string outputDirectory, string? delimiter, bool? includeHeaders, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Exports a specific table with optional runtime overrides.
+    /// </summary>
+    /// <param name="databaseConfig">The database configuration.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="outputFilePath">The output file path.</param>
+    /// <param name="delimiter">Optional delimiter override.</param>
+    /// <param name="includeHeaders">Optional include headers override.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task<ExportResult> ExportTableToCsvAsync(DatabaseConfiguration databaseConfig, string tableName, string outputFilePath, string? delimiter, bool? includeHeaders, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -75,9 +96,10 @@ public interface ISchemaService
     /// Generates a schema report for a database.
     /// </summary>
     /// <param name="connectionString">The database connection string.</param>
+    /// <param name="format">Output format: text (default), json, or markdown.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A schema report.</returns>
-    Task<string> GenerateSchemaReportAsync(string connectionString, CancellationToken cancellationToken = default);
+    /// <returns>A schema report in the requested format.</returns>
+    Task<string> GenerateSchemaReportAsync(string connectionString, string format = "text", CancellationToken cancellationToken = default);
 }
 
 /// <summary>

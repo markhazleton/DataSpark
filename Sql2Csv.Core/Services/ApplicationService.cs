@@ -43,10 +43,20 @@ public sealed class ApplicationService
     /// <param name="outputPath">The output path for CSV files.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     public async Task ExportDatabasesAsync(string databasePath, string outputPath, CancellationToken cancellationToken = default)
+        => await ExportDatabasesAsync(databasePath, outputPath, null, null, cancellationToken);
+
+    /// <summary>
+    /// Exports all databases with optional delimiter/header overrides.
+    /// </summary>
+    public async Task ExportDatabasesAsync(string databasePath, string outputPath, string? delimiter, bool? includeHeaders, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting database export operation");
         _logger.LogInformation("Database path: {DatabasePath}", databasePath);
         _logger.LogInformation("Output path: {OutputPath}", outputPath);
+        if (!string.IsNullOrEmpty(delimiter))
+            _logger.LogInformation("Overriding delimiter: {Delimiter}", delimiter);
+        if (includeHeaders.HasValue)
+            _logger.LogInformation("Overriding include headers: {IncludeHeaders}", includeHeaders);
 
         try
         {
@@ -67,7 +77,7 @@ public sealed class ApplicationService
                 var databaseOutputPath = Path.Combine(outputPath, database.Name);
                 _logger.LogInformation("Exporting database: {DatabaseName}", database.Name);
 
-                var results = await _exportService.ExportDatabaseToCsvAsync(database, databaseOutputPath, cancellationToken);
+                var results = await _exportService.ExportDatabaseToCsvAsync(database, databaseOutputPath, delimiter, includeHeaders, cancellationToken);
                 totalResults.AddRange(results);
             }
 
@@ -85,7 +95,7 @@ public sealed class ApplicationService
     /// </summary>
     /// <param name="databasePath">The path containing the databases.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task GenerateSchemaReportsAsync(string databasePath, CancellationToken cancellationToken = default)
+    public async Task GenerateSchemaReportsAsync(string databasePath, string format = "text", CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting schema report generation");
         _logger.LogInformation("Database path: {DatabasePath}", databasePath);
@@ -106,9 +116,9 @@ public sealed class ApplicationService
 
                 _logger.LogInformation("Generating schema report for database: {DatabaseName}", database.Name);
 
-                var report = await _schemaService.GenerateSchemaReportAsync(database.ConnectionString, cancellationToken);
+                var report = await _schemaService.GenerateSchemaReportAsync(database.ConnectionString, format, cancellationToken);
 
-                Console.WriteLine($"\n=== Schema Report for {database.Name} ===");
+                Console.WriteLine($"\n=== Schema Report for {database.Name} ({format}) ===");
                 Console.WriteLine(report);
             }
         }

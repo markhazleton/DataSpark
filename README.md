@@ -3,7 +3,7 @@
 [![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/markhazleton/sql2csv/ci.yml?branch=main)](https://github.com/markhazleton/sql2csv/actions)
-[![Coverage](https://img.shields.io/badge/coverage-coming%20soon-lightgrey.svg)](#-testing--quality)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/markhazleton/sql2csv/main/coverage-badge.json)](#-testing--quality)
 
 > .NET 9 toolkit for discovering SQLite databases, exporting tables to CSV, inspecting schema, and generating C# DTOs. Includes a console CLI and an early-stage web UI scaffold.
 
@@ -14,7 +14,7 @@
 - 📊 Text-based schema reports (printed to console)
 - 🏗️ Generate C# DTO record types (configurable namespace)
 - 🧩 Reusable core services (discovery / export / schema / code generation)
-- 🧪 115 passing tests (MSTest) – coverage publication pending
+- 🧪 115 passing tests (MSTest) – coverage badge generated via CI
 - ⚙️ Options pattern & DI-friendly architecture
 
 > NOTE: Advanced web UI capabilities (drag & drop persistence dashboard, visual relationships, filtering UI, progress bars) are not yet implemented; see Roadmap.
@@ -24,11 +24,11 @@
 | Command | Description | Key Options |
 |---------|-------------|-------------|
 | discover | List discovered SQLite databases in a directory | --path |
-| export | Export all tables of each database to CSV | --path, --output |
-| schema | Print schema reports | --path |
+| export | Export all tables of each database to CSV | --path, --output, --delimiter, --headers |
+| schema | Print schema reports | --path, --format |
 | generate | Generate C# DTO records | --path, --output, --namespace |
 
-Planned (not yet implemented): per-table export selection, delimiter/header overrides, additional output formats (json, markdown), code template customization.
+Planned (not yet implemented): per-table export selection, additional export formats (json, parquet, excel), code template customization.
 
 ### CLI Usage Examples
 
@@ -36,8 +36,8 @@ Planned (not yet implemented): per-table export selection, delimiter/header over
 # Discover databases
 dotnet run --project sql2csv.console discover --path "C:\Data\DBs"
 
-# Export databases to CSV
-dotnet run --project sql2csv.console export --path "C:\Data\DBs" --output "C:\Exports"
+# Export databases to CSV (override delimiter and headers)
+dotnet run --project sql2csv.console export --path "C:\Data\DBs" --output "C:\Exports" --delimiter ";" --headers true
 
 # Schema reports
 dotnet run --project sql2csv.console schema --path "C:\Data\DBs"
@@ -126,7 +126,7 @@ dotnet run export --path "C:\MyDatabases" --output "C:\MyExports"
 
 #### 📊 Schema Command
 
-Generates detailed schema reports for all discovered databases:
+Generates detailed schema reports for all discovered databases in one of three formats (text, json, markdown):
 
 ```bash
 dotnet run schema [options]
@@ -135,11 +135,19 @@ dotnet run schema [options]
 **Options:**
 
 - `--path`: Directory containing SQLite database files
+- `--format`: Output format: text (default), json, markdown
 
 **Example:**
 
 ```bash
+# Default text
 dotnet run schema --path "C:\ProjectDatabases"
+
+# JSON
+dotnet run schema --path "C:\ProjectDatabases" --format json
+
+# Markdown
+dotnet run schema --path "C:\ProjectDatabases" --format markdown > schema.md
 ```
 
 #### 🏗️ Generate Command
@@ -297,7 +305,7 @@ Our commitment to quality is demonstrated through extensive testing infrastructu
 Current (Aug 2025):
 
 - 115 passing tests (MSTest)
-- Coverage badge pending (will replace placeholder when CI publishes)
+- Coverage badge published (see badge at top)
 - Benchmarks & extended static analysis planned
 
 ### 🏗️ Test Infrastructure Demos

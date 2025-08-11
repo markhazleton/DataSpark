@@ -43,6 +43,17 @@ public sealed class ExportService : IExportService
         string outputDirectory,
         CancellationToken cancellationToken = default)
     {
+        return await ExportDatabaseToCsvAsync(databaseConfig, outputDirectory, null, null, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<ExportResult>> ExportDatabaseToCsvAsync(
+        DatabaseConfiguration databaseConfig,
+        string outputDirectory,
+        string? delimiter,
+        bool? includeHeaders,
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(databaseConfig);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
 
@@ -60,7 +71,7 @@ public sealed class ExportService : IExportService
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var outputFilePath = Path.Combine(outputDirectory, $"{tableName}_extract.csv");
-                var result = await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, cancellationToken);
+                var result = await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, delimiter, includeHeaders, cancellationToken);
                 results.Add(result);
             }
 
@@ -79,6 +90,18 @@ public sealed class ExportService : IExportService
         DatabaseConfiguration databaseConfig,
         string tableName,
         string outputFilePath,
+        CancellationToken cancellationToken = default)
+    {
+        return await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, null, null, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<ExportResult> ExportTableToCsvAsync(
+        DatabaseConfiguration databaseConfig,
+        string tableName,
+        string outputFilePath,
+        string? delimiter,
+        bool? includeHeaders,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(databaseConfig);
@@ -113,14 +136,17 @@ public sealed class ExportService : IExportService
             await using var writer = new StreamWriter(fileStream, encoding);
 
             // Configure CSV writer with custom delimiter
+            var effectiveDelimiter = string.IsNullOrEmpty(delimiter) ? _options.Export.Delimiter : delimiter;
+            var effectiveIncludeHeaders = includeHeaders ?? _options.Export.IncludeHeaders;
+
             var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
-                Delimiter = _options.Export.Delimiter
+                Delimiter = effectiveDelimiter
             };
             using var csv = new CsvWriter(writer, csvConfig);
 
             // Write headers if configured
-            if (_options.Export.IncludeHeaders)
+            if (effectiveIncludeHeaders)
             {
                 for (var i = 0; i < reader.FieldCount; i++)
                 {

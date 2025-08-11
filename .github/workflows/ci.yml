@@ -9,6 +9,9 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    env:
+      MIN_COVERAGE: "0" # Absolute minimum allowed coverage percent
+      MAX_COVERAGE_DROP: "2" # Maximum allowed % drop vs main before failing PR
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,9 +40,30 @@ jobs:
             RATE=$(grep -o 'line-rate="[0-9.]*"' "$COVERAGE_FILE" | head -n 1 | sed -E 's/.*="([0-9.]+)"/\1/')
             PERCENT=$(awk -v r="$RATE" 'BEGIN { printf("%.2f", r*100) }')
             echo "Coverage: ${PERCENT}%" | tee coverage-summary.txt
+            COLOR=$(awk -v p="$PERCENT" 'BEGIN { if (p >= 85) print "brightgreen"; else if (p >= 70) print "yellow"; else print "orange" }')
+            echo "{ \"schemaVersion\": 1, \"label\": \"coverage\", \"message\": \"${PERCENT}%\", \"color\": \"${COLOR}\" }" > coverage-badge.json
           else
             echo "Coverage: unknown" | tee coverage-summary.txt
           fi
+
+      - name: Enforce coverage regression policy
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -e
+          CURRENT=$(grep -oE '[0-9]+\.[0-9]+' coverage-summary.txt | head -n1 || echo 0)
+          echo "Current coverage: $CURRENT%"
+          git fetch origin main --depth=1 || true
+          BASELINE_FILE=$(mktemp)
+          git show origin/main:coverage-badge.json > "$BASELINE_FILE" 2>/dev/null || echo '{"message":"0%"}' > "$BASELINE_FILE"
+          BASELINE=$(grep -oE '"message" *: *"[0-9]+\.[0-9]+%' "$BASELINE_FILE" | grep -oE '[0-9]+\.[0-9]+' || echo 0)
+          echo "Baseline coverage (main): $BASELINE%"
+          DROP=$(awk -v b="$BASELINE" -v c="$CURRENT" 'BEGIN { printf("%.2f", b-c) }')
+          echo "Coverage drop vs main: $DROP%"
+          # Enforce minimum absolute coverage
+          awk -v c="$CURRENT" -v min="$MIN_COVERAGE" 'BEGIN { if (c+0 < min+0) { exit 1 } }' || { echo "❌ Coverage below minimum threshold ($MIN_COVERAGE%)"; exit 1; }
+          awk -v d="$DROP" -v max="$MAX_COVERAGE_DROP" 'BEGIN { if (d+0 > max+0) { exit 2 } }' || { echo "❌ Coverage regression exceeds allowed drop ($MAX_COVERAGE_DROP%)"; exit 1; }
+          echo "✅ Coverage policy passed"
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
@@ -48,6 +72,7 @@ jobs:
           path: |
             TestResults
             coverage-summary.txt
+            coverage-badge.json
           if-no-files-found: warn
 
       - name: Upload test results
@@ -56,3 +81,23 @@ jobs:
         with:
           name: test-results
           path: TestResults
+
+      - name: Commit coverage badge
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if [ -f coverage-badge.json ]; then
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            cp coverage-badge.json coverage-badge.json
+            git add coverage-badge.json
+            git diff --cached --quiet && echo "No badge changes" || git commit -m "chore: update coverage badge" || true
+            git push || true
+          fi
+
+      - name: Coverage PR Comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: coverage
+          message: |
+            $(cat coverage-summary.txt 2>/dev/null || echo "Coverage unavailable")

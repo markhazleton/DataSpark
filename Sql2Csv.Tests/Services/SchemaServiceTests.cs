@@ -245,7 +245,7 @@ public class SchemaServiceTests : DatabaseTestBase
         cts.Cancel();
 
         // Act & Assert
-        var action = async () => await _schemaService.GenerateSchemaReportAsync(ConnectionString, cts.Token);
+        var action = async () => await _schemaService.GenerateSchemaReportAsync(ConnectionString, cancellationToken: cts.Token);
         await action.Should().ThrowAsync<OperationCanceledException>();
     }
 
@@ -266,5 +266,33 @@ public class SchemaServiceTests : DatabaseTestBase
 
         var productsTable = tableList.First(t => t.Name == "Products");
         productsTable.RowCount.Should().Be(3);
+    }
+
+    [TestMethod]
+    public async Task GenerateSchemaReportAsync_WithJsonFormat_ShouldProduceValidJson()
+    {
+        // Act
+        var report = await _schemaService.GenerateSchemaReportAsync(ConnectionString, format: "json");
+
+        // Assert
+        report.Should().StartWith("[").And.EndWith("]");
+        report.Should().Contain("\"table\": \"Users\"");
+        report.Should().Contain("\"columns\"");
+        // Basic JSON parse
+        Action parse = () => { _ = System.Text.Json.JsonSerializer.Deserialize<object>(report)!; };
+        parse.Should().NotThrow();
+    }
+
+    [TestMethod]
+    public async Task GenerateSchemaReportAsync_WithMarkdownFormat_ShouldContainTableSections()
+    {
+        // Act
+        var report = await _schemaService.GenerateSchemaReportAsync(ConnectionString, format: "markdown");
+
+        // Assert
+        report.Should().Contain("# Database Schema Report");
+        report.Should().Contain("## Table: Users");
+        report.Should().Contain("| Column | Type | Nullable | PK | Default |");
+        report.Should().Contain("| Id | INTEGER | No | Yes");
     }
 }

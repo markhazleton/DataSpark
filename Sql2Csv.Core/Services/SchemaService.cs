@@ -150,7 +150,7 @@ public sealed class SchemaService : ISchemaService
     }
 
     /// <inheritdoc />
-    public async Task<string> GenerateSchemaReportAsync(string connectionString, CancellationToken cancellationToken = default)
+    public async Task<string> GenerateSchemaReportAsync(string connectionString, string format = "text", CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
@@ -158,36 +158,18 @@ public sealed class SchemaService : ISchemaService
 
         try
         {
-            var report = new StringBuilder();
-            report.AppendLine("Database Schema Report");
-            report.AppendLine(new string('=', 50));
-            report.AppendLine();
+            format = (format ?? "text").Trim().ToLowerInvariant();
+            var tables = (await GetTablesAsync(connectionString, cancellationToken)).ToList();
 
-            var tables = await GetTablesAsync(connectionString, cancellationToken);
-
-            foreach (var table in tables)
+            string result = format switch
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                "json" => GenerateJson(tables),
+                "markdown" => GenerateMarkdown(tables),
+                _ => GenerateText(tables)
+            };
 
-                report.AppendLine($"Table: {table.Name} ({table.RowCount} rows)");
-                report.AppendLine(new string('-', 50));
-
-                foreach (var column in table.Columns)
-                {
-                    var nullable = column.IsNullable ? "NULL" : "NOT NULL";
-                    var primaryKey = column.IsPrimaryKey ? " PRIMARY KEY" : "";
-                    var defaultValue = !string.IsNullOrEmpty(column.DefaultValue) ? $" DEFAULT {column.DefaultValue}" : "";
-
-                    report.AppendLine($"  {column.Name} ({column.DataType}) {nullable}{primaryKey}{defaultValue}");
-                }
-
-                report.AppendLine();
-            }
-
-            var schemaReport = report.ToString();
-            _logger.LogDebug("Generated schema report with {TableCount} tables", tables.Count());
-
-            return schemaReport;
+            _logger.LogDebug("Generated {Format} schema report with {TableCount} tables", format, tables.Count);
+            return result;
         }
         catch (Exception ex)
         {
@@ -202,4 +184,72 @@ public sealed class SchemaService : ISchemaService
         var result = await command.ExecuteScalarAsync(cancellationToken);
         return Convert.ToInt64(result);
     }
+
+    private static string GenerateText(IEnumerable<TableInfo> tables)
+    {
+        var report = new StringBuilder();
+        report.AppendLine("Database Schema Report");
+        report.AppendLine(new string('=', 50));
+        report.AppendLine();
+        foreach (var table in tables)
+        {
+            report.AppendLine($"Table: {table.Name} ({table.RowCount} rows)");
+            report.AppendLine(new string('-', 50));
+            foreach (var column in table.Columns)
+            {
+                var nullable = column.IsNullable ? "NULL" : "NOT NULL";
+                var primaryKey = column.IsPrimaryKey ? " PRIMARY KEY" : "";
+                var defaultValue = !string.IsNullOrEmpty(column.DefaultValue) ? $" DEFAULT {column.DefaultValue}" : "";
+                report.AppendLine($"  {column.Name} ({column.DataType}) {nullable}{primaryKey}{defaultValue}");
+            }
+            report.AppendLine();
+        }
+        return report.ToString();
+    }
+
+    private static string GenerateJson(IEnumerable<TableInfo> tables)
+    {
+        var obj = tables.Select(t => new
+        {
+            table = t.Name,
+            rows = t.RowCount,
+            columns = t.Columns.Select(c => new
+            {
+                name = c.Name,
+                dataType = c.DataType,
+                isNullable = c.IsNullable,
+                isPrimaryKey = c.IsPrimaryKey,
+                defaultValue = c.DefaultValue
+            })
+        });
+        return System.Text.Json.JsonSerializer.Serialize(obj, new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+    }
+
+    private static string GenerateMarkdown(IEnumerable<TableInfo> tables)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("# Database Schema Report");
+        sb.AppendLine();
+        foreach (var table in tables)
+        {
+            sb.AppendLine($"## Table: {table.Name}");
+            sb.AppendLine();
+            sb.AppendLine($"Row count: **{table.RowCount}**");
+            sb.AppendLine();
+            sb.AppendLine("| Column | Type | Nullable | PK | Default |");
+            sb.AppendLine("|--------|------|----------|----|---------|");
+            foreach (var c in table.Columns)
+            {
+                sb.AppendLine($"| {c.Name} | {c.DataType} | {(c.IsNullable ? "Yes" : "No")} | {(c.IsPrimaryKey ? "Yes" : "No")} | {EscapePipe(c.DefaultValue)} |");
+            }
+            sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+
+    private static string EscapePipe(string? value)
+        => value is null ? string.Empty : value.Replace("|", "\\|");
 }

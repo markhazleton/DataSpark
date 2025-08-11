@@ -161,7 +161,7 @@ public class ApplicationServiceTests
         _mockDiscoveryService.Setup(d => d.DiscoverDatabasesAsync(databasePath, It.IsAny<CancellationToken>()))
             .ReturnsAsync(databases);
 
-        _mockExportService.Setup(e => e.ExportDatabaseToCsvAsync(It.IsAny<DatabaseConfiguration>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _mockExportService.Setup(e => e.ExportDatabaseToCsvAsync(It.IsAny<DatabaseConfiguration>(), It.IsAny<string>(), null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(exportResults.Take(1));
 
         // Act
@@ -169,7 +169,7 @@ public class ApplicationServiceTests
 
         // Assert
         _mockDiscoveryService.Verify(d => d.DiscoverDatabasesAsync(databasePath, It.IsAny<CancellationToken>()), Times.Once);
-        _mockExportService.Verify(e => e.ExportDatabaseToCsvAsync(It.IsAny<DatabaseConfiguration>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _mockExportService.Verify(e => e.ExportDatabaseToCsvAsync(It.IsAny<DatabaseConfiguration>(), It.IsAny<string>(), null, null, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [TestMethod]
@@ -188,7 +188,7 @@ public class ApplicationServiceTests
 
         // Assert
         _mockDiscoveryService.Verify(d => d.DiscoverDatabasesAsync(databasePath, It.IsAny<CancellationToken>()), Times.Once);
-        _mockExportService.Verify(e => e.ExportDatabaseToCsvAsync(It.IsAny<DatabaseConfiguration>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockExportService.Verify(e => e.ExportDatabaseToCsvAsync(It.IsAny<DatabaseConfiguration>(), It.IsAny<string>(), null, null, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
@@ -222,15 +222,15 @@ public class ApplicationServiceTests
         _mockDiscoveryService.Setup(d => d.DiscoverDatabasesAsync(databasePath, It.IsAny<CancellationToken>()))
             .ReturnsAsync(databases);
 
-        _mockSchemaService.Setup(s => s.GenerateSchemaReportAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(schemaReport);
+        _mockSchemaService.Setup(s => s.GenerateSchemaReportAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(schemaReport);
 
         // Act
         await _applicationService.GenerateSchemaReportsAsync(databasePath);
 
         // Assert
         _mockDiscoveryService.Verify(d => d.DiscoverDatabasesAsync(databasePath, It.IsAny<CancellationToken>()), Times.Once);
-        _mockSchemaService.Verify(s => s.GenerateSchemaReportAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockSchemaService.Verify(s => s.GenerateSchemaReportAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
@@ -248,7 +248,7 @@ public class ApplicationServiceTests
 
         // Assert
         _mockDiscoveryService.Verify(d => d.DiscoverDatabasesAsync(databasePath, It.IsAny<CancellationToken>()), Times.Once);
-        _mockSchemaService.Verify(s => s.GenerateSchemaReportAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockSchemaService.Verify(s => s.GenerateSchemaReportAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
