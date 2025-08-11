@@ -1,0 +1,74 @@
+name: Test Deployment to Azure
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for deployment"
+        required: false
+        default: "Manual test deployment"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.x"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: sql2csv.web/package-lock.json
+
+      - name: Install npm dependencies
+        run: |
+          cd sql2csv.web
+          npm ci || npm install
+
+      - name: Build frontend assets
+        run: |
+          cd sql2csv.web
+          npm run build
+
+      - name: Restore .NET dependencies
+        run: dotnet restore sql2csv.sln
+
+      - name: Build solution
+        run: dotnet build sql2csv.sln --configuration Release --no-restore
+
+      - name: Publish web project
+        run: |
+          dotnet publish sql2csv.web/Sql2Csv.Web.csproj -c Release -o ./publish --no-build
+          cd ./publish
+          zip -r ../publish.zip .
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0350EA8E5ABC411EADBF6B8127147B18 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_44FB8C207028458F9084C0FEC2202769 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_315787A2E667486B9DAD3D96A73D59A6 }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "SqlSpark"
+          slot-name: "Production"
+          package: publish.zip
+
+      - name: Test deployment
+        run: |
+          echo "Testing deployment..."
+          sleep 30
+          curl -I https://sqlspark.azurewebsites.net/ || echo "Site not responding yet, may need more time to start"

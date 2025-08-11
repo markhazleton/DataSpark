@@ -23,12 +23,32 @@ jobs:
         with:
           dotnet-version: "9.x"
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: sql2csv.web/package-lock.json
+
+      - name: Install npm dependencies
+        run: |
+          cd sql2csv.web
+          npm ci
+
+      - name: Build frontend assets
+        run: |
+          cd sql2csv.web
+          npm run build
+
+      - name: Restore .NET dependencies
+        run: dotnet restore sql2csv.sln
+
       - name: Build with dotnet (solution)
-        run: dotnet build sql2csv.sln --configuration Release
+        run: dotnet build sql2csv.sln --configuration Release --no-restore
 
       - name: Publish web project
         run: |
-          dotnet publish sql2csv.web/Sql2Csv.Web.csproj -c Release -o ${{runner.temp}}/publish
+          dotnet publish sql2csv.web/Sql2Csv.Web.csproj -c Release -o ${{runner.temp}}/publish --no-build
           cd ${{runner.temp}}/publish
           zip -r $GITHUB_WORKSPACE/publish.zip .
 
