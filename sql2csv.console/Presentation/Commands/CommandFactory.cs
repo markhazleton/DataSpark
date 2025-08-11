@@ -1,8 +1,10 @@
 using System.CommandLine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Sql2Csv.Core.Configuration;
 using Sql2Csv.Core.Services;
+using Sql2Csv.Core.Interfaces;
 
 namespace Sql2Csv.Presentation.Commands;
 
@@ -23,8 +25,46 @@ public static class CommandFactory
         rootCommand.AddCommand(CreateExportCommand(services));
         rootCommand.AddCommand(CreateSchemaCommand(services));
         rootCommand.AddCommand(CreateGenerateCommand(services));
+        rootCommand.AddCommand(CreateDiscoverCommand(services));
 
         return rootCommand;
+    }
+
+    private static Command CreateDiscoverCommand(IServiceProvider services)
+    {
+        var discoverCommand = new Command("discover", "Discover SQLite database files and print a summary");
+
+        var pathOption = new Option<string>(
+            "--path",
+            description: "Path to directory containing SQLite databases",
+            getDefaultValue: () => GetDefaultDataPath(services));
+
+        discoverCommand.AddOption(pathOption);
+
+        discoverCommand.SetHandler(async (path) =>
+        {
+            using var scope = services.CreateScope();
+            var discovery = scope.ServiceProvider.GetRequiredService<IDatabaseDiscoveryService>();
+            var loggerFactory = scope.ServiceProvider.GetService<ILoggerFactory>();
+            var logger = loggerFactory?.CreateLogger("discover");
+            try
+            {
+                logger?.LogInformation("Discovering databases in {Path}", path);
+                var databases = await discovery.DiscoverDatabasesAsync(path, CancellationToken.None);
+                Console.WriteLine($"Discovered {databases.Count()} database(s) in '{path}'.");
+                foreach (var db in databases.OrderBy(d => d.Name))
+                {
+                    Console.WriteLine(" - " + db.Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error during discovery");
+                Console.Error.WriteLine($"Error: {ex.Message}");
+            }
+        }, pathOption);
+
+        return discoverCommand;
     }
 
     private static Command CreateExportCommand(IServiceProvider services)

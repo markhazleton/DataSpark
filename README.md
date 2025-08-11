@@ -1,73 +1,64 @@
 # 🗄️ SQL2CSV
 
 [![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)](https://dotnet.microsoft.com/download)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Build](https://img.shields.io/github/actions/workflow/status/markhazleton/sql2csv/ci.yml?branch=main)](https://github.com/markhazleton/sql2csv/actions)
+[![Coverage](https://img.shields.io/badge/coverage-coming%20soon-lightgrey.svg)](#-testing--quality)
 
-> 🚀 **A cutting-edge .NET 9 solution** for SQLite database analysis, featuring a stunning modern web interface and powerful console tools for CSV export, C# code generation, and comprehensive database schema analysis.
+> .NET 9 toolkit for discovering SQLite databases, exporting tables to CSV, inspecting schema, and generating C# DTOs. Includes a console CLI and an early-stage web UI scaffold.
 
-## ✨ Amazing Features & Demos
+## ✨ Current Core Features (Implemented)
 
-### 🌐 Modern Web Application with Live Demos
+- 🔍 SQLite database discovery (directory scanning)
+- � Export all tables of each discovered database to CSV (one file per table)
+- 📊 Text-based schema reports (printed to console)
+- 🏗️ Generate C# DTO record types (configurable namespace)
+- 🧩 Reusable core services (discovery / export / schema / code generation)
+- 🧪 115 passing tests (MSTest) – coverage publication pending
+- ⚙️ Options pattern & DI-friendly architecture
 
-- 🎯 **Interactive Web Interface**: Beautiful, responsive ASP.NET Core application with Tailwind CSS styling
-- 📁 **Drag & Drop File Upload**: Intuitive file upload with instant validation and progress feedback
-- 💾 **Smart File Persistence**: Save and manage uploaded databases with metadata tracking
-- 🔍 **Real-time Schema Analysis**: Instant database exploration with interactive table browsing
-- 📊 **Advanced Export Engine**: Export selected tables to CSV with customizable options
-- 🏗️ **Intelligent Code Generation**: Generate modern C# DTO classes and records with custom namespaces
-- 📱 **Mobile-First Design**: Fully responsive interface that works beautifully on all devices
-- 🎨 **Modern UI/UX**: Built with Tailwind CSS, Alpine.js, and Google Fonts for a premium experience
+> NOTE: Advanced web UI capabilities (drag & drop persistence dashboard, visual relationships, filtering UI, progress bars) are not yet implemented; see Roadmap.
 
-**🎬 Live Demo Features:**
+### CLI Overview
 
-- **File Management Dashboard**: Upload, organize, and manage multiple database files
-- **Interactive Schema Explorer**: Browse tables, columns, and relationships with rich visualizations
-- **Real-time Data Preview**: View table data with pagination and filtering
-- **Bulk Operations**: Export multiple tables or generate code for entire databases
-- **Progress Tracking**: Real-time progress indicators for long-running operations
+| Command | Description | Key Options |
+|---------|-------------|-------------|
+| discover | List discovered SQLite databases in a directory | --path |
+| export | Export all tables of each database to CSV | --path, --output |
+| schema | Print schema reports | --path |
+| generate | Generate C# DTO records | --path, --output, --namespace |
 
-### 🖥️ Powerful Console Application
+Planned (not yet implemented): per-table export selection, delimiter/header overrides, additional output formats (json, markdown), code template customization.
 
-- 🔍 **Smart Database Discovery**: Automatically finds and validates SQLite databases in any directory
-- 📊 **High-Performance CSV Export**: Lightning-fast export using CsvHelper with configurable options
-- 📋 **Comprehensive Schema Reports**: Detailed analysis with table statistics and relationships
-- 🏗️ **Modern Code Generation**: Creates clean, documented C# DTOs with nullable reference types
-- ⚡ **Async/Await Architecture**: Fully asynchronous operations for maximum performance
-- 🎯 **Advanced CLI**: Rich command-line interface with help, validation, and error handling
-
-**🎬 Console Demo Examples:**
+### CLI Usage Examples
 
 ```bash
-# Bulk export all databases with custom settings
-dotnet run export --path "C:\MyDatabases" --output "C:\Exports" --delimiter ";"
+# Discover databases
+dotnet run --project sql2csv.console discover --path "C:\Data\DBs"
 
-# Generate comprehensive schema documentation
-dotnet run schema --path "C:\ProjectDBs" --format detailed
+# Export databases to CSV
+dotnet run --project sql2csv.console export --path "C:\Data\DBs" --output "C:\Exports"
 
-# Create modern C# models with custom namespaces
-dotnet run generate --path "C:\Data" --namespace "MyApp.Models" --output "C:\Code"
+# Schema reports
+dotnet run --project sql2csv.console schema --path "C:\Data\DBs"
+
+# Generate DTOs
+dotnet run --project sql2csv.console generate --path "C:\Data\DBs" --output "C:\Gen" --namespace "MyApp.Models"
 ```
 
-### 🏛️ Enterprise-Grade Architecture
+### Architecture Highlights
 
-- 🏛️ **Clean Architecture**: SOLID principles with clear separation of concerns
-- 💉 **Advanced DI Container**: Microsoft.Extensions.DependencyInjection with service registration
-- 📝 **Structured Logging**: Comprehensive logging with configurable levels and providers
-- ⚙️ **Flexible Configuration**: JSON-based config with strongly-typed options pattern
-- 🧪 **Comprehensive Testing**: Unit tests, integration tests, and mocking with 90%+ coverage
-- � **Secure by Design**: Input validation, file size limits, and secure file handling
+- Clean separation (Core library reused by console & web)
+- DI + options pattern
+- Structured logging via Microsoft.Extensions.Logging
+- Focused services: discovery / export / schema / code generation
+- Test project validating primary flows
 
-### 🎨 Modern Frontend Stack
+### Web UI (Status: Early)
 
-- **Tailwind CSS 3.4**: Modern utility-first CSS framework with custom design system
-- **Alpine.js**: Lightweight JavaScript framework for interactive components
-- **Webpack**: Advanced asset bundling and optimization
-- **SCSS**: Enhanced styling with variables and mixins
-- **Custom Fonts**: Inter and JetBrains Mono for beautiful typography
-- **Form Validation**: Real-time validation with user-friendly error messages
+Web project scaffolds controllers, services and asset pipeline (Tailwind + Alpine.js). Advanced UI features listed earlier are pending implementation.
 
-## 🚀 Quick Start & Live Demos
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -92,92 +83,14 @@ npm run build
 cd ..
 ```
 
-### 🌐 Web Application Showcase
-
-The web application demonstrates the full power of modern web development with real-time database analysis:
+### Run Web (early preview)
 
 ```bash
-# Launch the stunning web interface
 dotnet run --project sql2csv.web
-
-# Open your browser to http://localhost:5000
-# Experience the modern, responsive interface!
+# Browse http://localhost:5000
 ```
 
-**🎬 Interactive Demo Features:**
-
-1. **Smart File Upload**
-   - Drag and drop SQLite files directly into the browser
-   - Real-time file validation with size and format checking
-   - Beautiful progress indicators and instant feedback
-
-2. **Database Management Dashboard**
-   - Save uploaded files for future analysis with metadata
-   - Organize multiple databases with descriptions and tags
-   - Quick access to recently analyzed databases
-
-3. **Live Schema Explorer**
-   - Interactive table browser with search and filtering
-   - Real-time column analysis with data types and constraints
-   - Visual indicators for primary keys, nullable fields, and relationships
-
-4. **Advanced Data Viewer**
-   - Paginated table data with server-side processing
-   - Search and filter data across all columns
-   - Export filtered results directly to CSV
-
-5. **Intelligent Code Generation**
-   - Generate modern C# DTO classes and records
-   - Customizable namespaces and output directories
-   - Real-time preview of generated code with syntax highlighting
-
-6. **Responsive Design Showcase**
-   - Beautiful mobile experience with touch-friendly controls
-   - Dark/light theme support with system preference detection
-   - Accessible design following WCAG guidelines
-
-**🎨 Modern UI Features:**
-
-- **Tailwind CSS**: Custom design system with beautiful gradients and animations
-- **Alpine.js**: Smooth interactions without page refreshes
-- **Custom Components**: Reusable UI components with consistent styling
-- **Loading States**: Elegant loading animations and progress indicators
-- **Error Handling**: User-friendly error messages with helpful suggestions
-
-### 🖥️ Console Application Power Demos
-
-Experience the full automation capabilities with our advanced command-line interface:
-
-```bash
-# 🚀 DEMO 1: Bulk Database Export
-# Export all SQLite databases from a directory with custom delimiters
-dotnet run --project sql2csv.console export \
-  --path "C:\ProjectDatabases" \
-  --output "C:\DataExports" \
-  --delimiter ";" \
-  --headers true
-
-# 📊 DEMO 2: Comprehensive Schema Analysis
-# Generate detailed schema reports for documentation
-dotnet run --project sql2csv.console schema \
-  --path "C:\LegacyDatabases" \
-  --detailed true
-
-# 🏗️ DEMO 3: Modern Code Generation
-# Create clean, documented C# DTOs with custom namespaces
-dotnet run --project sql2csv.console generate \
-  --path "C:\DatabaseModels" \
-  --output "C:\Generated\Models" \
-  --namespace "MyCompany.Data.Models" \
-  --type "record"
-
-# ⚡ DEMO 4: Advanced Discovery
-# Discover and analyze databases with filtering
-dotnet run --project sql2csv.console discover \
-  --path "C:\AllDatabases" \
-  --pattern "*.db" \
-  --recursive true
-```
+<!-- Verbose marketing demos removed. -->
 
 **🎯 Console Features Showcase:**
 
@@ -375,18 +288,17 @@ The console application provides a modern CLI interface:
 - **📈 Scalability**: Easy to add new features without affecting existing functionality
 - **♻️ Reusability**: Core library can be used in web apps, APIs, or other applications
 
-## 🧪 Testing & Quality Assurance Showcase
+## 🧪 Testing & Quality
 
 ### 🎯 Comprehensive Test Coverage
 
 Our commitment to quality is demonstrated through extensive testing infrastructure:
 
-**📊 Test Statistics:**
+Current (Aug 2025):
 
-- **90%+ Code Coverage**: Comprehensive unit and integration test suite
-- **200+ Test Cases**: Covering all major functionality and edge cases
-- **Automated CI/CD**: Continuous testing with every commit
-- **Performance Benchmarks**: Automated performance regression testing
+- 115 passing tests (MSTest)
+- Coverage badge pending (will replace placeholder when CI publishes)
+- Benchmarks & extended static analysis planned
 
 ### 🏗️ Test Infrastructure Demos
 
@@ -445,7 +357,7 @@ public async Task ExportTableToCsvAsync_WithValidTable_ShouldExportSuccessfully(
 
 ### 🔍 Demo Test Scenarios
 
-**Scenario 1: Large Database Processing**
+#### Scenario 1: Large Database Processing
 
 ```csharp
 [TestMethod]
@@ -457,7 +369,7 @@ public async Task ExportDatabasesAsync_WithLargeDatabase_ShouldMaintainPerforman
 }
 ```
 
-**Scenario 2: Concurrent Operations**
+#### Scenario 2: Concurrent Operations
 
 ```csharp
 [TestMethod]
@@ -469,7 +381,7 @@ public async Task ParallelExport_WithMultipleDatabases_ShouldNotInterfere()
 }
 ```
 
-**Scenario 3: Error Recovery**
+#### Scenario 3: Error Recovery
 
 ```csharp
 [TestMethod]
@@ -481,7 +393,7 @@ public async Task ExportTableToCsvAsync_WithCorruptedDatabase_ShouldHandleGracef
 }
 ```
 
-This comprehensive testing strategy ensures SQL2CSV delivers enterprise-grade reliability and performance in all scenarios.
+Further coverage & benchmark reporting will be integrated via CI.
 
 ### Building
 
@@ -516,7 +428,7 @@ dotnet publish sql2csv.console/Sql2Csv.csproj -c Release -r linux-x64 --self-con
 dotnet publish sql2csv.console/Sql2Csv.csproj -c Release -r osx-x64 --self-contained
 ```
 
-## 📊 Real Output Examples & Demos
+## 📊 Sample Output
 
 ### 🎬 Live CSV Export Demo
 
@@ -677,7 +589,7 @@ Largest Table: Orders (3,891 rows)
 - **Data Type Analysis**: Type mapping and nullable constraints
 - **Export Options**: JSON, XML, and markdown format support
 
-## 🎯 Real-World Use Cases & Demos
+## 🎯 Typical Use Cases
 
 ### 🔍 Interactive Database Analysis & Development
 
@@ -821,67 +733,32 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - Include XML documentation for public APIs
 - Write unit tests for new functionality
 
-## 📋 Feature Roadmap & Upcoming Demos
+## 📋 Roadmap
 
-### ✅ Recently Completed Features
+### Next
 
-- ✅ **Modern Web Application**: Stunning ASP.NET Core interface with Tailwind CSS and Alpine.js
-- ✅ **Advanced File Management**: Upload, persist, and organize multiple database files with metadata
-- ✅ **Real-time Schema Analysis**: Interactive database exploration with live data preview
-- ✅ **Intelligent Code Generation**: Modern C# records and DTOs with rich documentation
-- ✅ **Enterprise Architecture**: Clean Architecture with comprehensive testing (90%+ coverage)
-- ✅ **Responsive Design**: Mobile-first UI that works beautifully on all devices
-- ✅ **High-Performance Export**: Multi-threaded CSV export with progress tracking
-- ✅ **Advanced CLI**: Rich command-line interface with System.CommandLine
-- ✅ **Comprehensive Testing**: Unit tests, integration tests, and automated CI/CD
+- CI workflow (build + test + coverage publishing)
+- Coverage badge replacement
+- Export command delimiter & headers options
+- Schema report alternative formats (json, markdown)
 
-### 🚀 Exciting Upcoming Features
+### Planned
 
-#### Q2 2024 - API & Integration
+- Enhanced web UI (drag & drop upload, multi-table export)
+- Per-table selection for export & generation
+- Docker packaging
+- Benchmark suite (BenchmarkDotNet)
 
-- [ ] **🌐 REST API**: Full REST API for remote database operations and automation
-- [ ] **📡 OpenAPI/Swagger**: Interactive API documentation and testing
-- [ ] **🔗 Webhook Support**: Real-time notifications for long-running operations
-- [ ] **🔐 Authentication**: JWT-based security with role-based access control
+### Backlog
 
-#### Q3 2024 - Platform & Performance
+- REST API + OpenAPI
+- Additional database providers (PostgreSQL / MySQL / SQL Server)
+- Plugin architecture (custom exporters / code templates)
+- Advanced export formats (JSON, Parquet, Excel)
+- Auth & RBAC (web/API)
+- Internationalization
 
-- [ ] **🐳 Docker Support**: Containerized deployment with Docker Compose
-- [ ] **☁️ Azure Functions**: Serverless export capabilities for cloud-scale processing
-- [ ] **⚡ Performance Analytics**: Built-in performance monitoring and optimization
-- [ ] **🔄 Real-time Sync**: Live database monitoring and change detection
-
-#### Q4 2024 - Multi-Database & Advanced Features
-
-- [ ] **🗄️ Multi-Database Support**: MySQL, PostgreSQL, SQL Server connectors
-- [ ] **📄 Advanced Export Formats**: JSON, XML, Parquet, and Excel export options
-- [ ] **🔍 Schema Validation**: Compare schemas across databases with diff reporting
-- [ ] **🧩 Plugin Architecture**: Extensible plugin system for custom export formats
-
-#### 2025 - Enterprise & AI Features
-
-- [ ] **🤖 AI-Powered Insights**: Machine learning for data pattern recognition
-- [ ] **📊 Advanced Visualization**: Interactive charts and data relationship graphs
-- [ ] **🏢 Enterprise SSO**: Integration with Active Directory and SAML providers
-- [ ] **🌍 Multi-Language Support**: Internationalization for global teams
-
-### 🎬 Upcoming Demo Showcases
-
-1. **REST API Demo**: Automated database processing via HTTP endpoints
-2. **Docker Deployment**: One-command containerized deployment showcase
-3. **Multi-Database Demo**: Connecting to PostgreSQL, MySQL, and SQL Server
-4. **Performance Benchmark**: Processing thousands of databases simultaneously
-5. **Plugin Development**: Creating custom export formats with the plugin SDK
-
-### 💡 Community Requested Features
-
-Vote for your favorite upcoming features:
-
-- **GraphQL API**: Modern query interface for flexible data access
-- **Batch Job Scheduler**: Automated database processing with cron-like scheduling
-- **Data Validation**: Built-in data quality checks and validation rules
-- **Export Templates**: Customizable export templates for different use cases
-- **Collaboration Tools**: Team workspaces and shared database collections
+Issue links will be added as items move forward—contributions welcome.
 
 ## 📄 License
 
@@ -899,6 +776,4 @@ Give a ⭐️ if this project helped you!
 
 ---
 
-<div align="center">
-  <p>Made with ❤️ by <a href="https://github.com/markhazleton">Mark Hazleton</a></p>
-</div>
+Made with ❤️ by [Mark Hazleton](https://github.com/markhazleton)

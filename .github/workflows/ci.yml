@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore sql2csv.sln
+
+      - name: Build
+        run: dotnet build sql2csv.sln --configuration Release --no-restore
+
+      - name: Test with coverage
+        run: dotnet test Sql2Csv.Tests/Sql2Csv.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Report coverage summary
+        shell: bash
+        run: |
+          echo "Searching for coverage.cobertura.xml..."
+          COVERAGE_FILE=$(find TestResults -name 'coverage.cobertura.xml' | head -n 1 || true)
+          if [ -f "$COVERAGE_FILE" ]; then
+            echo "Found: $COVERAGE_FILE"
+            RATE=$(grep -o 'line-rate="[0-9.]*"' "$COVERAGE_FILE" | head -n 1 | sed -E 's/.*="([0-9.]+)"/\1/')
+            PERCENT=$(awk -v r="$RATE" 'BEGIN { printf("%.2f", r*100) }')
+            echo "Coverage: ${PERCENT}%" | tee coverage-summary.txt
+          else
+            echo "Coverage: unknown" | tee coverage-summary.txt
+          fi
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            TestResults
+            coverage-summary.txt
+          if-no-files-found: warn
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
