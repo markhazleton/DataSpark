@@ -88,7 +88,6 @@ jobs:
           if [ -f coverage-badge.json ]; then
             git config user.name "github-actions"
             git config user.email "actions@github.com"
-            cp coverage-badge.json coverage-badge.json
             git add coverage-badge.json
             git diff --cached --quiet && echo "No badge changes" || git commit -m "chore: update coverage badge" || true
             git push || true
