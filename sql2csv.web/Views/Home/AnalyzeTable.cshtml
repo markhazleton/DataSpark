@@ -4,6 +4,11 @@
 }
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <script>
+        window.tableColumns = @Json.Serialize(Model.ColumnAnalyses.Select(c => new { name = c.ColumnName, type = c.DataType }));
+        window.tableName = '@Model.TableName';
+        window.filePath = '@Model.FilePath';
+    </script>
     <!-- Header -->
     <div class="mb-8">
         <div class="flex items-center justify-between">
@@ -11,11 +16,15 @@
                 <nav class="flex items-center space-x-2 text-sm text-secondary-600 mb-2">
                     <a asp-action="Index" class="hover:text-primary-600">Home</a>
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
                     </svg>
                     <a asp-action="Analyze" class="hover:text-primary-600">@Model.DatabaseName</a>
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
                     </svg>
                     <span class="text-secondary-900">@Model.TableName Analysis</span>
                 </nav>
@@ -29,14 +38,25 @@
             </div>
             <div class="flex space-x-3">
                 <a asp-action="Analyze" class="btn-secondary">
-                    <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
                     Back to Database
                 </a>
+                <a asp-action="ViewTableData" asp-route-tableName="@Model.TableName" class="btn-primary">
+                    <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    View Data
+                </a>
                 <button onclick="exportAnalysis()" class="btn-outline">
-                    <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Export Analysis
                 </button>
@@ -44,12 +64,19 @@
         </div>
     </div>
 
+    @{
+        var columns = Model.IsSuccess ? Model.ColumnAnalyses.Select(c => new { name = c.ColumnName, type = c.DataType }) :
+        Enumerable.Empty<dynamic>();
+    }
+
     @if (!Model.IsSuccess)
     {
         <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
             <div class="flex">
-                <svg class="w-5 h-5 text-red-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg class="w-5 h-5 text-red-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div class="ml-3">
                     <h3 class="text-sm font-medium text-red-800">Analysis Error</h3>
@@ -58,7 +85,8 @@
             </div>
         </div>
     }
-    else
+
+    @if (Model.IsSuccess)
     {
         <!-- Summary Statistics Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -66,8 +94,10 @@
                 <div class="card-header">
                     <div class="flex items-center">
                         <div class="bg-blue-100 rounded-lg p-2 mr-3">
-                            <svg class="w-5 h-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0 2.21 1.79 4 4 4V7c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4z" />
+                            <svg class="w-5 h-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 7v10c0 2.21 1.79 4 4 4h8c0 2.21 1.79 4 4 4V7c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4z" />
                             </svg>
                         </div>
                         <div>
@@ -82,13 +112,16 @@
                 <div class="card-header">
                     <div class="flex items-center">
                         <div class="bg-green-100 rounded-lg p-2 mr-3">
-                            <svg class="w-5 h-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <svg class="w-5 h-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
                         <div>
                             <p class="text-sm font-medium text-secondary-600">Data Quality</p>
-                            <p class="text-2xl font-bold text-secondary-900">@((Model.Statistics.DataQualityScore * 100).ToString("F0"))%</p>
+                            <p class="text-2xl font-bold text-secondary-900">@((Model.Statistics.DataQualityScore *
+                                                            100).ToString("F0"))%</p>
                         </div>
                     </div>
                 </div>
@@ -98,15 +131,17 @@
                 <div class="card-header">
                     <div class="flex items-center">
                         <div class="bg-purple-100 rounded-lg p-2 mr-3">
-                            <svg class="w-5 h-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            <svg class="w-5 h-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
                         </div>
                         <div>
                             <p class="text-sm font-medium text-secondary-600">Column Types</p>
                             <p class="text-xs text-secondary-600">
-                                @Model.Statistics.NumericColumns Numeric • 
-                                @Model.Statistics.TextColumns Text • 
+                                @Model.Statistics.NumericColumns Numeric •
+                                @Model.Statistics.TextColumns Text •
                                 @Model.Statistics.DateTimeColumns Date
                             </p>
                             <p class="text-2xl font-bold text-secondary-900">@Model.Statistics.TotalColumns</p>
@@ -119,8 +154,10 @@
                 <div class="card-header">
                     <div class="flex items-center">
                         <div class="bg-orange-100 rounded-lg p-2 mr-3">
-                            <svg class="w-5 h-5 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <svg class="w-5 h-5 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                             </svg>
                         </div>
                         <div>
@@ -143,12 +180,18 @@
                 <table class="min-w-full divide-y divide-secondary-200">
                     <thead class="bg-secondary-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Column</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Type</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Completeness</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Uniqueness</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Statistics</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">Quality</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                Column</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                Completeness</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                Uniqueness</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                Statistics</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                Quality</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-secondary-200">
@@ -186,15 +229,17 @@
                                     {
                                         <span class="badge-purple">Date</span>
                                     }
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-1">
-                                            <div class="text-sm text-secondary-900">@column.CompletenessPercentage%</div>
-                                            <div class="w-full bg-secondary-200 rounded-full h-2 mt-1">
-                                                <div class="bg-green-600 h-2 rounded-full" style="width: @column.CompletenessPercentage%"></div>
-                                            </div>
-                                            <div class="text-xs text-secondary-500 mt-1">@((column.TotalCount - column.NullCount).ToString("N0")) / @column.TotalCount.ToString("N0")</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-1">
+                                        <div class="text-sm text-secondary-900">@column.CompletenessPercentage%</div>
+                                        <div class="w-full bg-secondary-200 rounded-full h-2 mt-1">
+                                            <div class="bg-green-600 h-2 rounded-full"
+                                                style="width: @column.CompletenessPercentage%"></div>
+                                        </div>
+                                        <div class="text-xs text-secondary-500 mt-1">@((column.TotalCount -
+                                                                                    column.NullCount).ToString("N0")) / @column.TotalCount.ToString("N0")</div>
                                         </div>
                                     </div>
                                 </td>
@@ -203,9 +248,11 @@
                                         <div class="flex-1">
                                             <div class="text-sm text-secondary-900">@column.UniquenessPercentage%</div>
                                             <div class="w-full bg-secondary-200 rounded-full h-2 mt-1">
-                                                <div class="bg-blue-600 h-2 rounded-full" style="width: @column.UniquenessPercentage%"></div>
+                                                <div class="bg-blue-600 h-2 rounded-full"
+                                                    style="width: @column.UniquenessPercentage%"></div>
                                             </div>
-                                            <div class="text-xs text-secondary-500 mt-1">@column.UniqueCount.ToString("N0") unique</div>
+                                            <div class="text-xs text-secondary-500 mt-1">@column.UniqueCount.ToString("N0")
+                                                unique</div>
                                         </div>
                                     </div>
                                 </td>
@@ -238,7 +285,8 @@
                                     }
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @column.QualityColor">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @column.QualityColor">
                                         @((column.DataQualityScore * 100).ToString("F0"))%
                                     </span>
                                 </td>
@@ -250,113 +298,21 @@
         </div>
 
         <!-- Table Data Browser -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="text-xl font-semibold text-secondary-900">Table Data</h2>
-                <p class="text-secondary-600 mt-1">Browse and search table contents</p>
-            </div>
-
-            <div class="p-6">
-                <table id="tableDataGrid" class="min-w-full divide-y divide-secondary-200" style="width: 100%">
-                    <thead class="bg-secondary-50">
-                        <tr>
-                            @foreach (var column in Model.ColumnAnalyses)
-                            {
-                                <th class="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                    @column.ColumnName
-                                </th>
-                            }
-                        </tr>
-                    </thead>
-                </table>
-            </div>
-        </div>
+    @(await Html.PartialAsync("DatabaseTableComponent", new { columns = columns, tableName = Model.TableName, filePath = Model.FilePath }))
     }
 </div>
 
 @section Scripts {
-    <!-- DataTables CDN -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.tailwindcss.min.css">
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.tailwindcss.min.js"></script>
-
     <script>
-        $(document).ready(function() {
-            @if (Model.IsSuccess)
-            {
-                <text>
-                // Initialize DataTables with server-side processing
-                $('#tableDataGrid').DataTable({
-                    processing: true,
-                    serverSide: true,
-                    ajax: {
-                        url: '@Url.Action("GetTableData")',
-                        type: 'POST',
-                        data: function(d) {
-                            return {
-                                tableName: '@Model.TableName',
-                                draw: d.draw,
-                                start: d.start,
-                                length: d.length,
-                                searchValue: d.search.value,
-                                columns: d.columns,
-                                order: d.order
-                            };
-                        },
-                        error: function(xhr, error, code) {
-                            console.error('DataTables error:', error);
-                            alert('Error loading table data: ' + (xhr.responseJSON?.error || error));
-                        }
-                    },
-                    columns: [
-                        @foreach (var column in Model.ColumnAnalyses)
-                        {
-                            <text>{ data: '@column.ColumnName', name: '@column.ColumnName' },</text>
-                        }
-                    ],
-                    pageLength: 25,
-                    lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-                    responsive: true,
-                    scrollX: true,
-                    language: {
-                        processing: '<div class="flex items-center justify-center p-4"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div><span class="ml-2">Loading data...</span></div>',
-                        search: 'Search:',
-                        lengthMenu: 'Show _MENU_ entries',
-                        info: 'Showing _START_ to _END_ of _TOTAL_ entries',
-                        infoEmpty: 'No entries available',
-                        infoFiltered: '(filtered from _MAX_ total entries)',
-                        paginate: {
-                            first: 'First',
-                            last: 'Last',
-                            next: 'Next',
-                            previous: 'Previous'
-                        }
-                    },
-                    dom: '<"flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"lf>rt<"flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4"ip>',
-                    initComplete: function() {
-                        // Custom styling for DataTables elements
-                        $('.dataTables_length select').addClass('input text-sm');
-                        $('.dataTables_filter input').addClass('input text-sm');
-                        $('.dataTables_paginate .paginate_button').addClass('px-3 py-1 text-sm');
-                    }
-                });
-                </text>
-            }
-        });
-
         function exportAnalysis() {
-            // Create CSV content for the analysis
+            function esc(val) { if (val === null || val === undefined) return '""'; const s = String(val).replace(/"/g,'""'); return '"'+s+'"'; }
             let csv = 'Column,Type,Total Count,Null Count,Unique Count,Completeness %,Uniqueness %,Data Quality %\n';
-            
             @foreach (var column in Model.ColumnAnalyses)
             {
                 <text>
-                csv += '@column.ColumnName,@column.DataType,@column.TotalCount,@column.NullCount,@column.UniqueCount,@column.CompletenessPercentage,@column.UniquenessPercentage,@((column.DataQualityScore * 100).ToString("F0"))\n';
+                csv += esc('@column.ColumnName')+','+esc('@column.DataType')+','+@column.TotalCount+','+@column.NullCount+','+@column.UniqueCount+','+@column.CompletenessPercentage.ToString("F2")+','+@column.UniquenessPercentage.ToString("F2")+','+@((column.DataQualityScore * 100).ToString("F0"))+'%'+"\n";
                 </text>
             }
-
-            // Download the CSV
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -368,14 +324,17 @@
             document.body.removeChild(a);
         }
 
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(function() {
+        function copyToClipboard(text)
+        {
+            navigator.clipboard.writeText(text).then(function ()
+            {
                 // Show success message
                 const toast = document.createElement('div');
                 toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
                 toast.textContent = 'Copied to clipboard!';
                 document.body.appendChild(toast);
-                setTimeout(() => {
+                setTimeout(() =>
+                {
                     document.body.removeChild(toast);
                 }, 3000);
             });

@@ -153,3 +153,14 @@ public class FileManagementViewModel
         return $"{len:0.##} {sizes[order]}";
     }
 }
+
+/// <summary>
+/// View model for viewing table data
+/// </summary>
+public class ViewDataViewModel
+{
+    public required string TableName { get; init; }
+    public required string DatabaseName { get; init; }
+    public required string FilePath { get; init; }
+    public List<ColumnInfoViewModel> Columns { get; init; } = [];
+}

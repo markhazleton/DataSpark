@@ -276,6 +276,11 @@ public class HomeController : Controller
 
             var analysis = await _databaseService.AnalyzeDatabaseAsync(filePath, cts.Token);
 
+            // Persist file path in session for AJAX table data retrieval
+            HttpContext.Session.SetString("CurrentDatabaseFilePath", filePath);
+            if (!string.IsNullOrEmpty(fileName))
+                HttpContext.Session.SetString("CurrentDatabaseFileName", fileName);
+
             // Keep the file path for subsequent operations
             TempData.Keep("DatabaseFilePath");
             TempData.Keep("DatabaseFileName");
@@ -381,6 +386,11 @@ public class HomeController : Controller
 
             var analysis = await _databaseService.AnalyzeTableAsync(filePath, tableName, cts.Token);
 
+            // Keep session file path up to date
+            HttpContext.Session.SetString("CurrentDatabaseFilePath", filePath);
+            if (!string.IsNullOrEmpty(fileName))
+                HttpContext.Session.SetString("CurrentDatabaseFileName", fileName);
+
             // Keep the file path for subsequent operations
             TempData.Keep("DatabaseFilePath");
             TempData.Keep("DatabaseFileName");
@@ -402,17 +412,84 @@ public class HomeController : Controller
         }
     }
 
+    public async Task<IActionResult> ViewTableData(string tableName)
+    {
+        var filePath = TempData["DatabaseFilePath"] as string;
+        var fileName = TempData["DatabaseFileName"] as string;
+
+        _logger.LogInformation("ViewData action called with TableName: {TableName}, FilePath: {FilePath}", tableName, filePath);
+
+        if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(tableName))
+        {
+            _logger.LogWarning("Missing file path or table name, redirecting to Index");
+            return RedirectToAction("Index");
+        }
+
+        // Check if file exists before attempting analysis
+        if (!System.IO.File.Exists(filePath))
+        {
+            _logger.LogError("File not found at path: {FilePath}", filePath);
+            TempData["ErrorMessage"] = "The selected database file is no longer available.";
+            return RedirectToAction("Index");
+        }
+
+        try
+        {
+            _logger.LogInformation("Getting table analysis for table: {TableName} in file: {FilePath}", tableName, filePath);
+
+            // Use existing table analysis to get column information
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            var analysis = await _databaseService.AnalyzeTableAsync(filePath, tableName, cts.Token);
+
+            // Persist in session for subsequent AJAX calls
+            HttpContext.Session.SetString("CurrentDatabaseFilePath", filePath);
+            if (!string.IsNullOrEmpty(fileName))
+                HttpContext.Session.SetString("CurrentDatabaseFileName", fileName);
+
+            // Keep the file path for subsequent operations
+            TempData.Keep("DatabaseFilePath");
+            TempData.Keep("DatabaseFileName");
+
+            var model = new ViewDataViewModel
+            {
+                TableName = tableName,
+                DatabaseName = analysis.DatabaseName,
+                FilePath = filePath,
+                Columns = analysis.ColumnAnalyses.Select(c => new ColumnInfoViewModel
+                {
+                    Name = c.ColumnName,
+                    DataType = c.DataType,
+                    IsNullable = c.IsNullable,
+                    IsPrimaryKey = c.IsPrimaryKey
+                }).ToList()
+            };
+
+            _logger.LogInformation("Table analysis retrieved successfully for table: {TableName}", tableName);
+            return View(model);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogError("ViewTableData operation timed out for table: {TableName} in file: {FilePath}", tableName, filePath);
+            TempData["ErrorMessage"] = "Operation timed out. The table might be too large.";
+            return RedirectToAction("Analyze");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting table data view: {TableName} in file: {FilePath}", tableName, filePath);
+            TempData["ErrorMessage"] = "An error occurred while accessing the table.";
+            return RedirectToAction("Analyze");
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> GetTableData(string tableName, [FromForm] DataTablesRequest request)
     {
-        var filePath = TempData["DatabaseFilePath"] as string;
-
+        var filePath = HttpContext.Session.GetString("CurrentDatabaseFilePath");
         if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(tableName))
         {
             return Json(new TableDataResult { Error = "Missing file path or table name" });
         }
 
-        // Check if file exists
         if (!System.IO.File.Exists(filePath))
         {
             return Json(new TableDataResult { Error = "Database file not found" });
@@ -427,10 +504,6 @@ public class HomeController : Controller
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)); // 2 minute timeout
 
             var result = await _databaseService.GetTableDataAsync(filePath, tableName, request, cts.Token);
-
-            // Keep the file path for subsequent operations
-            TempData.Keep("DatabaseFilePath");
-            TempData.Keep("DatabaseFileName");
 
             return Json(result);
         }
@@ -447,6 +520,11 @@ public class HomeController : Controller
     }
 
     public IActionResult About()
+    {
+        return View();
+    }
+
+    public IActionResult TableDemo()
     {
         return View();
     }

@@ -113,6 +113,43 @@
     @apply hover:bg-secondary-50 transition-colors duration-150;
   }
 
+  .data-table tbody tr.selected {
+    @apply bg-primary-50 border-primary-200;
+  }
+
+  // Enhanced table components
+  .table-actions {
+    @apply flex items-center justify-between p-4 bg-white border-b border-secondary-200;
+  }
+
+  .table-search {
+    @apply relative;
+  }
+
+  .table-search input {
+    @apply input pl-10 pr-4 py-2 w-64;
+  }
+
+  .table-pagination {
+    @apply flex items-center justify-between px-4 py-3 bg-white border-t border-secondary-200 sm:px-6;
+  }
+
+  .pagination-button {
+    @apply relative inline-flex items-center px-2 py-2 text-sm font-medium text-secondary-500 bg-white border border-secondary-300 hover:bg-secondary-50;
+  }
+
+  .pagination-button.active {
+    @apply bg-primary-50 border-primary-500 text-primary-600;
+  }
+
+  .pagination-button:first-child {
+    @apply rounded-l-md;
+  }
+
+  .pagination-button:last-child {
+    @apply rounded-r-md;
+  }
+
   // Code display styles
   .code-block {
     @apply bg-secondary-900 text-secondary-100 p-4 rounded-lg overflow-x-auto font-mono text-sm;

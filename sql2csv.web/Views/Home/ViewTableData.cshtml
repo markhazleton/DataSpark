@@ -1,0 +1,406 @@
+@model Sql2Csv.Web.Models.ViewDataViewModel
+@{
+    ViewData["Title"] = $"View Data - {Model.TableName}";
+}
+
+<style>
+    .table-container {
+        max-height: 600px;
+        overflow: auto;
+    }
+
+    .row-details-modal {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+</style>
+
+<!-- Pass column data to JavaScript -->
+<script>
+    window.tableColumns = @Json.Serialize(Model.Columns);
+    window.tableName = '@Model.TableName';
+    window.databaseName = '@Model.DatabaseName';
+    window.filePath = '@Model.FilePath';
+</script>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <nav class="flex items-center space-x-2 text-sm text-secondary-600 mb-2">
+                    <a asp-action="Index" class="hover:text-primary-600">Home</a>
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <a asp-action="Analyze" class="hover:text-primary-600">@Model.DatabaseName</a>
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <a asp-action="AnalyzeTable" asp-route-tableName="@Model.TableName"
+                        class="hover:text-primary-600">@Model.TableName Analysis</a>
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-secondary-900">View Data</span>
+                </nav>
+                <h1 class="text-3xl font-bold text-secondary-900">Table Data: @Model.TableName</h1>
+                <p class="text-secondary-600 mt-2">
+                    <span class="font-medium">@Model.DatabaseName</span> •
+                    @Model.Columns.Count columns •
+                    Browse and search table contents with advanced filtering
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <a asp-action="AnalyzeTable" asp-route-tableName="@Model.TableName" class="btn-secondary">
+                    <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Back to Analysis
+                </a>
+                <a asp-action="Analyze" class="btn-outline">
+                    <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to Database
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Data Viewer -->
+    <div class="card mb-8">
+        <div class="card-header">
+            <h2 class="text-xl font-semibold text-secondary-900">Table Data</h2>
+            <p class="text-secondary-600 mt-1">Browse, search, and explore @Model.TableName data</p>
+        </div>
+
+        <div class="card-body">
+            <div x-data="databaseTableData(window.tableColumns, window.tableName, window.filePath)" x-init="init()"
+                class="w-full">
+                <!-- Search and Controls -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <input x-model="globalFilter" @@input.debounce.500ms="debounceSearch()" type="text"
+                                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                placeholder="Search table data...">
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="page-size" class="text-sm text-gray-700">Show:</label>
+                            <select x-model="itemsPerPage" @@change="changeItemsPerPage($event.target.value)"
+                                id="page-size"
+                                class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                            <span class="text-sm text-gray-700">entries</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-700" x-show="!loading">
+                            Showing
+                            <span x-text="startRecord"></span>
+                            to
+                            <span x-text="endRecord"></span>
+                            of
+                            <span x-text="totalRecords"></span>
+                            entries
+                        </span>
+                        <div x-show="loading" class="flex items-center space-x-2 text-sm text-gray-500">
+                            <div
+                                class="animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full">
+                            </div>
+                            <span>Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error State -->
+                <div x-show="error && !loading" class="p-6 text-center text-red-600 bg-red-50 rounded-lg mb-4">
+                    <p>Error loading data: <span x-text="errorMessage"></span></p>
+                    <button @@click="loadData()"
+                        class="mt-2 px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200">
+                        Retry
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <template x-for="column in columns" :key="column.name">
+                                    <th @@click="sort(column.name)"
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                                        :class="{'bg-gray-100': sortColumn === column.name}">
+                                        <div class="flex items-center space-x-1">
+                                            <span x-text="column.name"></span>
+                                            <svg x-show="sortColumn === column.name && sortDirection === 'asc'"
+                                                class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M5 15l7-7 7 7" />
+                                            </svg>
+                                            <svg x-show="sortColumn === column.name && sortDirection === 'desc'"
+                                                class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
+                                    </th>
+                                </template>
+                                <th
+                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="(row, rowIndex) in currentData" :key="rowIndex">
+                                <tr @@click="viewRowDetails(row, rowIndex)"
+                                    class="hover:bg-gray-50 cursor-pointer transition-colors duration-150 ease-in-out">
+                                    <template x-for="column in columns" :key="column.name">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <span
+                                                x-text="(row[column.name] !== null && row[column.name] !== undefined ? row[column.name] : 'NULL')"
+                                                class="truncate block max-w-xs"></span>
+                                        </td>
+                                    </template>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button @@click.stop="viewRowDetails(row, rowIndex)"
+                                            class="text-blue-600 hover:text-blue-900">
+                                            View
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+
+                    <!-- Empty State -->
+                    <div x-show="!loading && currentData.length === 0 && !error" class="text-center py-12">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8v2a1 1 0 01-1 1H7a1 1 0 01-1-1V5a1 1 0 011-1h10a1 1 0 011 1z" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No data found</h3>
+                        <p class="mt-1 text-sm text-gray-500">No records match your current search criteria.</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div x-show="!loading && !error && totalPages > 1"
+                    class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <div class="flex-1 flex justify-between sm:hidden">
+                        <button @@click="goToPage(currentPage - 1)" :disabled="currentPage <= 1"
+                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Previous
+                        </button>
+                        <button @@click="goToPage(currentPage + 1)" :disabled="currentPage >= totalPages"
+                            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Next
+                        </button>
+                    </div>
+                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Showing page <span x-text="currentPage"></span> of <span x-text="totalPages"></span>
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                                aria-label="Pagination">
+                                <button @@click="goToPage(currentPage - 1)" :disabled="currentPage <= 1"
+                                    class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <span class="sr-only">Previous</span>
+                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                        fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+
+                                <template x-for="page in paginationRange" :key="page">
+                                    <button @@click="goToPage(page)"
+                                        :class="page === currentPage ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'"
+                                        class="relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                        <span x-text="page"></span>
+                                    </button>
+                                </template>
+
+                                <button @@click="goToPage(currentPage + 1)" :disabled="currentPage >= totalPages"
+                                    class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <span class="sr-only">Next</span>
+                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                        fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row Details Modal -->
+                <div x-show="showRowDetails" x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                    x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+                    @@click="showRowDetails = false">
+
+                    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white"
+                        @@click.stop="">
+
+                        <!-- Modal Header -->
+                        <div class="flex items-center justify-between pb-3 border-b">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                Row Details - Record <span x-text="selectedRowIndex + 1"></span>
+                            </h3>
+                            <div class="flex items-center space-x-2">
+                                <!-- Navigation buttons -->
+                                <button @@click="previousRow()" :disabled="selectedRowIndex <= 0"
+                                    :class="selectedRowIndex <= 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'"
+                                    class="p-1 rounded">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </button>
+                                <button @@click="nextRow()" :disabled="selectedRowIndex >= currentData.length - 1"
+                                    :class="selectedRowIndex >= currentData.length - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'"
+                                    class="p-1 rounded">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </button>
+                                <button @@click="showRowDetails = false" class="text-gray-400 hover:text-gray-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Modal Content -->
+                        <div class="mt-4 row-details-modal">
+                            <template x-for="column in columns" :key="column.name">
+                                <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1"
+                                                x-text="column.name"></label>
+                                            <div class="text-sm text-gray-500 mb-2">
+                                                Type: <span x-text="column.dataType"></span>
+                                            </div>
+                                            <div class="bg-white p-2 rounded border">
+                                                <span
+                                                    x-text="selectedRowData && selectedRowData[column.name] !== null && selectedRowData[column.name] !== undefined ? selectedRowData[column.name] : 'NULL'"
+                                                    class="text-gray-900 break-all"></span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            @@click="navigator.clipboard.writeText(selectedRowData && selectedRowData[column.name] !== null && selectedRowData[column.name] !== undefined ? selectedRowData[column.name] : 'NULL').then(()=>showNotification('Value copied','success')).catch(()=>showNotification('Copy failed','error'))"
+                                            class="ml-2 p-1 text-gray-400 hover:text-gray-600" title="Copy value">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Modal Footer -->
+                        <div class="mt-6 flex justify-end">
+                            <button @@click="showRowDetails = false"
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Tips -->
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">
+                    Data Viewing Tips
+                </h3>
+                <div class="mt-2 text-sm text-blue-700">
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><strong>Search:</strong> Use the search box to filter data across all columns</li>
+                        <li><strong>Sorting:</strong> Click on column headers to sort the data</li>
+                        <li><strong>Row Details:</strong> Click on any row to view the complete data in a modal</li>
+                        <li><strong>Navigation:</strong> Use the Previous/Next buttons in the detail modal to browse
+                            records</li>
+                        <li><strong>Copy Data:</strong> Use the copy button in the detail modal to copy field values
+                        </li>
+                        <li><strong>Pagination:</strong> Adjust the number of entries per page and navigate through
+                            pages</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize the database table component when the page loads
+        document.addEventListener('DOMContentLoaded', function ()
+        {
+            console.log('ViewTableData page loaded for table:', window.tableName);
+            console.log('Database name:', window.databaseName);
+            console.log('Columns available:', window.tableColumns);
+            console.log('Number of columns:', window.tableColumns ? window.tableColumns.length : 0);
+
+            // Check if Alpine.js is loaded
+            console.log('Alpine.js available:', typeof Alpine !== 'undefined');
+
+            // Check if databaseTableData function exists
+            console.log('databaseTableData function available:', typeof window.databaseTableData === 'function');
+        });
+    </script>
+}

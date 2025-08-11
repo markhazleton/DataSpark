@@ -1,11 +1,17 @@
 import Alpine from 'alpinejs';
+import { initializeTables } from './table-components.js';
 
 // Make Alpine available globally
 window.Alpine = Alpine;
 
+// IMPORTANT: Initialize our global Alpine component factories BEFORE Alpine.start()
+// so that x-data="databaseTableData(...)" resolves without ReferenceError during
+// the initial DOM scan.
+initializeTables();
+
 // File upload functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Alpine.js
+    // Start Alpine AFTER component factories are registered
     Alpine.start();
 
     // File upload drag and drop

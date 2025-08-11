@@ -1,11 +1,26 @@
 using Sql2Csv.Core.Interfaces;
 using Sql2Csv.Core.Services;
 using Sql2Csv.Web.Services;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        // Ensure camelCase for API/Json responses consumed by JS table component
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
+
+// Enable session for retaining current database file path across AJAX requests
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true; // required for non‑EU cookie consent simplicity
+});
 
 // Register Core services
 builder.Services.AddScoped<IDatabaseDiscoveryService, DatabaseDiscoveryService>();
@@ -37,6 +52,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseSession();
 
 app.UseAuthorization();
 
