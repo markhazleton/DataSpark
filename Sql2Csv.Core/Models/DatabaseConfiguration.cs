@@ -49,7 +49,13 @@ public sealed class DatabaseConfiguration
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
-        var name = Path.GetFileNameWithoutExtension(filePath);
+    // Normalize path separators so Windows-style paths (with backslashes) work on Unix runners.
+    // On Unix, Path.GetFileNameWithoutExtension does not treat '\\' as a directory separator,
+    // causing it to return the entire path. We replace both separators with the current platform's
+    // separator before extracting the filename.
+    var normalized = filePath.Replace('\\', Path.DirectorySeparatorChar)
+                 .Replace('/', Path.DirectorySeparatorChar);
+    var name = Path.GetFileNameWithoutExtension(normalized);
         var connectionString = $"Data Source={filePath}";
 
         return new DatabaseConfiguration(name, connectionString, DatabaseType.SQLite);
