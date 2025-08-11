@@ -1,6 +1,1 @@
-{
-  "schemaVersion": 1,
-  "label": "coverage",
-  "message": "initial",
-  "color": "lightgrey"
-}
+{ "schemaVersion": 1, "label": "coverage", "message": "65.02%", "color": "orange" }
