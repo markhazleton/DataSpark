@@ -1,0 +1,159 @@
+@model Sql2Csv.Web.ViewModels.PerformanceMetricsViewModel
+@{
+    ViewData["Title"] = "Performance";
+}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{ showMd:false }">
+    <div class="text-center mb-10">
+        <h1 class="text-4xl font-bold text-gradient mb-2">Performance & Quality</h1>
+        <p class="text-secondary-600">Live test coverage & benchmark performance for core services</p>
+    </div>
+
+    <!-- Coverage & Quick Stats Row -->
+    <div class="grid md:grid-cols-3 gap-6 mb-10">
+        <div class="card md:col-span-1">
+            <div class="card-header flex justify-between items-center">
+                <h2 class="text-xl font-semibold">Test Coverage</h2>
+            </div>
+            <div class="p-6 flex flex-col items-center justify-center text-center">
+                @if (Model.Coverage != null && !string.IsNullOrEmpty(Model.Coverage.Percent))
+                {
+                    <div class="text-5xl font-bold text-primary-600 tracking-tight">@Model.Coverage.Percent</div>
+                    <p class="text-xs uppercase tracking-wide text-secondary-500 mt-3">Line Coverage</p>
+                    <div class="mt-4 text-left w-full max-w-xs mx-auto">
+                        <table class="w-full text-sm text-secondary-700">
+                            <tbody>
+                                @if (Model.Coverage.LinesCovered.HasValue && Model.Coverage.LinesTotal.HasValue)
+                                {
+                                    <tr>
+                                        <td class="font-semibold">Lines Covered</td>
+                                        <td>@Model.Coverage.LinesCovered / @Model.Coverage.LinesTotal</td>
+                                    </tr>
+                                }
+                                @if (Model.Coverage.BranchesCovered.HasValue && Model.Coverage.BranchesTotal.HasValue)
+                                {
+                                    <tr>
+                                        <td class="font-semibold">Branches Covered</td>
+                                        <td>@Model.Coverage.BranchesCovered / @Model.Coverage.BranchesTotal</td>
+                                    </tr>
+                                }
+                                @* Add more metrics here if available *@
+                                <tr>
+                                    <td class="font-semibold">Source</td>
+                                    <td>@Model.Coverage.Source</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-secondary-500 text-sm">Coverage data not available.<br />Generate
+                        <code>coverage-badge.json</code> or <code>coverage.cobertura.xml</code>.
+                    </p>
+                }
+            </div>
+        </div>
+        <div class="card md:col-span-2">
+            <div class="card-header">
+                <h2 class="text-xl font-semibold">Update Workflow</h2>
+            </div>
+            <div class="p-6 text-sm text-secondary-600 grid md:grid-cols-2 gap-4">
+                <div>
+                    <p class="font-semibold mb-1">Refresh Steps</p>
+                    <ol class="list-decimal list-inside space-y-1">
+                        <li>Run tests with coverage</li>
+                        <li>Run benchmarks (Release)</li>
+                        <li>Commit updated badge & baseline</li>
+                    </ol>
+                </div>
+                <div>
+                    <p class="font-semibold mb-1">CLI Commands</p>
+                    <pre class="text-xs bg-secondary-900/80 text-secondary-50 p-3 rounded overflow-auto"><code>dotnet test -c Release --collect:"XPlat Code Coverage"
+dotnet run -c Release --project Sql2Csv.Benchmarks
+</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benchmarks Full Width -->
+    <div class="card">
+        <div class="card-header flex flex-wrap gap-4 justify-between items-center">
+            <h2 class="text-xl font-semibold">Latest Benchmarks</h2>
+            <div class="flex items-center gap-2">
+                <button type="button" class="btn btn-secondary" x-on:click="showMd = !showMd"
+                    x-text="showMd ? 'Show Rendered' : 'Show Raw Markdown'"></button>
+            </div>
+        </div>
+        <div class="p-0">
+            @if (!string.IsNullOrWhiteSpace(Model.BenchmarkHtml))
+            {
+                <!-- Horizontal scroll container for very wide tables -->
+                <div x-show="!showMd" x-cloak class="relative group">
+                    <div class="overflow-auto max-h-[70vh] w-full benchmark-scroll p-6">
+                        <div class="prose max-w-none benchmark-html">
+                            @Html.Raw(Model.BenchmarkHtml)
+                        </div>
+                    </div>
+                    <div
+                        class="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent opacity-0 group-hover:opacity-70 transition-opacity">
+                    </div>
+                </div>
+                <div x-show="showMd" x-cloak class="p-6">
+                    <pre
+                        class="text-xs bg-secondary-900 text-secondary-50 p-4 rounded overflow-auto max-h-[70vh]">@Model.BenchmarkMarkdown</pre>
+                </div>
+            }
+            else
+            {
+                <div class="p-6 text-secondary-500 text-sm">Benchmark results not found. Run the benchmarks project to
+                    generate artifacts.</div>
+            }
+        </div>
+    </div>
+
+    <!-- CSS adjustments for wide benchmark tables -->
+    <style>
+        .benchmark-html table {
+            width: max-content;
+            /* allow natural width */
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .benchmark-html th,
+        .benchmark-html td {
+            white-space: nowrap;
+            padding: 0.45rem 0.75rem;
+            border: 1px solid var(--color-secondary-200, #dcdfe3);
+            background: #fff;
+        }
+
+        .benchmark-html thead th {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            z-index: 2;
+            box-shadow: 0 1px 0 0 #ccd1d6;
+        }
+
+        .benchmark-scroll::-webkit-scrollbar {
+            height: 10px;
+            width: 10px;
+        }
+
+        .benchmark-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .benchmark-scroll::-webkit-scrollbar-thumb {
+            background: #c3cad1;
+            border-radius: 6px;
+        }
+
+        .benchmark-scroll::-webkit-scrollbar-thumb:hover {
+            background: #a8b1bb;
+        }
+    </style>
+</div>

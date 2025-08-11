@@ -30,6 +30,20 @@ jobs:
       - name: Test with coverage
         run: dotnet test Sql2Csv.Tests/Sql2Csv.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
 
+      - name: Run benchmarks (main only)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Running benchmarks..."
+          dotnet run -c Release --project Sql2Csv.Benchmarks -- --filter *
+          mkdir -p Sql2Csv.Benchmarks/baseline
+          LATEST_MD=$(ls -t Sql2Csv.Benchmarks/BenchmarkDotNet.Artifacts/results/*-report-github.md 2>/dev/null | head -n1 || true)
+          if [ -f "$LATEST_MD" ]; then
+            echo "Updating benchmark baseline from $LATEST_MD"
+            cp "$LATEST_MD" Sql2Csv.Benchmarks/baseline/BenchmarkBaseline.md
+          else
+            echo "No benchmark markdown found to update baseline."
+          fi
+
       - name: Report coverage summary
         shell: bash
         run: |
@@ -82,15 +96,30 @@ jobs:
           name: test-results
           path: TestResults
 
-      - name: Commit coverage badge
+      - name: Commit coverage & benchmarks
         if: github.ref == 'refs/heads/main'
         run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          ADDED=0
           if [ -f coverage-badge.json ]; then
-            git config user.name "github-actions"
-            git config user.email "actions@github.com"
             git add coverage-badge.json
-            git diff --cached --quiet && echo "No badge changes" || git commit -m "chore: update coverage badge" || true
-            git push || true
+            ADDED=1
+          fi
+          if [ -f Sql2Csv.Benchmarks/baseline/BenchmarkBaseline.md ]; then
+            git add Sql2Csv.Benchmarks/baseline/BenchmarkBaseline.md
+            ADDED=1
+          fi
+            
+          if [ $ADDED -eq 1 ]; then
+            if git diff --cached --quiet; then
+              echo "No coverage or benchmark baseline changes to commit"
+            else
+              git commit -m "chore: update coverage badge & benchmark baseline" || true
+              git push || true
+            fi
+          else
+            echo "Nothing to add (no coverage badge or benchmark baseline)"
           fi
 
       - name: Coverage PR Comment

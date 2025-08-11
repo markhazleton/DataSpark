@@ -17,6 +17,7 @@ Legend:
 | Wave 3 | Packaging & performance & formats | 8,9,13 |
 | Wave 4 | Platform expansion & APIs | 10,11,12 |
 | Wave 5 | Security, globalization, polish | 14,15,16 |
+| Wave 2.5 (NEW) | Alignment & hardening (close current gaps before packaging) | 18,19,20,21,22,23,24,25,26 |
 | Retro (Optional) | Historical tracking | 17 |
 
 ## ✅ Completed (Do NOT create unless retro desired)
@@ -28,6 +29,9 @@ Legend:
 | C3 | Publish code coverage badge (#1) | Added dynamic JSON badge + artifact & commit step |
 | C4 | Schema report alternative formats (JSON & Markdown) (#2) | CLI --format with text/json/markdown + tests |
 | C5 | Coverage pipeline enhancement (#3) | PR comment & badge color thresholds |
+| C6 | Web UI persisted file management | Manage Files UI + PersistedFileService (commit fb4659e) |
+| C7 | Dynamic table data component | Sorting/filtering/pagination data table (commit f6eaa79) |
+| C8 | Cross-platform path normalization fixes | Unix path handling & solution casing fixes (commits 7355a5c, 82ef9f8, 7404e41) |
 
 ## 🎯 Wave 1 – Foundation & Observability (Completed)
 
@@ -42,16 +46,19 @@ All items delivered (see Completed table). README badge updated; CLI schema form
 | 6 | Web UI: Multi-table export selection | M | P1 | 5 | UI checkboxes + select all/none; pass selected tables to backend (placeholder service if logic pending). | Done |
 | 7 | Per-table selection for CLI export & generation | S | P1 | none | `--tables Users,Orders` filter for export & generate commands; update tests & README. | Done |
 
-### 📋 Wave 2 Closure Summary
+### 📋 Wave 2 Closure Summary (Updated 2025-08-11)
 
-Delivered Scope (matches detailed plan below):
+Delivered Scope (matches / extends detailed plan below):
 
 - Drag & drop upload endpoint + client script (AJAX) with SQLite header validation (first 16 bytes) & extension/size checks.
 - Multi-table selection UI (Alpine.js) with Select All / Clear All, disabled actions when empty, live counts.
 - CLI --tables flag (export, schema, generate) with exit code 2 for 0 matched tables; normalization & logging of unknown tables.
 - Service-layer filtering (ExportService + ApplicationService) centralizing logic.
-- README updated with new flag & UI notes.
-- Unit tests added for filtering; (integration tests for upload/export can be added in Wave 3 hardening phase).
+- Persisted file management (save, list, delete, description edit, reuse existing file) via new `PersistedFileService` and UI (C6).
+- Dynamic table data component with server-side pagination, sorting & filtering (C7) enabling richer analysis flows.
+- Cross-platform path normalization & casing fixes to improve Linux CI reliability (C8).
+- README updated with new flag & UI notes (roadmap alignment tracked by #18).
+- Unit tests added for filtering & services; (web integration tests planned for Wave 2.5 hardening).
 
 Deferred / Not in Wave 2 (explicitly):
 
@@ -231,6 +238,36 @@ Optional (Defer unless justified):
 | 9 | Benchmark suite (BenchmarkDotNet) | M | P1 | core services stable | Benchmarks: discovery, export (varied row counts), schema gen; baseline results committed. |
 | 13 | Advanced export formats (JSON, Parquet, Excel) | L | P2 | 7, core export | Strategy pattern; `--format` flag; JSON first (fast win), Parquet via Parquet.Net, Excel via EPPlus; tests for each output. |
 
+## 🛠️ Wave 2.5 – Alignment & Hardening (NEW)
+
+Purpose: Tidy up inconsistencies and implement deferred parts of earlier waves prior to investing in packaging & extensibility work. These items surfaced during repository review (2025-08-11) comparing ISSUE_LIST vs actual code.
+
+| # | Title | Effort | Priority | Dependencies | Description / Acceptance |
+|---|-------|--------|----------|--------------|--------------------------|
+| 18 | README roadmap realignment | XS | P1 | C1–C5 | Update README roadmap sections (Next/Planned/Backlog) to reflect completed items & wave framing; move finished items to a "Completed" subsection or drop; add mention of new alignment wave. (Done in README 2025-08-11) |
+| 19 | Code generation: apply tables filter | S | P1 | 7 | Respect `--tables` (and future web selection) in `GenerateCodeAsync` & `CodeGenerationService` by filtering retrieved tables; add tests (happy path + no matches -> exit code 2 like export). |
+| 20 | Schema report: table filtering support | S | P1 | 7 | Implement filtering in schema path (currently parameter ignored); update help text to remove "informational only" note; tests ensuring only selected tables appear. |
+| 21 | Web integration tests (upload + multi-export) | M | P2 | 5,6 | Add integration tests covering: valid upload, invalid file, multi-table export subset correctness; leverage `WebApplicationFactory`; ensure cleanup of temp files. |
+| 22 | Code generation output parity (records + XML docs) | M | P2 | 19 | Align generated DTOs with README examples: use `record` (or configurable class/record), include richer XML comments (data types, nullability, PK/FK markers). Backward-compatible opt-in flag if needed. |
+| 23 | ExportService overload consolidation | XS | P3 | none | Remove duplication between two `ExportDatabaseToCsvAsync` overloads by delegating to unified private method; maintain public API. Add unit test to ensure both code paths still work. |
+| 24 | README encoding artifact cleanup | XS | P2 | 18 | Replace garbled characters (�) with intended emojis / icons; ensure UTF-8 encoding. |
+| 25 | CLI exit code consistency | S | P2 | 7 | Standardize exit code 2 usage across `schema` & `generate` when tables filter yields zero matches (currently only export enforces). Update docs & tests. |
+| 26 | ADR: Plugin & provider architecture preface | S | P3 | 12 (design), 11 (future) | Draft Architecture Decision Record describing extension points (export formats, code templates, providers) to de-risk Wave 4 epics; include DI & discovery strategy. |
+
+Notes:
+
+- (19) & (22) may be combined in one PR if convenient; keep issues separate for tracking scope.
+- (20) requires minor change in `ApplicationService.GenerateSchemaReportsAsync` or in `ISchemaService` to accept table list.
+- (25) Evaluate whether schema filtering with zero matches should still produce any output; spec: mimic export failure semantics.
+
+Exit Codes (target after 25):
+
+- 0 success (≥1 table processed when filter supplied)
+- 1 unexpected error / exception
+- 2 user filter produced zero matches
+
+Risk: Minimal; changes are localized, enabling safe inclusion before Docker packaging.
+
 ## 🌐 Wave 4 – Platform & Extensibility
 
 | # | Title | Effort | Priority | Dependencies | Description / Acceptance |
@@ -263,16 +300,20 @@ Optional (Defer unless justified):
 [12] -> [11] (design before multi-provider impl) *or invert if provider abstraction emerges organically
 [10] -> [14]
 [4] aggregates [5],[6] (UI epic)
+[7] -> [19],[20],[25]
+[19] -> [22]
+[12] -> [26] (ADR informs implementation)
 ```
 
 ## 🧭 Sequencing Rationale
 
 1. Visibility (coverage & formats) surfaces quality & data contract stability.
 2. Add user-facing selectivity to reduce friction exporting large DBs (CLI before UI multi-select dependency coupling).
-3. Packaging & benchmarking early to watch performance regression as features expand.
-4. Platform & extensibility (API, plugins, providers) after core stabilized to avoid churn in extension points.
-5. Security & globalization once external surfaces (API/UI) are substantive.
-6. Documentation polish rounds out contributor experience.
+3. Alignment & hardening wave (2.5) resolves feature parity gaps (filters, codegen parity, roadmap) preventing drift before wider distribution.
+4. Packaging & benchmarking early (post-hardening) to watch performance regression as features expand.
+5. Platform & extensibility (API, plugins, providers) after core stabilized to avoid churn in extension points (informed by ADR #26).
+6. Security & globalization once external surfaces (API/UI) are substantive.
+7. Documentation & architecture polish rounds out contributor experience.
 
 ## 🏷️ Suggested Labels Matrix
 

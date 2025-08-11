@@ -31,6 +31,7 @@ builder.Services.AddScoped<ICodeGenerationService, CodeGenerationService>();
 // Register Web services
 builder.Services.AddScoped<IWebDatabaseService, WebDatabaseService>();
 builder.Services.AddScoped<IPersistedFileService, PersistedFileService>();
+builder.Services.AddSingleton<IPerformanceMetricsService, PerformanceMetricsService>();
 
 // Configure file upload limits
 builder.Services.Configure<IISServerOptions>(options =>

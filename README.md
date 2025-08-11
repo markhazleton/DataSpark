@@ -10,14 +10,16 @@
 ## ✨ Current Core Features (Implemented)
 
 - 🔍 SQLite database discovery (directory scanning)
-- � Export all tables of each discovered database to CSV (one file per table)
-- 📊 Text-based schema reports (printed to console)
-- 🏗️ Generate C# DTO record types (configurable namespace)
+- 📤 Export all tables (or filtered subset) to CSV (per-table filter via `--tables` or web UI multi-select)
+- 📊 Text / JSON / Markdown schema reports (CLI `--format`)
+- 🏗️ Generate C# DTO classes (future: records + richer docs planned) – namespace configurable
 - 🧩 Reusable core services (discovery / export / schema / code generation)
-- 🧪 115 passing tests (MSTest) – coverage badge generated via CI
+- 🧪 115 passing tests (MSTest) – coverage badge published via CI (regression policy enforced)
 - ⚙️ Options pattern & DI-friendly architecture
+- 💾 Persisted file management (save, list, delete, describe uploaded DBs)
+- 📈 Dynamic table analysis component (sorting / filtering / pagination)
 
-> NOTE: Advanced web UI capabilities (drag & drop persistence dashboard, visual relationships, filtering UI, progress bars) are not yet implemented; see Roadmap.
+> NOTE: Code generation table filtering & advanced visualization still pending (see Roadmap Alignment wave).
 
 ### CLI Overview
 
@@ -65,11 +67,12 @@ dotnet run --project sql2csv.console generate --path "C:\Data\DBs" --tables User
 Implemented:
 
 - Drag & drop upload (header + size validation, immediate analysis redirect)
-- Optional persistence of uploaded DBs with metadata
-- Multi-table selection with Select All / Clear All + shared state
+- Optional persistence of uploaded DBs with metadata (manage existing files)
+- Multi-table export selection (Select All / Clear All + disabled state)
+- Dynamic data table (server-driven pagination, sorting, filtering)
 - Table filtering integrated in CLI & web export paths
 
-Deferred (future waves): advanced schema visualizations, API exposure, code generation table filtering, progress indicators.
+Deferred (future waves): advanced schema visualizations, progress indicators, code generation table filtering, API exposure.
 
 ## 🚀 Quick Start
 
@@ -756,30 +759,47 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 📋 Roadmap
 
-### Next
+Roadmap waves summarized (see `ISSUE_LIST.md` for full backlog & sequencing):
 
-- CI workflow (build + test + coverage publishing)
-- Coverage badge replacement
-- Export command delimiter & headers options
+### ✅ Completed (select highlights)
+
+- CI workflow (build + test + coverage publishing, badge commit)
+- Coverage badge JSON endpoint integration
+- Export delimiter & header overrides
 - Schema report alternative formats (json, markdown)
+- Web UI foundations: upload, multi-select export, persisted file management
+- Cross-platform path normalization fixes
 
-### Planned
+### 🔧 Wave 2.5 (Alignment & Hardening)
 
-- Enhanced web UI (drag & drop upload, multi-table export)
-- Per-table selection for export & generation
-- Docker packaging
+- README roadmap realignment (done)
+- Apply tables filter to code generation
+- Implement schema table filtering
+- Web integration tests (upload + filtered export)
+- DTO parity (records + XML docs) & optional record/class switch
+- Exit code consistency for zero-match filters
+- ExportService overload consolidation
+- ADR for plugin/provider architecture
+
+### 📦 Wave 3 (Packaging, Performance & Formats)
+
+- Docker packaging (console + web)
 - Benchmark suite (BenchmarkDotNet)
+- Advanced export formats (JSON data export, Parquet, Excel)
 
-### Backlog
+### 🌐 Wave 4 (Platform & Extensibility)
 
-- REST API + OpenAPI
-- Additional database providers (PostgreSQL / MySQL / SQL Server)
-- Plugin architecture (custom exporters / code templates)
-- Advanced export formats (JSON, Parquet, Excel)
+- REST API + OpenAPI (Swagger)
+- Plugin architecture (exporters / code templates)
+- Additional database providers (PostgreSQL first, then others)
+
+### 🔐 Wave 5 (Security, Globalization, Polish)
+
 - Auth & RBAC (web/API)
-- Internationalization
+- Internationalization (resource files + locale switch)
+- Contributor documentation & examples
 
-Issue links will be added as items move forward—contributions welcome.
+Contributions welcome—open an issue or pick from the alignment wave for fast feedback.
 
 ## 📄 License
 

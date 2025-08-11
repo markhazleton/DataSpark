@@ -18,13 +18,19 @@
         <ProjectReference Include="..\Sql2Csv.Core\Sql2Csv.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Markdig" Version="0.37.0" />
+    </ItemGroup>
+
     <!-- Build targets for frontend assets -->
-    <Target Name="BuildFrontend" BeforeTargets="Build" Condition="'$(Configuration)' == 'Release' Or '$(BuildFrontend)' == 'true'">
+    <Target Name="BuildFrontend" BeforeTargets="Build"
+        Condition="'$(Configuration)' == 'Release' Or '$(BuildFrontend)' == 'true'">
         <Exec Command="npm ci" />
         <Exec Command="npm run build" />
     </Target>
 
-    <Target Name="InstallFrontendDependencies" BeforeTargets="Build" Condition="!Exists('node_modules')">
+    <Target Name="InstallFrontendDependencies" BeforeTargets="Build"
+        Condition="!Exists('node_modules')">
         <Exec Command="npm install" />
     </Target>
 
