@@ -7,6 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+// Required for session state
+builder.Services.AddDistributedMemoryCache();
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
