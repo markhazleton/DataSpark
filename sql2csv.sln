@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31717.71
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sql2Csv", "Sql2Csv.console\Sql2Csv.csproj", "{B64AEBB3-2CB9-484A-AE1C-F695A9A45B27}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sql2Csv", "sql2csv.console\Sql2Csv.csproj", "{B64AEBB3-2CB9-484A-AE1C-F695A9A45B27}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sql2Csv.Tests", "Sql2Csv.Tests\Sql2Csv.Tests.csproj", "{A1B2C3D4-5E6F-7890-ABCD-EF1234567890}"
 EndProject
