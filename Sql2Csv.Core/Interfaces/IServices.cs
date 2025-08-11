@@ -48,7 +48,29 @@ public interface IExportService
     /// <param name="delimiter">Optional delimiter override; if null uses configured option.</param>
     /// <param name="includeHeaders">Optional include headers override; if null uses configured option.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task<IEnumerable<ExportResult>> ExportDatabaseToCsvAsync(DatabaseConfiguration databaseConfig, string outputDirectory, string? delimiter, bool? includeHeaders, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ExportResult>> ExportDatabaseToCsvAsync(
+        DatabaseConfiguration databaseConfig,
+        string outputDirectory,
+        string? delimiter,
+        bool? includeHeaders,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Exports a filtered subset of tables from a database to CSV files with optional runtime overrides.
+    /// </summary>
+    /// <param name="databaseConfig">The database configuration.</param>
+    /// <param name="outputDirectory">The output directory.</param>
+    /// <param name="tablesFilter">Optional set of table names to include; if null exports all tables.</param>
+    /// <param name="delimiter">Optional delimiter override; if null uses configured option.</param>
+    /// <param name="includeHeaders">Optional include headers override; if null uses configured option.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task<IEnumerable<ExportResult>> ExportDatabaseToCsvAsync(
+        DatabaseConfiguration databaseConfig,
+        string outputDirectory,
+        IEnumerable<string>? tablesFilter,
+        string? delimiter,
+        bool? includeHeaders,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Exports a specific table with optional runtime overrides.

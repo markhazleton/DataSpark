@@ -91,14 +91,63 @@ public sealed class ApplicationService
     }
 
     /// <summary>
+    /// Exports all databases with table filtering and optional delimiter/header overrides.
+    /// </summary>
+    public async Task ExportDatabasesAsync(string databasePath, string outputPath, IEnumerable<string> tablesFilter, string? delimiter, bool? includeHeaders, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Starting database export operation (filtered)");
+        _logger.LogInformation("Database path: {DatabasePath}", databasePath);
+        _logger.LogInformation("Output path: {OutputPath}", outputPath);
+        if (tablesFilter != null)
+            _logger.LogInformation("Requested tables: {Tables}", string.Join(", ", tablesFilter));
+        if (!string.IsNullOrEmpty(delimiter))
+            _logger.LogInformation("Overriding delimiter: {Delimiter}", delimiter);
+        if (includeHeaders.HasValue)
+            _logger.LogInformation("Overriding include headers: {IncludeHeaders}", includeHeaders);
+
+        try
+        {
+            var databases = await _discoveryService.DiscoverDatabasesAsync(databasePath, cancellationToken);
+
+            if (!databases.Any())
+            {
+                _logger.LogWarning("No databases found in the specified path: {DatabasePath}", databasePath);
+                return;
+            }
+
+            var totalResults = new List<Core.Models.ExportResult>();
+
+            foreach (var database in databases)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var databaseOutputPath = Path.Combine(outputPath, database.Name);
+                _logger.LogInformation("Exporting database (filtered): {DatabaseName}", database.Name);
+
+                var results = await _exportService.ExportDatabaseToCsvAsync(database, databaseOutputPath, tablesFilter, delimiter, includeHeaders, cancellationToken);
+                totalResults.AddRange(results);
+            }
+
+            LogExportSummary(totalResults);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during database export (filtered)");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Generates schema reports for all databases in the specified directory.
     /// </summary>
     /// <param name="databasePath">The path containing the databases.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task GenerateSchemaReportsAsync(string databasePath, string format = "text", CancellationToken cancellationToken = default)
+    public async Task GenerateSchemaReportsAsync(string databasePath, string format = "text", IEnumerable<string>? tablesFilter = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting schema report generation");
         _logger.LogInformation("Database path: {DatabasePath}", databasePath);
+        if (tablesFilter != null)
+            _logger.LogInformation("(Schema) Requested tables filter: {Tables}", string.Join(", ", tablesFilter));
 
         try
         {
@@ -136,12 +185,14 @@ public sealed class ApplicationService
     /// <param name="outputPath">The output path for generated code.</param>
     /// <param name="namespaceName">The namespace for generated classes.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task GenerateCodeAsync(string databasePath, string outputPath, string namespaceName, CancellationToken cancellationToken = default)
+    public async Task GenerateCodeAsync(string databasePath, string outputPath, string namespaceName, IEnumerable<string>? tablesFilter = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting code generation");
         _logger.LogInformation("Database path: {DatabasePath}", databasePath);
         _logger.LogInformation("Output path: {OutputPath}", outputPath);
         _logger.LogInformation("Namespace: {Namespace}", namespaceName);
+        if (tablesFilter != null)
+            _logger.LogInformation("(CodeGen) Tables filter (currently ignored): {Tables}", string.Join(", ", tablesFilter));
 
         try
         {
@@ -160,11 +211,8 @@ public sealed class ApplicationService
                 var databaseOutputPath = Path.Combine(outputPath, database.Name);
                 _logger.LogInformation("Generating code for database: {DatabaseName}", database.Name);
 
-                await _codeGenerationService.GenerateDtoClassesAsync(
-                    database.ConnectionString,
-                    databaseOutputPath,
-                    namespaceName,
-                    cancellationToken);
+                // NOTE: Table filtering for code generation deferred to future wave; generate for all tables.
+                await _codeGenerationService.GenerateDtoClassesAsync(database.ConnectionString, databaseOutputPath, namespaceName, cancellationToken);
             }
 
             _logger.LogInformation("Code generation completed successfully");

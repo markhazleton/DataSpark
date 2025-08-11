@@ -24,11 +24,11 @@
 | Command | Description | Key Options |
 |---------|-------------|-------------|
 | discover | List discovered SQLite databases in a directory | --path |
-| export | Export all tables of each database to CSV | --path, --output, --delimiter, --headers |
+| export | Export all tables (or filtered subset) to CSV | --path, --output, --delimiter, --headers, --tables |
 | schema | Print schema reports | --path, --format |
 | generate | Generate C# DTO records | --path, --output, --namespace |
 
-Planned (not yet implemented): per-table export selection, additional export formats (json, parquet, excel), code template customization.
+Planned (soon): additional export formats (json, parquet, excel), code template customization.
 
 ### CLI Usage Examples
 
@@ -39,11 +39,17 @@ dotnet run --project sql2csv.console discover --path "C:\Data\DBs"
 # Export databases to CSV (override delimiter and headers)
 dotnet run --project sql2csv.console export --path "C:\Data\DBs" --output "C:\Exports" --delimiter ";" --headers true
 
+# Export only specific tables (case-insensitive, comma / semicolon separators)
+dotnet run --project sql2csv.console export --path "C:\Data\DBs" --tables Users,Orders;Products
+
 # Schema reports
 dotnet run --project sql2csv.console schema --path "C:\Data\DBs"
 
 # Generate DTOs
 dotnet run --project sql2csv.console generate --path "C:\Data\DBs" --output "C:\Gen" --namespace "MyApp.Models"
+
+# (Preview) Provide tables filter (currently logged; generation still processes all tables)
+dotnet run --project sql2csv.console generate --path "C:\Data\DBs" --tables Users,Orders
 ```
 
 ### Architecture Highlights
@@ -54,9 +60,16 @@ dotnet run --project sql2csv.console generate --path "C:\Data\DBs" --output "C:\
 - Focused services: discovery / export / schema / code generation
 - Test project validating primary flows
 
-### Web UI (Status: Early)
+### Web UI (Status: Wave 2 Foundations Implemented)
 
-Web project scaffolds controllers, services and asset pipeline (Tailwind + Alpine.js). Advanced UI features listed earlier are pending implementation.
+Implemented:
+
+- Drag & drop upload (header + size validation, immediate analysis redirect)
+- Optional persistence of uploaded DBs with metadata
+- Multi-table selection with Select All / Clear All + shared state
+- Table filtering integrated in CLI & web export paths
+
+Deferred (future waves): advanced schema visualizations, API exposure, code generation table filtering, progress indicators.
 
 ## 🚀 Quick Start
 

@@ -79,11 +79,32 @@ public class WebDatabaseService : IWebDatabaseService
             var fileName = $"{Guid.NewGuid()}{fileExtension}";
             var filePath = Path.Combine(_tempDirectory, fileName);
 
-            // Save file
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            // Save file to disk
+            using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
             {
                 await file.CopyToAsync(fileStream, cancellationToken);
-            } // Ensure stream is disposed before database validation
+            }
+
+            // Quick header validation (first 16 bytes should equal 'SQLite format 3\0')
+            try
+            {
+                byte[] header = new byte[16];
+                using var headerStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var read = await headerStream.ReadAsync(header.AsMemory(0, 16), cancellationToken);
+                var expected = System.Text.Encoding.ASCII.GetBytes("SQLite format 3\0");
+                if (read < 16 || !expected.SequenceEqual(header))
+                {
+                    File.Delete(filePath);
+                    _tempFiles.Remove(filePath);
+                    return (false, "Invalid SQLite file header.", null, 0);
+                }
+            }
+            catch (Exception ex)
+            {
+                File.Delete(filePath);
+                _tempFiles.Remove(filePath);
+                return (false, $"Failed to validate file header: {ex.Message}", null, 0);
+            }
 
             // Track temp file for cleanup
             _tempFiles.Add(filePath);

@@ -85,6 +85,65 @@ public sealed class ExportService : IExportService
         }
     }
 
+    /// <summary>
+    /// Export database with optional table filtering.
+    /// </summary>
+    public async Task<IEnumerable<ExportResult>> ExportDatabaseToCsvAsync(
+        DatabaseConfiguration databaseConfig,
+        string outputDirectory,
+        IEnumerable<string>? tablesFilter,
+        string? delimiter,
+        bool? includeHeaders,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(databaseConfig);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+
+        _logger.LogInformation("Starting export for database: {DatabaseName} (filtered)", databaseConfig.Name);
+
+        try
+        {
+            Directory.CreateDirectory(outputDirectory);
+
+            var allTableNames = await _schemaService.GetTableNamesAsync(databaseConfig.ConnectionString, cancellationToken);
+            IEnumerable<string> effectiveTables = allTableNames;
+            if (tablesFilter != null)
+            {
+                var filterSet = new HashSet<string>(tablesFilter, StringComparer.OrdinalIgnoreCase);
+                effectiveTables = allTableNames.Where(t => filterSet.Contains(t)).ToList();
+
+                var unknown = filterSet.Except(allTableNames, StringComparer.OrdinalIgnoreCase).ToList();
+                if (unknown.Any())
+                {
+                    _logger.LogWarning("The following requested tables were not found in {DatabaseName}: {Missing}", databaseConfig.Name, string.Join(", ", unknown));
+                }
+                if (!effectiveTables.Any())
+                {
+                    _logger.LogWarning("No matching tables after filtering for database {DatabaseName}", databaseConfig.Name);
+                    return Enumerable.Empty<ExportResult>();
+                }
+                _logger.LogInformation("Filtered tables: {Count}/{Total}", effectiveTables.Count(), allTableNames.Count());
+            }
+
+            var results = new List<ExportResult>();
+            foreach (var tableName in effectiveTables)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var outputFilePath = Path.Combine(outputDirectory, $"{tableName}_extract.csv");
+                var result = await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, delimiter, includeHeaders, cancellationToken);
+                results.Add(result);
+            }
+
+            _logger.LogInformation("Completed filtered export for database: {DatabaseName}", databaseConfig.Name);
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting database (filtered): {DatabaseName}", databaseConfig.Name);
+            throw;
+        }
+    }
+
     /// <inheritdoc />
     public async Task<ExportResult> ExportTableToCsvAsync(
         DatabaseConfiguration databaseConfig,

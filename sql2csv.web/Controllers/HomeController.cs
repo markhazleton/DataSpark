@@ -149,6 +149,41 @@ public class HomeController : Controller
         }
     }
 
+    /// <summary>
+    /// AJAX drag & drop upload endpoint returning JSON payload.
+    /// </summary>
+    [HttpPost]
+    [Route("api/upload")] // /api/upload
+    public async Task<IActionResult> UploadApi(IFormFile? file, bool persist = false, string? description = null, CancellationToken cancellationToken = default)
+    {
+        if (file == null)
+            return BadRequest(new { error = "No file provided." });
+
+        var (success, errorMessage, tempFilePath, tableCount) = await _databaseService.SaveUploadedFileAsync(file, cancellationToken);
+        if (!success || string.IsNullOrEmpty(tempFilePath))
+            return BadRequest(new { error = errorMessage ?? "Upload failed." });
+
+        string? persistedId = null;
+        try
+        {
+            if (persist)
+            {
+                var persisted = await _persistedFileService.SavePersistedFileAsync(file, tempFilePath, tableCount, description);
+                persistedId = persisted.Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist uploaded file (continuing)");
+        }
+
+        // Stash for analysis flow
+        TempData["DatabaseFilePath"] = tempFilePath;
+        TempData["DatabaseFileName"] = file.FileName;
+
+        return Ok(new { id = persistedId, name = file.FileName, tableCount, persisted = persistedId != null });
+    }
+
     public async Task<IActionResult> ManageFiles()
     {
         var files = await _persistedFileService.GetPersistedFilesAsync();

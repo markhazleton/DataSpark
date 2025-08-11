@@ -89,17 +89,38 @@ public static class CommandFactory
             "--headers",
             description: "Override to include (true) or exclude (false) headers; omit to use configured option");
 
+        var tablesOption = new Option<string?>(
+            name: "--tables",
+            description: "Optional comma or semicolon separated list of tables to export (case-insensitive). Example: --tables Users,Orders;Products");
+
         exportCommand.AddOption(pathOption);
         exportCommand.AddOption(outputOption);
         exportCommand.AddOption(delimiterOption);
         exportCommand.AddOption(headersOption);
+        exportCommand.AddOption(tablesOption);
 
-        exportCommand.SetHandler(async (path, output, delimiter, headers) =>
+        exportCommand.SetHandler(async (path, output, delimiter, headers, tables) =>
         {
             using var scope = services.CreateScope();
             var app = scope.ServiceProvider.GetRequiredService<ApplicationService>();
-            await app.ExportDatabasesAsync(path, output, delimiter, headers);
-        }, pathOption, outputOption, delimiterOption, headersOption);
+            var tableList = ParseTables(tables);
+            if (tableList.Any())
+            {
+                // Capture console output count heuristic by temp directory snapshot
+                var before = Directory.Exists(output) ? Directory.GetFiles(output, "*_extract.csv", SearchOption.AllDirectories).Length : 0;
+                await app.ExportDatabasesAsync(path, output, tableList, delimiter, headers);
+                var after = Directory.Exists(output) ? Directory.GetFiles(output, "*_extract.csv", SearchOption.AllDirectories).Length : 0;
+                if (after == before)
+                {
+                    Console.Error.WriteLine("No matching tables found for supplied filter.");
+                    Environment.ExitCode = 2; // failure per requirements when no tables matched
+                }
+            }
+            else
+            {
+                await app.ExportDatabasesAsync(path, output, delimiter, headers);
+            }
+        }, pathOption, outputOption, delimiterOption, headersOption, tablesOption);
 
         return exportCommand;
     }
@@ -118,15 +139,21 @@ public static class CommandFactory
             description: "Output format: text (default), json, markdown",
             getDefaultValue: () => "text");
 
+        var tablesOption = new Option<string?>(
+            name: "--tables",
+            description: "Optional comma or semicolon separated list of tables to include in schema report (currently informational only).");
+
         schemaCommand.AddOption(pathOption);
         schemaCommand.AddOption(formatOption);
+        schemaCommand.AddOption(tablesOption);
 
-        schemaCommand.SetHandler(async (path, format) =>
+        schemaCommand.SetHandler(async (path, format, tables) =>
         {
             using var scope = services.CreateScope();
             var app = scope.ServiceProvider.GetRequiredService<ApplicationService>();
-            await app.GenerateSchemaReportsAsync(path, format);
-        }, pathOption, formatOption);
+            var tableList = ParseTables(tables);
+            await app.GenerateSchemaReportsAsync(path, format, tableList.Any() ? tableList : null);
+        }, pathOption, formatOption, tablesOption);
 
         return schemaCommand;
     }
@@ -150,16 +177,22 @@ public static class CommandFactory
             description: "Namespace for generated classes",
             getDefaultValue: () => "Sql2Csv.Generated");
 
+        var tablesOption = new Option<string?>(
+            name: "--tables",
+            description: "Optional comma or semicolon separated list of tables to generate DTO classes for (currently ignored).");
+
         generateCommand.AddOption(pathOption);
         generateCommand.AddOption(outputOption);
         generateCommand.AddOption(namespaceOption);
+        generateCommand.AddOption(tablesOption);
 
-        generateCommand.SetHandler(async (path, output, namespaceName) =>
+        generateCommand.SetHandler(async (path, output, namespaceName, tables) =>
         {
             using var scope = services.CreateScope();
             var app = scope.ServiceProvider.GetRequiredService<ApplicationService>();
-            await app.GenerateCodeAsync(path, output, namespaceName);
-        }, pathOption, outputOption, namespaceOption);
+            var tableList = ParseTables(tables);
+            await app.GenerateCodeAsync(path, output, namespaceName, tableList.Any() ? tableList : null);
+        }, pathOption, outputOption, namespaceOption, tablesOption);
 
         return generateCommand;
     }
@@ -183,5 +216,16 @@ public static class CommandFactory
         using var scope = services.CreateScope();
         var options = scope.ServiceProvider.GetRequiredService<IOptions<Sql2CsvOptions>>().Value;
         return Path.Combine(options.RootPath, "generated");
+    }
+
+    private static IReadOnlyList<string> ParseTables(string? tables)
+    {
+        if (string.IsNullOrWhiteSpace(tables)) return Array.Empty<string>();
+        var split = tables.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                          .Select(t => t.Trim())
+                          .Where(t => t.Length > 0)
+                          .Distinct(StringComparer.OrdinalIgnoreCase)
+                          .ToList();
+        return split;
     }
 }

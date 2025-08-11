@@ -98,7 +98,7 @@
                         @@dragleave="dragging = false" @@drop.prevent="dragging = false" :class="{ 'dragover': dragging }">
                         <input type="file" name="DatabaseFile" id="database-file" accept=".db,.sqlite,.sqlite3"
                             class="sr-only" />
-                        <label for="database-file" class="cursor-pointer block">
+                        <label for="database-file" class="cursor-pointer block" id="drop-label">
                             <div class="flex flex-col items-center">
                                 <svg class="mx-auto h-12 w-12 text-secondary-400" stroke="currentColor" fill="none"
                                     viewBox="0 0 48 48">
@@ -232,3 +232,52 @@
         </div>
     </div>
 </div>
+
+<script>
+    (function() {
+        const fileInput = document.getElementById('database-file');
+        const label = document.getElementById('drop-label');
+        const selectedInfo = document.getElementById('selected-file-name');
+        const selectedSpan = selectedInfo?.querySelector('span');
+        const form = document.getElementById('upload-form');
+        const errorDiv = document.getElementById('file-error');
+
+        function showFileName(name) {
+            if (selectedInfo && selectedSpan) {
+                selectedSpan.textContent = name;
+                selectedInfo.classList.remove('hidden');
+            }
+        }
+
+        async function uploadFile(file) {
+            const validExt = ['.db', '.sqlite', '.sqlite3'];
+            const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (!validExt.includes(ext)) { alert('Invalid file type'); return; }
+            const fd = new FormData();
+            fd.append('file', file);
+            try {
+                label.classList.add('opacity-50');
+                const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+                const data = await resp.json();
+                if (!resp.ok) { alert(data.error || 'Upload failed'); label.classList.remove('opacity-50'); return; }
+                showFileName(file.name + ' (' + (data.tableCount ?? '?') + ' tables)');
+                // Redirect to analyze after short pause
+                setTimeout(() => { window.location.href = '/Home/Analyze'; }, 500);
+            } catch (e) {
+                alert('Upload error: ' + e);
+            } finally {
+                label.classList.remove('opacity-50');
+            }
+        }
+
+        fileInput?.addEventListener('change', e => {
+            const f = e.target.files?.[0];
+            if (f) uploadFile(f);
+        });
+
+        label?.addEventListener('drop', e => {
+            const f = e.dataTransfer.files?.[0];
+            if (f) uploadFile(f);
+        });
+    })();
+</script>
