@@ -165,17 +165,25 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_44FB8C207028458F9084C0FEC2202769 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_315787A2E667486B9DAD3D96A73D59A6 }}
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: Build with dotnet (solution)
+        run: dotnet build sql2csv.sln --configuration Release
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o ./publish
+      - name: Publish web project
+        run: |
+          dotnet publish sql2csv.web/Sql2Csv.Web.csproj -c Release -o ./publish
+          cd ./publish
+          zip -r ../publish.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
-          path: ./publish
+          name: webapp-publish
+          path: publish.zip
+
+      - name: Download publish artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp-publish
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -183,4 +191,4 @@ jobs:
         with:
           app-name: "SqlSpark"
           slot-name: "Production"
-          package: ./publish
+          package: publish.zip

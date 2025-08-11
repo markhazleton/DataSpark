@@ -21,19 +21,22 @@ jobs:
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.x'
+          dotnet-version: "9.x"
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: Build with dotnet (solution)
+        run: dotnet build sql2csv.sln --configuration Release
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+      - name: Publish web project
+        run: |
+          dotnet publish sql2csv.web/Sql2Csv.Web.csproj -c Release -o ${{runner.temp}}/publish
+          cd ${{runner.temp}}/publish
+          zip -r $GITHUB_WORKSPACE/publish.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          name: webapp-publish
+          path: publish.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -46,8 +49,8 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: .net-app
-      
+          name: webapp-publish
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -59,7 +62,6 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'SqlSpark'
-          slot-name: 'Production'
-          package: .
-          
+          app-name: "SqlSpark"
+          slot-name: "Production"
+          package: publish.zip
