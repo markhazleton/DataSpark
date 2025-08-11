@@ -1,10 +1,13 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build-test:
@@ -34,7 +37,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           echo "Running benchmarks..."
-          dotnet run -c Release --project Sql2Csv.Benchmarks -- --filter *
+          dotnet run -c Release --project Sql2Csv.Benchmarks -- --filter '*'
           mkdir -p Sql2Csv.Benchmarks/baseline
           LATEST_MD=$(ls -t Sql2Csv.Benchmarks/BenchmarkDotNet.Artifacts/results/*-report-github.md 2>/dev/null | head -n1 || true)
           if [ -f "$LATEST_MD" ]; then
@@ -60,6 +63,18 @@ jobs:
             echo "Coverage: unknown" | tee coverage-summary.txt
           fi
 
+      - name: Copy coverage XML to web/data
+        shell: bash
+        run: |
+          COVERAGE_FILE=$(find TestResults -name 'coverage.cobertura.xml' | head -n 1 || true)
+          if [ -f "$COVERAGE_FILE" ]; then
+            mkdir -p sql2csv.web/data
+            cp "$COVERAGE_FILE" sql2csv.web/data/coverage.cobertura.xml
+            echo "Copied coverage XML to sql2csv.web/data/coverage.cobertura.xml"
+          else
+            echo "coverage.cobertura.xml not found, skipping copy to web/data"
+          fi
+
       - name: Enforce coverage regression policy
         if: github.event_name == 'pull_request'
         shell: bash
@@ -74,7 +89,6 @@ jobs:
           echo "Baseline coverage (main): $BASELINE%"
           DROP=$(awk -v b="$BASELINE" -v c="$CURRENT" 'BEGIN { printf("%.2f", b-c) }')
           echo "Coverage drop vs main: $DROP%"
-          # Enforce minimum absolute coverage
           awk -v c="$CURRENT" -v min="$MIN_COVERAGE" 'BEGIN { if (c+0 < min+0) { exit 1 } }' || { echo "❌ Coverage below minimum threshold ($MIN_COVERAGE%)"; exit 1; }
           awk -v d="$DROP" -v max="$MAX_COVERAGE_DROP" 'BEGIN { if (d+0 > max+0) { exit 2 } }' || { echo "❌ Coverage regression exceeds allowed drop ($MAX_COVERAGE_DROP%)"; exit 1; }
           echo "✅ Coverage policy passed"
@@ -110,7 +124,6 @@ jobs:
             git add Sql2Csv.Benchmarks/baseline/BenchmarkBaseline.md
             ADDED=1
           fi
-            
           if [ $ADDED -eq 1 ]; then
             if git diff --cached --quiet; then
               echo "No coverage or benchmark baseline changes to commit"
@@ -129,3 +142,45 @@ jobs:
           header: coverage
           message: |
             $(cat coverage-summary.txt 2>/dev/null || echo "Coverage unavailable")
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-test
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0350EA8E5ABC411EADBF6B8127147B18 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_44FB8C207028458F9084C0FEC2202769 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_315787A2E667486B9DAD3D96A73D59A6 }}
+
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
+
+      - name: dotnet publish
+        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "SqlSpark"
+          slot-name: "Production"
+          package: .
