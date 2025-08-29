@@ -1,17 +1,17 @@
 @model Sql2Csv.Web.Models.FileUploadViewModel
 @{
-    ViewData["Title"] = "SQLite to CSV Converter";
+    ViewData["Title"] = "Data File Analyzer";
 }
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Hero Section -->
     <div class="text-center mb-12">
         <h1 class="text-4xl font-bold text-gradient mb-4">
-            SQLite to CSV Converter
+            Data File Analyzer
         </h1>
         <p class="text-xl text-secondary-600 max-w-2xl mx-auto">
-            Upload your SQLite database and explore its schema, export tables to CSV, or generate model classes.
-            A complete database analysis and export tool built with .NET 9.0.
+            Upload your database or CSV files to explore their structure, analyze data, export tables, or generate model classes.
+            A complete data analysis and export tool built with .NET 9.0.
         </p>
     </div>
 
@@ -47,7 +47,7 @@
                     <!-- Existing Files Tab -->
                     <div x-show="activeTab === 'existing'" class="space-y-6">
                         <div class="card-header">
-                            <h2 class="text-xl font-semibold text-secondary-900">Select Existing Database</h2>
+                            <h2 class="text-xl font-semibold text-secondary-900">Select Existing Data File</h2>
                             <p class="text-secondary-600 mt-1">Choose from previously uploaded files</p>
                         </div>
                         
@@ -87,16 +87,16 @@
                 <!-- Upload Tab -->
                 <div x-show="activeTab === 'upload'" class="space-y-6">
                     <div class="card-header">
-                        <h2 class="text-xl font-semibold text-secondary-900">Upload New Database</h2>
+                        <h2 class="text-xl font-semibold text-secondary-900">Upload Data File</h2>
                         <p class="text-secondary-600 mt-1">
-                            Select a SQLite database file (.db, .sqlite, .sqlite3) to get started. Maximum file size: 50MB.
+                            Select a database file (.db, .sqlite, .sqlite3) or CSV file (.csv, .tsv, .txt) to get started. Maximum file size: 50MB.
                         </p>
                     </div>
 
                     <!-- File Upload Zone -->
                     <div class="upload-zone" x-data="{ dragging: false }" @@dragover.prevent="dragging = true"
                         @@dragleave="dragging = false" @@drop.prevent="dragging = false" :class="{ 'dragover': dragging }">
-                        <input type="file" name="DatabaseFile" id="database-file" accept=".db,.sqlite,.sqlite3"
+                        <input type="file" name="DatabaseFile" id="database-file" accept=".db,.sqlite,.sqlite3,.csv,.tsv,.txt"
                             class="sr-only" />
                         <label for="database-file" class="cursor-pointer block" id="drop-label">
                             <div class="flex flex-col items-center">
@@ -112,7 +112,7 @@
                                             upload</span>
                                         or drag and drop
                                     </p>
-                                    <p class="text-xs text-secondary-500 mt-1">SQLite files only (MAX. 50MB)</p>
+                                    <p class="text-xs text-secondary-500 mt-1">Database files (.db, .sqlite, .sqlite3) or CSV files (.csv, .tsv, .txt) - MAX. 50MB</p>
                                 </div>
                             </div>
                         </label>

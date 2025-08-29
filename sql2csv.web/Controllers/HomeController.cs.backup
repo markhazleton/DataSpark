@@ -238,7 +238,7 @@ public class HomeController : Controller
         if (fileType == DataSourceType.Database && additionalInfo is not null)
         {
             var dict = additionalInfo as dynamic;
-            var enrichedResponse = new
+            response = new
             {
                 response.id,
                 response.name,
@@ -246,12 +246,11 @@ public class HomeController : Controller
                 response.persisted,
                 tableCount = dict?.TableCount ?? 0
             };
-            return Ok(enrichedResponse);
         }
         else if (fileType == DataSourceType.Csv && additionalInfo is not null)
         {
             var dict = additionalInfo as dynamic;
-            var enrichedResponse = new
+            response = new
             {
                 response.id,
                 response.name,
@@ -262,7 +261,6 @@ public class HomeController : Controller
                 hasHeaders = dict?.HasHeaders ?? false,
                 delimiter = dict?.Delimiter ?? ","
             };
-            return Ok(enrichedResponse);
         }
 
         return Ok(response);
@@ -772,6 +770,160 @@ public class HomeController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting table data for table: {TableName}", tableName);
+            return Json(new TableDataResult { Error = ex.Message });
+        }
+    }
+
+    public IActionResult About()
+    {
+        return View();
+    }
+
+    public IActionResult TableDemo()
+    {
+        return View();
+    }
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error()
+    {
+        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+    }
+}
+
+public class ErrorViewModel
+{
+    public string? RequestId { get; set; }
+    public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+}
+
+        _logger.LogInformation("ViewCsvData action called with FileName: {FileName}, FilePath: {FilePath}", fileName, filePath);
+
+        if (string.IsNullOrEmpty(filePath))
+        {
+            _logger.LogWarning("Missing file path, redirecting to Index");
+            return RedirectToAction("Index");
+        }
+
+        // Parse file type
+        if (!Enum.TryParse<DataSourceType>(fileTypeString, out var fileType) || fileType != DataSourceType.Csv)
+        {
+            _logger.LogWarning("Invalid file type for CSV viewing: {FileType}", fileTypeString);
+            return RedirectToAction("Index");
+        }
+
+        // Check if file exists
+        if (!System.IO.File.Exists(filePath))
+        {
+            _logger.LogError("File not found at path: {FilePath}", filePath);
+            TempData["ErrorMessage"] = "The selected CSV file is no longer available.";
+            return RedirectToAction("Index");
+        }
+
+        try
+        {
+            _logger.LogInformation("Getting CSV data view for file: {FilePath}", filePath);
+
+            // Get basic analysis to set up the view
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            var analysis = await _unifiedDataService.AnalyzeDataSourceAsync(filePath, fileType, null, cts.Token);
+
+            // Persist in session for subsequent AJAX calls
+            HttpContext.Session.SetString("CurrentDataFilePath", filePath);
+            HttpContext.Session.SetString("CurrentDataFileType", fileType.ToString());
+            HttpContext.Session.SetString("CurrentDataFileName", fileName);
+
+            // Keep the file path for subsequent operations
+            TempData.Keep("DataFilePath");
+            TempData.Keep("DataFileName");
+            TempData.Keep("DataFileType");
+
+            var model = new UnifiedViewDataViewModel
+            {
+                DataSourceName = Path.GetFileNameWithoutExtension(fileName),
+                DisplayName = fileName,
+                FilePath = filePath,
+                FileType = fileType,
+                Columns = analysis.ColumnAnalyses.Select(c => new ColumnInfoViewModel
+                {
+                    Name = c.ColumnName,
+                    DataType = c.DataType,
+                    IsNullable = c.NullCount > 0,
+                    IsPrimaryKey = false // CSV files don't have primary keys
+                }).ToList(),
+                AdditionalInfo = new Dictionary<string, object>
+                {
+                    ["TotalRows"] = analysis.Summary.TotalRows,
+                    ["TotalColumns"] = analysis.Summary.TotalColumns,
+                    ["FileSize"] = analysis.Summary.FileSizeFormatted
+                }
+            };
+
+            _logger.LogInformation("CSV data view prepared successfully for file: {FileName}", fileName);
+            return View("ViewUnifiedData", model);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogError("ViewCsvData operation timed out for file: {FilePath}", filePath);
+            TempData["ErrorMessage"] = "Operation timed out. The file might be too large.";
+            return RedirectToAction("Analyze");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting CSV data view: {FilePath}", filePath);
+            TempData["ErrorMessage"] = "An error occurred while accessing the CSV file.";
+            return RedirectToAction("Analyze");
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetUnifiedData([FromForm] DataTablesRequest request)
+    {
+        var filePath = HttpContext.Session.GetString("CurrentDataFilePath");
+        var fileTypeString = HttpContext.Session.GetString("CurrentDataFileType");
+        
+        if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(fileTypeString))
+        {
+            return Json(new TableDataResult { Error = "Missing file path or file type" });
+        }
+
+        if (!Enum.TryParse<DataSourceType>(fileTypeString, out var fileType))
+        {
+            return Json(new TableDataResult { Error = "Invalid file type" });
+        }
+
+        if (!System.IO.File.Exists(filePath))
+        {
+            return Json(new TableDataResult { Error = "Data file not found" });
+        }
+
+        try
+        {
+            _logger.LogInformation("Getting unified data for file: {FilePath} ({FileType}), Start: {Start}, Length: {Length}",
+                filePath, fileType, request.Start, request.Length);
+
+            // Add timeout to the operation
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+
+            string? tableName = null;
+            if (fileType == DataSourceType.Database)
+            {
+                // For database files, we'd need to know which table - this is a simplified approach
+                tableName = HttpContext.Session.GetString("CurrentTableName");
+            }
+
+            var result = await _unifiedDataService.GetDataAsync(filePath, fileType, tableName, request, cts.Token);
+
+            return Json(result);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogError("GetUnifiedData timed out for file: {FilePath}", filePath);
+            return Json(new TableDataResult { Error = "Operation timed out" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting unified data for file: {FilePath}", filePath);
             return Json(new TableDataResult { Error = ex.Message });
         }
     }

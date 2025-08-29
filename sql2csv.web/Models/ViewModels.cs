@@ -3,12 +3,12 @@ using System.ComponentModel.DataAnnotations;
 namespace Sql2Csv.Web.Models;
 
 /// <summary>
-/// View model for file upload
+/// View model for file upload - now supports both database and CSV files
 /// </summary>
 public class FileUploadViewModel
 {
-    [Required(ErrorMessage = "Please select a database file")]
-    [Display(Name = "Database File")]
+    [Required(ErrorMessage = "Please select a data file")]
+    [Display(Name = "Data File (Database or CSV)")]
     public IFormFile? DatabaseFile { get; set; }
 
     public string? ErrorMessage { get; set; }
@@ -24,6 +24,16 @@ public class FileUploadViewModel
 
     [Display(Name = "Use existing file")]
     public string? SelectedFileId { get; set; }
+
+    public List<string> SupportedFileTypes { get; set; } = new() 
+    { 
+        ".db (SQLite Database)",
+        ".sqlite (SQLite Database)", 
+        ".sqlite3 (SQLite Database)",
+        ".csv (Comma Separated Values)",
+        ".tsv (Tab Separated Values)",
+        ".txt (Text/Delimited File)"
+    };
 }
 
 /// <summary>
@@ -44,9 +54,11 @@ public class DatabaseAnalysisViewModel
 public class TableInfoViewModel
 {
     public required string Name { get; init; }
+    public string TableName => Name; // Alias for compatibility
     public string Schema { get; init; } = "main";
     public long RowCount { get; init; }
     public List<ColumnInfoViewModel> Columns { get; init; } = [];
+    public int ColumnCount => Columns.Count; // Calculated property
     public bool HasPrimaryKey => Columns.Any(c => c.IsPrimaryKey);
 }
 
@@ -83,10 +95,13 @@ public class ExportResultViewModel
     public required string TableName { get; init; }
     public required string FileName { get; init; }
     public required string FileContent { get; init; }
+    public string? FilePath { get; init; }
     public int RowCount { get; init; }
     public TimeSpan Duration { get; init; }
     public bool IsSuccess { get; init; }
+    public bool Success => IsSuccess; // Alias for compatibility
     public string? ErrorMessage { get; init; }
+    public string? Message => ErrorMessage; // Alias for compatibility
 }
 
 /// <summary>

@@ -148,7 +148,8 @@ public class TableDataResult
     public int Draw { get; init; }
     public long RecordsTotal { get; init; }
     public long RecordsFiltered { get; init; }
-    public List<Dictionary<string, object?>> Data { get; init; } = [];
+    public object?[][] Data { get; init; } = [];
+    public List<string> Columns { get; init; } = [];
     public string? Error { get; init; }
 }
 
