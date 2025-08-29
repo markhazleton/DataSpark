@@ -17,6 +17,76 @@ public interface IDatabaseDiscoveryService
 }
 
 /// <summary>
+/// Service for discovering data files (both database and CSV).
+/// </summary>
+public interface IDataFileDiscoveryService
+{
+    /// <summary>
+    /// Discovers data files (SQLite and CSV) in the specified directory.
+    /// </summary>
+    /// <param name="directoryPath">The directory path to search.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A collection of discovered data source configurations.</returns>
+    Task<IEnumerable<DataSourceConfiguration>> DiscoverDataFilesAsync(string directoryPath, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Service for CSV file analysis and processing.
+/// </summary>
+public interface ICsvAnalysisService
+{
+    /// <summary>
+    /// Analyzes a CSV file and returns column information and statistics.
+    /// </summary>
+    /// <param name="filePath">The CSV file path.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Analysis results for the CSV file.</returns>
+    Task<CsvAnalysisResult> AnalyzeCsvAsync(string filePath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets column information for a CSV file.
+    /// </summary>
+    /// <param name="filePath">The CSV file path.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A collection of column information.</returns>
+    Task<IEnumerable<ColumnInfo>> GetCsvColumnsAsync(string filePath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets data from a CSV file with pagination support.
+    /// </summary>
+    /// <param name="filePath">The CSV file path.</param>
+    /// <param name="skip">Number of rows to skip.</param>
+    /// <param name="take">Number of rows to take.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>CSV data with pagination information.</returns>
+    Task<CsvDataResult> GetCsvDataAsync(string filePath, int skip = 0, int take = 100, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Unified service for analyzing both database tables and CSV files.
+/// </summary>
+public interface IUnifiedAnalysisService
+{
+    /// <summary>
+    /// Analyzes a data source (database table or CSV file).
+    /// </summary>
+    /// <param name="dataSource">The data source configuration.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Unified analysis results.</returns>
+    Task<UnifiedAnalysisResult> AnalyzeDataSourceAsync(DataSourceConfiguration dataSource, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets data from a data source with pagination support.
+    /// </summary>
+    /// <param name="dataSource">The data source configuration.</param>
+    /// <param name="skip">Number of rows to skip.</param>
+    /// <param name="take">Number of rows to take.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Paginated data results.</returns>
+    Task<UnifiedDataResult> GetDataAsync(DataSourceConfiguration dataSource, int skip = 0, int take = 100, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
 /// Service for exporting database data to CSV.
 /// </summary>
 public interface IExportService

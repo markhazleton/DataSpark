@@ -520,17 +520,16 @@ public class WebDatabaseService : IWebDatabaseService
             finalSql += $" LIMIT {request.Length} OFFSET {request.Start}";
 
             // Execute main query
-            var data = new List<Dictionary<string, object?>>();
+            var data = new List<object?[]>();
             using var command = new SqliteCommand(finalSql, connection);
             using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
             while (await reader.ReadAsync(cancellationToken))
             {
-                var row = new Dictionary<string, object?>();
+                var row = new object?[reader.FieldCount];
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
-                    var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                    row[columns[i]] = value;
+                    row[i] = reader.IsDBNull(i) ? null : reader.GetValue(i);
                 }
                 data.Add(row);
             }
@@ -540,7 +539,8 @@ public class WebDatabaseService : IWebDatabaseService
                 Draw = request.Draw,
                 RecordsTotal = totalRecords,
                 RecordsFiltered = filteredRecords,
-                Data = data
+                Data = data.ToArray(),
+                Columns = columns
             };
         }
         catch (Exception ex)

@@ -31,9 +31,15 @@ builder.Services.AddScoped<ISchemaService, SchemaService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<ICodeGenerationService, CodeGenerationService>();
 
+// Register new unified data services
+builder.Services.AddScoped<ICsvAnalysisService, CsvAnalysisService>();
+builder.Services.AddScoped<IDataFileDiscoveryService, DataFileDiscoveryService>();
+builder.Services.AddScoped<IUnifiedAnalysisService, UnifiedAnalysisService>();
+
 // Register Web services
 builder.Services.AddScoped<IWebDatabaseService, WebDatabaseService>();
 builder.Services.AddScoped<IPersistedFileService, PersistedFileService>();
+builder.Services.AddScoped<IUnifiedWebDataService, UnifiedWebDataService>();
 builder.Services.AddSingleton<IPerformanceMetricsService, PerformanceMetricsService>();
 
 // Configure file upload limits
