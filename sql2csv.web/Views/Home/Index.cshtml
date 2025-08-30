@@ -189,10 +189,34 @@
         </div>
     </div>
 
+    <!-- Quick Access Section -->
+    <div class="mt-12 text-center">
+        <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 max-w-2xl mx-auto">
+            <h3 class="text-lg font-semibold text-secondary-900 mb-2">
+                <span class="mr-2">🚀</span>Try Our Unified Analysis
+            </h3>
+            <p class="text-secondary-600 mb-4">
+                Experience our new unified interface that works seamlessly with both database tables and CSV files.
+            </p>
+            <a asp-controller="UnifiedData" asp-action="Index" 
+               class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium">
+                <span class="mr-2">🔗</span>
+                Explore Unified Analysis
+            </a>
+        </div>
+    </div>
+
     <!-- Features Section -->
     <div class="mt-16">
         <h2 class="text-3xl font-bold text-center text-secondary-900 mb-12">Features</h2>
-        <div class="grid md:grid-cols-3 gap-8">
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="text-center">
+                <div class="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl">🔗</span>
+                </div>
+                <h3 class="text-xl font-semibold text-secondary-900 mb-2">Unified Analysis</h3>
+                <p class="text-secondary-600">Analyze both database tables and CSV files with a single, consistent interface and unified tools.</p>
+            </div>
             <div class="text-center">
                 <div class="bg-primary-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                     <svg class="w-8 h-8 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -250,9 +274,9 @@
         }
 
         async function uploadFile(file) {
-            const validExt = ['.db', '.sqlite', '.sqlite3'];
+            const validExt = ['.db', '.sqlite', '.sqlite3', '.csv', '.tsv', '.txt'];
             const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-            if (!validExt.includes(ext)) { alert('Invalid file type'); return; }
+            if (!validExt.includes(ext)) { alert('Invalid file type. Supported: ' + validExt.join(', ')); return; }
             const fd = new FormData();
             fd.append('file', file);
             try {
@@ -260,7 +284,16 @@
                 const resp = await fetch('/api/upload', { method: 'POST', body: fd });
                 const data = await resp.json();
                 if (!resp.ok) { alert(data.error || 'Upload failed'); label.classList.remove('opacity-50'); return; }
-                showFileName(file.name + ' (' + (data.tableCount ?? '?') + ' tables)');
+                
+                // Show appropriate info based on file type
+                let fileInfo = file.name;
+                if (data.tableCount !== undefined) {
+                    fileInfo += ' (' + data.tableCount + ' tables)';
+                } else if (data.columnCount !== undefined && data.rowCount !== undefined) {
+                    fileInfo += ' (' + data.columnCount + ' columns, ' + data.rowCount + ' rows)';
+                }
+                showFileName(fileInfo);
+                
                 // Redirect to analyze after short pause
                 setTimeout(() => { window.location.href = '/Home/Analyze'; }, 500);
             } catch (e) {

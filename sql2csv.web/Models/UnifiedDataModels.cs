@@ -143,3 +143,19 @@ public class UnifiedViewDataViewModel
     public List<ColumnInfoViewModel> Columns { get; set; } = new();
     public Dictionary<string, object> AdditionalInfo { get; set; } = new();
 }
+
+/// <summary>
+/// View model for detailed CSV analysis (similar to TableAnalysisViewModel for databases)
+/// </summary>
+public class CsvDetailedAnalysisViewModel
+{
+    public string FileName { get; set; } = string.Empty;
+    public string FilePath { get; set; } = string.Empty;
+    public DataSourceType FileType { get; set; }
+    public DataSourceSummaryViewModel Summary { get; set; } = new();
+    public List<UnifiedColumnAnalysisViewModel> ColumnAnalyses { get; set; } = new();
+    public List<DataSourceInfoViewModel> DataSources { get; set; } = new();
+    public List<string> Errors { get; set; } = new();
+    public TimeSpan AnalysisDuration { get; set; }
+    public bool IsSuccess => !Errors.Any();
+}

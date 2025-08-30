@@ -225,24 +225,36 @@ public class CsvAnalysisService : ICsvAnalysisService
                 }
             }
 
-            // Skip rows if needed
-            int currentRow = 0;
-            int rowsRead = hasHeaders ? 0 : (result.Rows.Count > 0 ? 1 : 0); // Account for any already read data
+            // Position reader and read data rows
+            int rowsToSkip = skip;
+            int rowsToRead = take;
             
-            if (hasHeaders)
+            // For files without headers, if we already read the first row, account for it
+            if (!hasHeaders && result.Rows.Count > 0)
             {
-                await csv.ReadAsync(); // Skip header
-                currentRow = 0;
+                // We already have the first row, so adjust our skip/take
+                if (skip == 0)
+                {
+                    // We want the first rows and already have the first one
+                    rowsToRead = take - 1; // Read one less since we already have one
+                }
+                else
+                {
+                    // We need to skip some rows, and we already have one
+                    rowsToSkip = skip - 1; // Skip one less since we already consumed one
+                    result.Rows.Clear(); // Clear the pre-read row since we're skipping it
+                }
             }
 
-            // Skip to start position
-            while (currentRow < skip && await csv.ReadAsync())
+            // Skip the required number of data rows
+            for (int i = 0; i < rowsToSkip && await csv.ReadAsync(); i++)
             {
-                currentRow++;
+                // Just skip these rows
             }
 
-            // Read requested rows (continue from where we may have started if no headers)
-            while (rowsRead < take && await csv.ReadAsync())
+            // Read the requested number of data rows
+            int actualRowsRead = hasHeaders ? 0 : result.Rows.Count; // Count any pre-read rows
+            while (actualRowsRead < take && await csv.ReadAsync())
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 
@@ -252,7 +264,7 @@ public class CsvAnalysisService : ICsvAnalysisService
                     rowData.Add(csv.GetField(i) ?? string.Empty);
                 }
                 result.Rows.Add(rowData);
-                rowsRead++;
+                actualRowsRead++;
             }
 
             result.ReturnedRows = result.Rows.Count;
