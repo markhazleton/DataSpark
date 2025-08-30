@@ -28,6 +28,7 @@
     <ItemGroup>
         <ProjectReference Include="..\sql2csv.console\Sql2Csv.csproj" />
         <ProjectReference Include="..\Sql2Csv.Core\Sql2Csv.Core.csproj" />
+        <ProjectReference Include="..\sql2csv.web\Sql2Csv.Web.csproj" />
     </ItemGroup>
 
 </Project>

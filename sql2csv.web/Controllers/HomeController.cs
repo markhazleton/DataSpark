@@ -14,7 +14,7 @@ public class HomeController : Controller
     private readonly ILogger<HomeController> _logger;
 
     public HomeController(
-        IWebDatabaseService databaseService, 
+        IWebDatabaseService databaseService,
         IUnifiedWebDataService unifiedDataService,
         IPersistedFileService persistedFileService, 
         ILogger<HomeController> logger)
@@ -533,18 +533,105 @@ public class HomeController : Controller
         }
     }
 
-    public async Task<IActionResult> ViewCsvData(string fileName)
+    public async Task<IActionResult> AnalyzeCsvDetail(string fileName)
     {
         var filePath = TempData["DataFilePath"] as string;
         var fileTypeString = TempData["DataFileType"] as string;
 
-        _logger.LogInformation("ViewCsvData action called with FileName: {FileName}, FilePath: {FilePath}", fileName, filePath);
+        _logger.LogInformation("AnalyzeCsvDetail action called with FileName: {FileName}, FilePath: {FilePath}", fileName, filePath);
 
         if (string.IsNullOrEmpty(filePath))
         {
             _logger.LogWarning("Missing file path, redirecting to Index");
             return RedirectToAction("Index");
         }
+
+        // Parse file type
+        if (!Enum.TryParse<DataSourceType>(fileTypeString, out var fileType) || fileType != DataSourceType.Csv)
+        {
+            _logger.LogWarning("Invalid file type for CSV analysis: {FileType}", fileTypeString);
+            return RedirectToAction("Index");
+        }
+
+        // Check if file exists
+        if (!System.IO.File.Exists(filePath))
+        {
+            _logger.LogError("File not found at path: {FilePath}", filePath);
+            TempData["ErrorMessage"] = "The selected CSV file is no longer available.";
+            return RedirectToAction("Index");
+        }
+
+        try
+        {
+            _logger.LogInformation("Starting detailed CSV analysis for file: {FilePath}", filePath);
+
+            // Add timeout to the analysis operation
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+            var analysis = await _unifiedDataService.AnalyzeDataSourceAsync(filePath, fileType, null, cts.Token);
+
+            // Keep session file path up to date
+            HttpContext.Session.SetString("CurrentDataFilePath", filePath);
+            HttpContext.Session.SetString("CurrentDataFileType", fileType.ToString());
+            HttpContext.Session.SetString("CurrentDataFileName", fileName);
+
+            // Keep the file path for subsequent operations
+            TempData.Keep("DataFilePath");
+            TempData.Keep("DataFileName");
+            TempData.Keep("DataFileType");
+
+            // Create a detailed analysis view model similar to TableAnalysisViewModel
+            var detailedAnalysis = new CsvDetailedAnalysisViewModel
+            {
+                FileName = fileName,
+                FilePath = filePath,
+                FileType = fileType,
+                Summary = analysis.Summary,
+                ColumnAnalyses = analysis.ColumnAnalyses,
+                DataSources = analysis.DataSources
+            };
+
+            _logger.LogInformation("Detailed CSV analysis completed successfully for file: {FileName}", fileName);
+            return View("AnalyzeCsvDetail", detailedAnalysis);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogError("CSV detailed analysis timed out for file: {FilePath}", filePath);
+            TempData["ErrorMessage"] = "Analysis timed out. The file might be too large.";
+            return RedirectToAction("Analyze");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing CSV file: {FilePath}", filePath);
+            TempData["ErrorMessage"] = "An error occurred while analyzing the CSV file.";
+            return RedirectToAction("Analyze");
+        }
+    }
+
+    public async Task<IActionResult> ViewCsvData(string fileName)
+    {
+        var filePath = TempData["DataFilePath"] as string;
+        var fileTypeString = TempData["DataFileType"] as string;
+        var originalFileName = TempData["DataFileName"] as string;
+
+        // If TempData is missing, try to get from session first
+        if (string.IsNullOrEmpty(filePath))
+        {
+            filePath = HttpContext.Session.GetString("CurrentDataFilePath");
+            fileTypeString = HttpContext.Session.GetString("CurrentDataFileType");
+            originalFileName = HttpContext.Session.GetString("CurrentDataFileName");
+        }
+
+        // If still missing, reconstruct the file path from fileName
+        if (string.IsNullOrEmpty(filePath))
+        {
+            var tempDirectory = Path.Combine(Path.GetTempPath(), "Sql2Csv.Web.Unified");
+            filePath = Path.Combine(tempDirectory, fileName);
+            fileTypeString = "Csv"; // We know it's CSV from the action name
+            _logger.LogInformation("Reconstructed file path from fileName: {FileName} -> {FilePath}", fileName, filePath);
+        }
+
+        _logger.LogInformation("ViewCsvData action called with FileName: {FileName}, FilePath: {FilePath}, OriginalFileName: {OriginalFileName}", fileName, filePath, originalFileName);
 
         // Parse file type
         if (!Enum.TryParse<DataSourceType>(fileTypeString, out var fileType) || fileType != DataSourceType.Csv)
@@ -572,7 +659,7 @@ public class HomeController : Controller
             // Persist in session for subsequent AJAX calls
             HttpContext.Session.SetString("CurrentDataFilePath", filePath);
             HttpContext.Session.SetString("CurrentDataFileType", fileType.ToString());
-            HttpContext.Session.SetString("CurrentDataFileName", fileName);
+            HttpContext.Session.SetString("CurrentDataFileName", originalFileName ?? fileName);
 
             // Keep the file path for subsequent operations
             TempData.Keep("DataFilePath");
@@ -581,8 +668,8 @@ public class HomeController : Controller
 
             var model = new UnifiedViewDataViewModel
             {
-                DataSourceName = Path.GetFileNameWithoutExtension(fileName),
-                DisplayName = fileName,
+                DataSourceName = Path.GetFileNameWithoutExtension(originalFileName ?? fileName),
+                DisplayName = originalFileName ?? fileName,
                 FilePath = filePath,
                 FileType = fileType,
                 Columns = analysis.ColumnAnalyses.Select(c => new ColumnInfoViewModel
@@ -623,18 +710,24 @@ public class HomeController : Controller
         var filePath = HttpContext.Session.GetString("CurrentDataFilePath");
         var fileTypeString = HttpContext.Session.GetString("CurrentDataFileType");
         
+        _logger.LogInformation("GetUnifiedData called - FilePath: {FilePath}, FileType: {FileType}, Start: {Start}, Length: {Length}", 
+            filePath, fileTypeString, request.Start, request.Length);
+        
         if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(fileTypeString))
         {
+            _logger.LogWarning("Missing session data - FilePath: {FilePath}, FileType: {FileType}", filePath, fileTypeString);
             return Json(new TableDataResult { Error = "Missing file path or file type" });
         }
 
         if (!Enum.TryParse<DataSourceType>(fileTypeString, out var fileType))
         {
+            _logger.LogWarning("Invalid file type: {FileType}", fileTypeString);
             return Json(new TableDataResult { Error = "Invalid file type" });
         }
 
         if (!System.IO.File.Exists(filePath))
         {
+            _logger.LogWarning("Data file not found: {FilePath}", filePath);
             return Json(new TableDataResult { Error = "Data file not found" });
         }
 
@@ -655,6 +748,7 @@ public class HomeController : Controller
 
             var result = await _unifiedDataService.GetDataAsync(filePath, fileType, tableName, request, cts.Token);
 
+            _logger.LogInformation("GetUnifiedData completed successfully - Returned {RowCount} rows", result.Data?.Length ?? 0);
             return Json(result);
         }
         catch (OperationCanceledException)
@@ -774,6 +868,109 @@ public class HomeController : Controller
             _logger.LogError(ex, "Error getting table data for table: {TableName}", tableName);
             return Json(new TableDataResult { Error = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Unified analysis endpoint that redirects to the UnifiedDataController
+    /// This provides a seamless migration path from existing functionality
+    /// </summary>
+    public IActionResult AnalyzeUnified(string fileName, string? tableName = null)
+    {
+        try
+        {
+            // Get file information from TempData/Session
+            var filePath = TempData["DataFilePath"] as string ?? HttpContext.Session.GetString("CurrentDataFilePath");
+            var fileTypeString = TempData["DataFileType"] as string ?? HttpContext.Session.GetString("CurrentDataFileType");
+
+            if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(fileTypeString))
+            {
+                _logger.LogWarning("Missing file information for unified analysis of {FileName}", fileName);
+                TempData["ErrorMessage"] = "File information not found. Please upload a file first.";
+                return RedirectToAction("Index");
+            }
+
+            if (!Enum.TryParse<DataSourceType>(fileTypeString, out var fileType))
+            {
+                _logger.LogWarning("Invalid file type for unified analysis: {FileType}", fileTypeString);
+                TempData["ErrorMessage"] = "Invalid file type specified.";
+                return RedirectToAction("Index");
+            }
+
+            // Generate a unique file ID for session management
+            var fileId = $"{Path.GetFileNameWithoutExtension(fileName)}_{DateTime.UtcNow.Ticks}";
+
+            // Store file information for the unified controller
+            TempData[$"FilePath_{fileId}"] = filePath;
+            TempData[$"FileType_{fileId}"] = fileType.ToString();
+            if (!string.IsNullOrEmpty(tableName))
+            {
+                TempData[$"DataSourceName_{fileId}"] = tableName;
+            }
+
+            // Keep the original TempData for backward compatibility
+            TempData.Keep("DataFilePath");
+            TempData.Keep("DataFileType");
+            TempData.Keep("DataFileName");
+
+            _logger.LogInformation("Redirecting to unified analysis for file: {FileName}, Type: {FileType}, Table: {TableName}", 
+                fileName, fileType, tableName);
+
+            // Redirect to the unified controller
+            return RedirectToAction("Analyze", "UnifiedData", new { 
+                fileId = fileId, 
+                fileType = fileType, 
+                dataSourceName = tableName 
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting up unified analysis for {FileName}", fileName);
+            TempData["ErrorMessage"] = "An error occurred while setting up the analysis.";
+            return RedirectToAction("Index");
+        }
+    }
+
+    /// <summary>
+    /// Legacy support - redirects database table analysis to unified controller
+    /// </summary>
+    public IActionResult AnalyzeTableUnified(string tableName)
+    {
+        var filePath = TempData["DatabaseFilePath"] as string ?? HttpContext.Session.GetString("CurrentDatabaseFilePath");
+        var fileName = TempData["DatabaseFileName"] as string ?? HttpContext.Session.GetString("CurrentDatabaseFileName");
+
+        if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(fileName))
+        {
+            TempData["ErrorMessage"] = "Database file information not found.";
+            return RedirectToAction("Index");
+        }
+
+        // Set up for unified analysis
+        TempData["DataFilePath"] = filePath;
+        TempData["DataFileName"] = fileName;
+        TempData["DataFileType"] = DataSourceType.Database.ToString();
+
+        return AnalyzeUnified(fileName, tableName);
+    }
+
+    /// <summary>
+    /// Legacy support - redirects CSV analysis to unified controller
+    /// </summary>
+    public IActionResult AnalyzeCsvUnified(string fileName)
+    {
+        var filePath = TempData["DataFilePath"] as string ?? HttpContext.Session.GetString("CurrentDataFilePath");
+
+        if (string.IsNullOrEmpty(filePath))
+        {
+            TempData["ErrorMessage"] = "CSV file information not found.";
+            return RedirectToAction("Index");
+        }
+
+        // Set up for unified analysis
+        TempData["DataFilePath"] = filePath;
+        TempData["DataFileName"] = fileName;
+        TempData["DataFileType"] = DataSourceType.Csv.ToString();
+
+        return AnalyzeUnified(fileName);
     }
 
     public IActionResult About()

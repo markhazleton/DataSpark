@@ -103,7 +103,16 @@ public class UnifiedWebDataService : IUnifiedWebDataService
     {
         try
         {
-            var (fileType, typeError) = await DetermineFileTypeAsync(file);
+            if (file == null)
+            {
+                return (false, "No file provided", null, DataSourceType.Csv, new { });
+            }
+
+            _logger.LogInformation("Starting file upload for: {FileName}", file.FileName);
+            
+            var (fileType, typeError) = await DetermineFileTypeAsync(file).ConfigureAwait(false);
+            _logger.LogInformation("Detected file type: {FileType}, Error: {Error}", fileType, typeError);
+            
             if (typeError != null)
             {
                 return (false, typeError, null, fileType, new { });
@@ -111,11 +120,13 @@ public class UnifiedWebDataService : IUnifiedWebDataService
 
             else if (fileType == DataSourceType.Database)
             {
-                var (success, errorMessage, filePath, tableCount) = await _databaseService.SaveUploadedFileAsync(file, cancellationToken);
+                _logger.LogInformation("Processing as database file");
+                var (success, errorMessage, filePath, tableCount) = await _databaseService.SaveUploadedFileAsync(file, cancellationToken).ConfigureAwait(false);
                 return (success, errorMessage, filePath, fileType, new { TableCount = tableCount });
             }
             else if (fileType == DataSourceType.Csv)
             {
+                _logger.LogInformation("Processing as CSV file");
                 return await SaveCsvFileAsync(file, cancellationToken);
             }
 
@@ -132,6 +143,8 @@ public class UnifiedWebDataService : IUnifiedWebDataService
     {
         try
         {
+            _logger.LogInformation("Starting CSV file save for: {FileName}, Size: {Size}", file.FileName, file.Length);
+            
             // Validate file size (max 100MB for CSV files)
             if (file.Length > 100 * 1024 * 1024)
             {
@@ -142,6 +155,8 @@ public class UnifiedWebDataService : IUnifiedWebDataService
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
             var fileName = $"{Guid.NewGuid()}{fileExtension}";
             var filePath = Path.Combine(_tempDirectory, fileName);
+            
+            _logger.LogInformation("Saving CSV file to: {FilePath}, TempDir: {TempDir}", filePath, _tempDirectory);
 
             // Save file to disk
             using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
@@ -155,8 +170,10 @@ public class UnifiedWebDataService : IUnifiedWebDataService
             // Quick validation - try to read first few lines
             try
             {
+                _logger.LogInformation("Starting CSV validation for: {FilePath}", filePath);
+                
                 using var reader = new StreamReader(filePath);
-                var firstLine = await reader.ReadLineAsync();
+                var firstLine = await reader.ReadLineAsync().ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(firstLine))
                 {
                     File.Delete(filePath);
@@ -164,8 +181,10 @@ public class UnifiedWebDataService : IUnifiedWebDataService
                     return (false, "CSV file appears to be empty.", null, DataSourceType.Csv, new { });
                 }
 
+                _logger.LogInformation("CSV file has content, starting analysis");
+                
                 // Basic analysis to get column count
-                var quickAnalysis = await _csvAnalysisService.AnalyzeCsvAsync(filePath, cancellationToken);
+                var quickAnalysis = await _csvAnalysisService.AnalyzeCsvAsync(filePath, cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogInformation("Successfully uploaded and validated CSV file: {FileName} with {ColumnCount} columns, {RowCount} rows", 
                     file.FileName, quickAnalysis.ColumnCount, quickAnalysis.RowCount);
@@ -180,6 +199,7 @@ public class UnifiedWebDataService : IUnifiedWebDataService
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "CSV analysis failed for: {FilePath}", filePath);
                 // Cleanup invalid file
                 File.Delete(filePath);
                 _tempFiles.Remove(filePath);
@@ -246,7 +266,7 @@ public class UnifiedWebDataService : IUnifiedWebDataService
 
     private async Task<UnifiedAnalysisViewModel> AnalyzeCsvFileAsync(string filePath, CancellationToken cancellationToken)
     {
-        var csvAnalysis = await _csvAnalysisService.AnalyzeCsvAsync(filePath, cancellationToken);
+        var csvAnalysis = await _csvAnalysisService.AnalyzeCsvAsync(filePath, cancellationToken).ConfigureAwait(false);
         
         return new UnifiedAnalysisViewModel
         {
@@ -323,7 +343,12 @@ public class UnifiedWebDataService : IUnifiedWebDataService
 
     private async Task<TableDataResult> GetCsvDataAsync(string filePath, DataTablesRequest request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("GetCsvDataAsync called for file: {FilePath}, Start: {Start}, Length: {Length}", filePath, request.Start, request.Length);
+        
         var csvData = await _csvAnalysisService.GetCsvDataAsync(filePath, request.Start, request.Length, cancellationToken);
+        
+        _logger.LogInformation("CSV data retrieved - TotalRows: {TotalRows}, ReturnedRows: {ReturnedRows}, Columns: {ColumnCount}", 
+            csvData.TotalRows, csvData.ReturnedRows, csvData.Columns.Count);
         
         return new TableDataResult
         {
@@ -341,7 +366,7 @@ public class UnifiedWebDataService : IUnifiedWebDataService
         {
             if (fileType == DataSourceType.Database)
             {
-                var dbAnalysis = await _databaseService.AnalyzeDatabaseAsync(filePath, cancellationToken);
+                var dbAnalysis = await _databaseService.AnalyzeDatabaseAsync(filePath, cancellationToken).ConfigureAwait(false);
                 return dbAnalysis.Tables.Select(t => new DataSourceInfo
                 {
                     Name = t.Name,
