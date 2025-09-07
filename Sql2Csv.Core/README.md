@@ -1,36 +1,157 @@
 # Sql2Csv.Core
 
-This is the core library for the SQL to CSV conversion functionality. It contains the reusable business logic and can be referenced by multiple projects.
+Core library that discovers SQLite `.db` files, explores schema, exports tables to CSV, analyzes CSV (and other delimited) files, performs unified (DB/CSV) analysis, and generates C# DTO classes. Designed for reuse across console / service / UI hosts.
 
-## Structure
+## Features
 
-- **Configuration**: Configuration classes and options
-- **Interfaces**: Service interfaces and contracts
-- **Models**: Data models and DTOs
-- **Services**: Business logic services
+### Discovery
 
-## Services Included
+* Locate SQLite database files (`*.db`) in a directory (`IDatabaseDiscoveryService`).
+* Locate mixed data files (SQLite + CSV + probable delimited: .csv, .tsv, .tab, .txt) with lightweight delimiter heuristic (`IDataFileDiscoveryService`).
 
-- **ApplicationService**: Main orchestration service
-- **DatabaseDiscoveryService**: Service for finding and validating database files
-- **ExportService**: Service for exporting data to CSV format
-- **SchemaService**: Service for database schema operations
-- **CodeGenerationService**: Service for generating DTO classes
+### Export
 
-## Dependencies
+* Export every table of a database to individual CSV files (`ExportService`).
+* Optional overrides at runtime: custom delimiter, include / suppress headers.
+* Filter export to a subset of tables.
+* Per-table timing + row counts surfaced in `ExportResult` and summarized by `ApplicationService`.
 
-- Microsoft.Data.Sqlite
-- CsvHelper
-- Microsoft.Extensions.* (Configuration, DependencyInjection, Logging, Options)
+### Schema
 
-## Usage
+* Enumerate table names and detailed column metadata (`ISchemaService`).
+* Row counts per table (SQLite `COUNT(*)`).
+* Multi‑format schema report generation: `text`, `json`, `markdown`.
 
-Reference this library in your project and register the services in your DI container:
+### CSV & Delimited Analysis
+
+* Auto-detect delimiter (`,` `;` `\t` `|`) and basic header detection.
+* Column type inference (INTEGER / REAL / DATETIME / BOOLEAN / TEXT heuristic).
+* Per column: null vs non-null counts, sample values (deduplicated, capped), min/max/mean/std-dev for numeric columns.
+* Row counting (capped at 100,000 for profiling pass) with safety limits.
+* Paginated data retrieval with `skip` / `take` for CSV files.
+
+### Unified Analysis
+
+* Single abstraction over database table vs CSV file (`IUnifiedAnalysisService`).
+* Returns unified models for column statistics & data page retrieval.
+* Database data paging & statistics beyond schema (advanced counts, sampling) are marked TODO (stubbed currently).
+
+### Code Generation
+
+* Generates DTO classes (one per table) with PascalCase properties from SQLite schema (`ICodeGenerationService`).
+* Nullable handling: value types become nullable when column allows nulls; reference types annotated accordingly.
+
+### Configuration (`Sql2CsvOptions`)
+
+```yaml
+Sql2Csv:
+ RootPath: "C:/data"
+ Paths:
+  Config: "config"
+  Data: "data"
+  Scripts: "scripts"
+ Database:
+  DefaultName: "main"
+  Timeout: 600          # seconds for commands
+ Export:
+  IncludeHeaders: true
+  Delimiter: ","
+  Encoding: "UTF-8"
+Bind with `services.Configure<Sql2CsvOptions>(configuration.GetSection(Sql2CsvOptions.SectionName));`.
+
+## Project Structure
+
+* **Configuration** – Options objects (`Sql2CsvOptions`, `PathOptions`, `DatabaseOptions`, `ExportOptions`).
+* **Interfaces** – Service contracts for discovery, export, schema, code gen, CSV analysis, unified analysis.
+* **Models** – Domain + DTO models (schema, export results, unified analysis/data, CSV profiling).
+* **Services** – Implementations (application orchestration + all feature services).
+
+## Service Registration (DI)
 
 ```csharp
+services.Configure<Sql2CsvOptions>(config.GetSection(Sql2CsvOptions.SectionName));
+
 services.AddScoped<IDatabaseDiscoveryService, DatabaseDiscoveryService>();
+services.AddScoped<IDataFileDiscoveryService, DataFileDiscoveryService>();
+services.AddScoped<ICsvAnalysisService, CsvAnalysisService>();
+services.AddScoped<IUnifiedAnalysisService, UnifiedAnalysisService>();
 services.AddScoped<IExportService, ExportService>();
 services.AddScoped<ISchemaService, SchemaService>();
 services.AddScoped<ICodeGenerationService, CodeGenerationService>();
 services.AddScoped<ApplicationService>();
 ```
+
+## Typical Usage Patterns
+
+### 1. Export All Tables
+
+```csharp
+await appService.ExportDatabasesAsync(dbDirectory, outputDirectory);
+```
+
+With overrides & table filter:
+
+```csharp
+await appService.ExportDatabasesAsync(dbDirectory, outputDirectory, new[]{"users","orders"}, ";", includeHeaders: false);
+```
+
+### 2. Schema Report
+
+```csharp
+await appService.GenerateSchemaReportsAsync(dbDirectory, format: "markdown");
+```
+
+### 3. Generate DTO Classes
+
+```csharp
+await appService.GenerateCodeAsync(dbDirectory, codeOutDir, "MyApp.Data");
+```
+
+### 4. CSV Analysis & Paging
+
+```csharp
+var analysis = await csvAnalysisService.AnalyzeCsvAsync(csvPath);
+var page = await csvAnalysisService.GetCsvDataAsync(csvPath, skip: 0, take: 100);
+```
+
+### 5. Unified Analysis (DB or CSV)
+
+```csharp
+var unified = await unifiedAnalysisService.AnalyzeDataSourceAsync(dataSourceConfig);
+var data = await unifiedAnalysisService.GetDataAsync(dataSourceConfig, skip: 0, take: 50);
+```
+
+## Models Highlight
+
+* `ExportResult` – success flag, row count, duration, error.
+* `TableInfo` / `ColumnInfo` – schema & metadata (PK, nullability, defaults, row counts).
+* `CsvAnalysisResult` / `CsvColumnAnalysis` – profiling output.
+* `UnifiedAnalysisResult` / `UnifiedDataResult` – abstraction over DB table vs CSV.
+
+## Current Limitations / TODOs
+
+* Unified database row statistics & data paging not yet implemented (placeholders set to 0).
+* Table filtering for code generation currently ignored (generates all tables).
+* CSV delimiter inference is heuristic; complex quoted edge cases may require manual override upstream.
+
+## Dependencies
+
+* Microsoft.Data.Sqlite
+* CsvHelper
+* Microsoft.Extensions.* (Configuration, DependencyInjection, Logging, Options)
+
+## Logging & Observability
+
+All services use `ILogger<T>`; verbose diagnostics (Debug) include per-table export and generation details. Summaries logged by `ApplicationService` after batch operations.
+
+## Error Handling
+
+* Export returns per-table `ExportResult` with `IsSuccess` & `ErrorMessage`.
+* Analysis accumulates non-fatal issues in `Errors` collections.
+
+## License / Contribution
+
+Add your chosen license & contribution guidelines in the repository root.
+
+---
+This document reflects the current implemented surface area; update as TODOs are completed.

@@ -1,0 +1,39 @@
+﻿@model IEnumerable<string>
+@{
+    ViewData["Title"] = "CSV Files";
+}
+<div class="container mt-4">
+    <h2 class="mb-4">CSV Files</h2>
+    <div class="card mb-4">
+        <div class="card-header">Available Files</div>
+        <ul class="list-group list-group-flush">
+            @if (Model != null && Model.Any())
+            {
+                foreach (var file in Model)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        @file
+                        <a href="/files/@file" class="btn btn-sm btn-outline-secondary ms-2">Download</a>
+                    </li>
+                }
+            }
+            else
+            {
+                <li class="list-group-item">No CSV files found.</li>
+            }
+        </ul>
+    </div>
+    @if (ViewBag.EdaResults != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header">Exploratory Data Analysis</div>
+            <div class="card-body">
+                @Html.Raw(ViewBag.EdaResults)
+            </div>
+        </div>
+    }
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+    }
+</div>

@@ -132,12 +132,18 @@ public class HomeController : Controller
                     {
                         _logger.LogInformation("Starting to persist file for future use: {TempFilePath}", uploadedFilePath);
 
-                        // For database files, get table count from additional info
+                        // Get table count based on file type and additional info
                         int tableCount = 0;
                         if (fileType == DataSourceType.Database && uploadAdditionalInfo is not null)
                         {
                             var dict = uploadAdditionalInfo as dynamic;
                             tableCount = dict?.TableCount ?? 0;
+                        }
+                        else if (fileType == DataSourceType.Csv)
+                        {
+                            // CSV files represent one data source (conceptually one "table")
+                            tableCount = 1;
+                            _logger.LogInformation("Setting table count to 1 for CSV file");
                         }
 
                         await _persistedFileService.SavePersistedFileAsync(
@@ -203,12 +209,18 @@ public class HomeController : Controller
         {
             if (persist)
             {
-                // For database files, get table count from additional info
+                // Get table count based on file type and additional info
                 int tableCount = 0;
                 if (fileType == DataSourceType.Database && additionalInfo is not null)
                 {
                     var dict = additionalInfo as dynamic;
                     tableCount = dict?.TableCount ?? 0;
+                }
+                else if (fileType == DataSourceType.Csv)
+                {
+                    // CSV files represent one data source (conceptually one "table")
+                    tableCount = 1;
+                    _logger.LogInformation("Setting table count to 1 for CSV file in API upload");
                 }
 
                 var persisted = await _persistedFileService.SavePersistedFileAsync(file, filePath, tableCount, description);
