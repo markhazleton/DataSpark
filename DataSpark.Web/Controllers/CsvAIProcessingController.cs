@@ -1,14 +1,16 @@
 using DataSpark.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Sql2Csv.Core.Services;
+using WebCsvFileService = DataSpark.Web.Services.CsvFileService;
 
 namespace DataSpark.Web.Controllers;
 
 public class CsvAIProcessingController : Controller
 {
     private readonly OpenAIFileAnalysisService _aiService;
-    private readonly CsvFileService _csvFileService;
+    private readonly WebCsvFileService _csvFileService;
 
-    public CsvAIProcessingController(OpenAIFileAnalysisService aiService, CsvFileService csvFileService)
+    public CsvAIProcessingController(OpenAIFileAnalysisService aiService, WebCsvFileService csvFileService)
     {
         _aiService = aiService;
         _csvFileService = csvFileService;
@@ -90,6 +92,9 @@ public class CsvAIProcessingController : Controller
     [HttpPost]
     public async Task<IActionResult> UploadAndRegisterFile(string fileName)
     {
+    // NOTE: The corresponding UI form has been removed per requirement to eliminate upload capability
+    // from the AI Processing page. This action is retained for backward compatibility or direct POSTs
+    // but could be removed in a future cleanup once confirmed unused.
         try
         {
             var availableFiles = _csvFileService.GetCsvFileNames();

@@ -1,4 +1,4 @@
-namespace DataSpark.Web.Models;
+namespace Sql2Csv.Core.Models;
 
 // Pivot table specific DTOs (remain web-layer concerns)
 public class PivotTableViewModel
@@ -37,6 +37,7 @@ public class SaveConfigurationRequest
     public List<string> Vals { get; set; } = new();
     public Dictionary<string, object> IncludeValues { get; set; } = new();
     public Dictionary<string, object> ExcludeValues { get; set; } = new();
+    public DateTime CreatedAt { get; set; }
 }
 
 public class PivotTableConfiguration

@@ -1,7 +1,7 @@
 using Sql2Csv.Core.Models.Charts;
 using Sql2Csv.Core.Models.Analysis;
 
-namespace DataSpark.Web.Services.Chart;
+namespace Sql2Csv.Core.Interfaces;
 
 /// <summary>
 /// Presentation-layer chart rendering service (transforms processed data + configuration into client artifacts).

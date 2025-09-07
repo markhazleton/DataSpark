@@ -1,3 +1,5 @@
+using Sql2Csv.Core.Interfaces;
+using Sql2Csv.Core.Models;
 using Sql2Csv.Core.Models.Analysis;
 using DataSpark.Web.Services;
 using DataSpark.Web.Models;
@@ -12,10 +14,10 @@ public class PivotTableController : BaseController
     public PivotTableController(
         IWebHostEnvironment env,
         ILogger<PivotTableController> logger,
-    CsvFileService csvFileService,
+    DataSpark.Web.Services.CsvFileService csvFileService,
     Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
-    Sql2Csv.Core.Services.Export.IExportService exportService)
-    : base(env, logger, csvFileService, csvProcessingService, exportService)
+    IExportService exportService, IDataExportService dataExportService)
+    : base(env, logger, csvFileService, csvProcessingService, exportService, dataExportService)
     {
     }
 

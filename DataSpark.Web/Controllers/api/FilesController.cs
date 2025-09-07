@@ -15,12 +15,14 @@ public class FilesController : Controller
     private readonly IWebHostEnvironment _env;
     private readonly CsvFileService _csvFileService;
     private readonly CsvProcessingService _csvProcessingService;
+    private readonly ILogger<FilesController> _logger;
 
-    public FilesController(IWebHostEnvironment env, CsvFileService csvFileService, CsvProcessingService csvProcessingService)
+    public FilesController(IWebHostEnvironment env, CsvFileService csvFileService, CsvProcessingService csvProcessingService, ILogger<FilesController> logger)
     {
         _env = env;
         _csvFileService = csvFileService;
         _csvProcessingService = csvProcessingService;
+        _logger = logger;
     }
 
     // Endpoint to list all CSV files with detailed EDA
@@ -172,35 +174,97 @@ public class FilesController : Controller
 
 
     [HttpGet("analyze")]
-    public IActionResult AnalyzeFile(string fileName)
+    public async Task<IActionResult> AnalyzeFile([FromQuery] string fileName)
     {
-        if (string.IsNullOrEmpty(fileName))
+        if (string.IsNullOrWhiteSpace(fileName))
         {
-            return BadRequest("File name is required.");
+            return BadRequest(new { error = "File name is required." });
         }
 
-        var filePath = Path.Combine(_env.WebRootPath, "files", fileName);
-        if (!System.IO.File.Exists(filePath))
+        var filePath = _csvFileService.GetFilePath(fileName);
+        if (filePath == null)
         {
-            return NotFound("File not found.");
+            return NotFound(new { error = "File not found.", fileName });
         }
 
-        try
+    try
         {
-            using var reader = new StreamReader(filePath);
-            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture));
+            // Primary attempt using CsvHelper (handles quoted headers, etc.)
+            var headerResult = await _csvFileService.GetCsvHeadersAsync(fileName);
+            if (headerResult.Success && headerResult.Data.Any())
+            {
+                return Ok(headerResult.Data);
+            }
 
-            // Get headers
-            csv.Read();
-            csv.ReadHeader();
-            var headers = csv.HeaderRecord;
+            _logger.LogWarning("Primary header read failed or empty for {FileName}. Success={Success} Error={Error}", fileName, headerResult.Success, headerResult.ErrorMessage);
 
-            return Ok(headers); // Return column names for the user to choose
+            // Fallback: manual first line parse
+            var firstLine = await ReadFirstNonEmptyLineAsync(filePath);
+            if (firstLine == null)
+            {
+                return StatusCode(500, new { error = "CSV file appears to be empty.", fileName });
+            }
+            var fallbackHeaders = SplitCsvLineSimple(firstLine).ToList();
+            if (!fallbackHeaders.Any())
+            {
+                return StatusCode(500, new { error = "No headers detected in CSV file.", fileName });
+            }
+            return Ok(fallbackHeaders);
         }
         catch (Exception ex)
         {
-            return BadRequest($"An error occurred while analyzing the file: {ex.Message}");
+            _logger.LogError(ex, "AnalyzeFile failed for {FileName}", fileName);
+            object details = _env.IsDevelopment()
+                ? new { ex.Message, ex.StackTrace, ExceptionType = ex.GetType().FullName }
+                : new { ex.Message };
+            return StatusCode(500, new { error = "An error occurred while analyzing the file.", details, fileName });
         }
+    }
+
+    private static async Task<string?> ReadFirstNonEmptyLineAsync(string filePath)
+    {
+        await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var reader = new StreamReader(stream);
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync();
+            if (!string.IsNullOrWhiteSpace(line)) return line;
+        }
+        return null;
+    }
+
+    // Very simple CSV splitter (fallback only) – handles commas inside quotes minimally
+    private static IEnumerable<string> SplitCsvLineSimple(string line)
+    {
+        if (string.IsNullOrEmpty(line)) yield break;
+        var sb = new System.Text.StringBuilder();
+        bool inQuotes = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            var c = line[i];
+            if (c == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    sb.Append('"');
+                    i++; // skip escaped quote
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                yield return sb.ToString().Trim();
+                sb.Clear();
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+        yield return sb.ToString().Trim();
     }
 
     [HttpPost("train")]

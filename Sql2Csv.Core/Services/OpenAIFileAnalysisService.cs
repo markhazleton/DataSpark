@@ -1,17 +1,12 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Sql2Csv.Core.Configuration;
+using Sql2Csv.Core.Models;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-namespace DataSpark.Web.Services;
 
-public class UploadedCsvFile
-{
-    public string FileId { get; set; } = string.Empty;
-    public string FileName { get; set; } = string.Empty;
-    public string OriginalFilePath { get; set; } = string.Empty;
-    public DateTime UploadedAt { get; set; }
-    public long FileSizeBytes { get; set; }
-}
+namespace Sql2Csv.Core.Services;
 
 public class OpenAIFileAnalysisService
 {
@@ -21,13 +16,6 @@ public class OpenAIFileAnalysisService
     private const string BaseUrl = "https://api.openai.com/v1";
     private readonly List<UploadedCsvFile> _uploadedFiles = new();
 
-    public class OpenAIOptions
-    {
-        public string ApiKey { get; set; } = string.Empty;
-        public string AssistantId { get; set; } = string.Empty;
-        public int MaxRetryAttempts { get; set; } = 3;
-        public TimeSpan HttpTimeout { get; set; } = TimeSpan.FromMinutes(5);
-    }
     public OpenAIFileAnalysisService(HttpClient httpClient, IOptions<OpenAIOptions> options, ILogger<OpenAIFileAnalysisService> logger)
     {
         _httpClient = httpClient;

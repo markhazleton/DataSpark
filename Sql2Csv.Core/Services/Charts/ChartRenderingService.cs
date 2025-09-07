@@ -1,9 +1,10 @@
+using Microsoft.Extensions.Logging;
+using Sql2Csv.Core.Interfaces;
 using Sql2Csv.Core.Models.Charts;
-using Sql2Csv.Core.Services.Charts;
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 
-namespace DataSpark.Web.Services.Chart;
+namespace Sql2Csv.Core.Services.Charts;
 
 /// <summary>
 /// Implementation of chart rendering service using Chart.js

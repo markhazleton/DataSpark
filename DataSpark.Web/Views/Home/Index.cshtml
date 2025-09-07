@@ -71,6 +71,31 @@
             </form>
         </div>
     </div>
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Current Files</span>
+            <button class="btn btn-sm btn-outline-secondary" id="refreshFiles"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0" id="filesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Size (KB)</th>
+                            <th>Rows</th>
+                            <th>Cols</th>
+                            <th>Last Modified</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="6" class="text-muted">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     @if (ViewBag.Records != null)
     {
         <div class="card mt-4">
@@ -113,3 +138,40 @@
                 documentation</a> or explore the navigation bar above.</p>
     </div>
 </div>
+
+@section PageScripts {
+    <script>
+        async function loadFiles(){
+            const tbody = document.querySelector('#filesTable tbody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-muted">Loading...</td></tr>';
+            try {
+                const resp = await fetch('/api/files/summary');
+                if(!resp.ok){ tbody.innerHTML = `<tr><td colspan='6' class='text-danger'>Failed: ${resp.status}</td></tr>`; return; }
+                const data = await resp.json();
+                const files = data.files||[];
+                if(!files.length){ tbody.innerHTML = '<tr><td colspan="6" class="text-muted">No files found.</td></tr>'; return; }
+                tbody.innerHTML='';
+                files.forEach(f=>{
+                    const tr=document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${f.fileName}</td>
+                        <td class='text-end'>${f.fileSizeKB}</td>
+                        <td class='text-end'>${f.rowCount}</td>
+                        <td class='text-end'>${f.columnCount}</td>
+                        <td>${new Date(f.lastModified).toLocaleString()}</td>
+                                                <td class='text-end'>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <a class='btn btn-outline-primary' title='Full Analysis' href='/Home/CompleteAnalysis?fileName=${encodeURIComponent(f.fileName)}'>Analyze</a>
+                                                        <a class='btn btn-outline-success' title='AI Analysis' href='/CsvAIProcessing?fileName=${encodeURIComponent(f.fileName)}'>AI</a>
+                                                    </div>
+                                                </td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch(err){
+                tbody.innerHTML = `<tr><td colspan='6' class='text-danger'>Error: ${err.message}</td></tr>`;
+            }
+        }
+        document.getElementById('refreshFiles').addEventListener('click', e=>{ e.preventDefault(); loadFiles(); });
+        loadFiles();
+    </script>
+}

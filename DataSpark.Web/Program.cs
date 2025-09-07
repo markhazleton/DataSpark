@@ -1,8 +1,13 @@
 using DataSpark.Web.Services;
 using DataSpark.Web.Services.Chart;
+using Sql2Csv.Core.Configuration;
+using Sql2Csv.Core.Interfaces;
+using Sql2Csv.Core.Services;
+using Sql2Csv.Core.Services.Analysis;
 using Sql2Csv.Core.Services.Charts;
 using WebSpark.Bootswatch;
-using static DataSpark.Web.Services.OpenAIFileAnalysisService;
+using WebCsvFileService = DataSpark.Web.Services.CsvFileService;
+using CoreCsvProcessingService = Sql2Csv.Core.Services.Analysis.CsvProcessingService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,11 +24,19 @@ builder.Services.AddSession(options =>
 });
 
 // Register DataSpark services
-builder.Services.AddScoped<CsvFileService>();
+// NOTE: Two CsvFileService classes exist (web + core). Web version handles uploads & web-root paths.
+// Core version (Sql2Csv.Core.Services.CsvFileService) is required by ChartDataService in Core.
+// Register both explicitly (different CLR types) so DI can resolve the core dependency.
+builder.Services.AddScoped<WebCsvFileService>(); // Web layer CsvFileService (DataSpark.Web.Services)
+builder.Services.AddScoped<Sql2Csv.Core.Services.CsvFileService>(); // Core CsvFileService
+// Register web CsvProcessingService explicitly (core interface-based service already registered below)
+builder.Services.AddScoped<DataSpark.Web.Services.CsvProcessingService>();
 // Core CSV processing & export services
-builder.Services.AddScoped<Sql2Csv.Core.Services.Analysis.ICsvFileReader, WebCsvFileReaderAdapter>();
-builder.Services.AddScoped<Sql2Csv.Core.Services.Analysis.ICsvProcessingService, Sql2Csv.Core.Services.Analysis.CsvProcessingService>();
-builder.Services.AddScoped<Sql2Csv.Core.Services.Export.IExportService, Sql2Csv.Core.Services.Export.ExportService>();
+builder.Services.AddScoped<ICsvFileReader, WebCsvFileReaderAdapter>();
+builder.Services.AddScoped<ICsvProcessingService, CoreCsvProcessingService>();
+builder.Services.AddScoped<ISchemaService, SchemaService>();
+builder.Services.AddScoped<IExportService, Sql2Csv.Core.Services.ExportService>();
+builder.Services.AddScoped<IDataExportService, DataExportService>();
 
 // Register chart storage provider & repository (core implementation)
 builder.Services.AddScoped<IChartStoragePathProvider, WebChartStoragePathProvider>();
@@ -33,9 +46,9 @@ builder.Services.AddScoped<IChartService, Sql2Csv.Core.Services.Charts.ChartServ
 builder.Services.AddScoped<IChartDataService, Sql2Csv.Core.Services.Charts.ChartDataService>();
 builder.Services.AddScoped<IChartValidationService, Sql2Csv.Core.Services.Charts.ChartValidationService>();
 // Web rendering service (still presentation layer)
-builder.Services.AddScoped<IChartRenderingService, ChartRenderingService>();
+builder.Services.AddScoped<IChartRenderingService, Sql2Csv.Core.Services.Charts.ChartRenderingService>();
 // ViewModel builder to thin controllers
-builder.Services.AddScoped<IChartConfigurationViewModelBuilder, ChartConfigurationViewModelBuilder>();
+builder.Services.AddScoped<IChartConfigurationViewModelBuilder, Sql2Csv.Core.Services.ChartConfigurationViewModelBuilder>();
 
 // Add memory cache services
 builder.Services.AddMemoryCache();
@@ -68,8 +81,6 @@ if (builder.Environment.IsDevelopment())
 
 // Register HttpClient and OpenAIFileAnalysisService
 builder.Services.AddHttpClient<OpenAIFileAnalysisService>();
-
-
 
 var app = builder.Build();
 

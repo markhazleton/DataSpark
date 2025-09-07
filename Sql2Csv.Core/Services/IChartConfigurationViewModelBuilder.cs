@@ -1,8 +1,11 @@
 using Sql2Csv.Core.Models.Charts;
 using Sql2Csv.Core.Services.Charts;
-using DataSpark.Web.Models.Chart;
+using Microsoft.Extensions.Logging;
+using Sql2Csv.Core.Interfaces;
+using Sql2Csv.Core.Models;
+using Sql2Csv.Core.Models.Analysis;
 
-namespace DataSpark.Web.Services.Chart;
+namespace Sql2Csv.Core.Services;
 
 /// <summary>
 /// Builds chart configuration view models and supplies default configurations.

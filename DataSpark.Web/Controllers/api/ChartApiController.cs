@@ -2,8 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using Sql2Csv.Core.Models.Analysis;
 using Sql2Csv.Core.Models.Charts;
 using Sql2Csv.Core.Services.Charts;
-using DataSpark.Web.Services.Chart;
-using DataSpark.Web.Models.Chart;
+using Sql2Csv.Core.Services;
+using Sql2Csv.Core.Models;
+using Sql2Csv.Core.Interfaces;
 
 namespace DataSpark.Web.Controllers.Api;
 
@@ -101,17 +102,17 @@ public class ChartApiController : ControllerBase
     /// Get columns for a data source
     /// </summary>
     [HttpGet("columns/{dataSource}")]
-    public async Task<ActionResult<ApiResponse<List<ColumnInfo>>>> GetColumns(string dataSource)
+    public async Task<ActionResult<ApiResponse<List<Sql2Csv.Core.Models.Analysis.ColumnInfo>>>> GetColumns(string dataSource)
     {
         try
         {
             var columns = await _dataService.GetColumnsAsync(dataSource);
-            return ApiResponse<List<ColumnInfo>>.SuccessResult(columns);
+            return ApiResponse<List<Sql2Csv.Core.Models.Analysis.ColumnInfo>>.SuccessResult(columns);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting columns for {DataSource}", dataSource);
-            return ApiResponse<List<ColumnInfo>>.ErrorResult("Error retrieving column information");
+            return ApiResponse<List<Sql2Csv.Core.Models.Analysis.ColumnInfo>>.ErrorResult("Error retrieving column information");
         }
     }
 
