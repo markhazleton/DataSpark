@@ -24,4 +24,7 @@
 		<PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
 		<PackageReference Include="System.Text.Encoding" Version="4.3.0" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\Sql2Csv.Core\Sql2Csv.Core.csproj" />
+	</ItemGroup>
 </Project>

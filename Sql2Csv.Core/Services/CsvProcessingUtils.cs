@@ -1,10 +1,8 @@
-﻿using DataSpark.Web.Models;
-using Sql2Csv.Core.Models.Analysis;
 using Microsoft.Data.Analysis;
+using Sql2Csv.Core.Models.Analysis;
 using System.Globalization;
 
-
-namespace DataSpark.Web.Services;
+namespace Sql2Csv.Core.Services;
 
 public static class CsvProcessingUtils
 {
@@ -13,8 +11,7 @@ public static class CsvProcessingUtils
         if (values.Length < 3) return double.NaN;
         double mean = values.Average();
         double standardDeviation = CalculateStandardDeviation(values);
-        double skewness = values.Sum(v => Math.Pow((v - mean) / standardDeviation, 3)) / values.Length;
-        return skewness;
+        return values.Sum(v => Math.Pow((v - mean) / standardDeviation, 3)) / values.Length;
     }
 
     public static double CalculateStandardDeviation(double[] values)
@@ -27,11 +24,11 @@ public static class CsvProcessingUtils
 
     public static int GetColumnCount(string filePath)
     {
-        // A utility method to determine the number of columns, perhaps by reading the first line
         using var reader = new StreamReader(filePath);
         var headerLine = reader.ReadLine();
         return headerLine?.Split(',').Length ?? 0;
     }
+
     public static bool IsDateColumn(DataFrameColumn column, out string? detectedFormat)
     {
         var dateFormats = new[]
@@ -53,8 +50,7 @@ public static class CsvProcessingUtils
                 {
                     if (DateTime.TryParseExact(dateStr, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
                     {
-                        detectedFormat = format;
-                        return true;
+                        detectedFormat = format; return true;
                     }
                 }
             }
@@ -66,7 +62,6 @@ public static class CsvProcessingUtils
     {
         var dateTimeColumn = new PrimitiveDataFrameColumn<DateTime>(column.Name, column.Length);
         bool conversionSuccessful = true;
-
         for (int i = 0; i < column.Length; i++)
         {
             if (column[i] is string dateStr)
@@ -75,26 +70,22 @@ public static class CsvProcessingUtils
                 try
                 {
                     if (DateTime.TryParseExact(dateStr, dateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateValue))
-                    {
-                        dateTimeColumn[i] = dateValue; // Replace string with DateTime object
-                    }
+                        dateTimeColumn[i] = dateValue;
                     else
                     {
-                        dateTimeColumn[i] = null; // Set to null if parsing fails
+                        dateTimeColumn[i] = null;
                         columnInfo.Errors.Add($"Failed to parse date: {dateStr} at row {i + 1}");
                         conversionSuccessful = false;
                     }
                 }
                 catch (Exception ex)
                 {
-                    dateTimeColumn[i] = null; // Set to null on error
+                    dateTimeColumn[i] = null;
                     columnInfo.Errors.Add($"Error parsing date '{dateStr}' at row {i + 1}: {ex.Message}");
                     conversionSuccessful = false;
                 }
             }
         }
-
-        // Replace the original string column with the DateTime column if conversion was mostly successful
         if (conversionSuccessful)
         {
             dataFrame.Columns.Remove(column);

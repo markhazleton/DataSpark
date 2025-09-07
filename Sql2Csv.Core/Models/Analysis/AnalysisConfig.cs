@@ -1,5 +1,4 @@
-﻿namespace DataSpark.Web.Models;
-
+namespace Sql2Csv.Core.Models.Analysis;
 
 /// <summary>
 /// Configuration class for customizing univariate analysis behavior.

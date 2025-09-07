@@ -1,4 +1,5 @@
-using DataSpark.Web.Models.Chart;
+using Sql2Csv.Core.Models.Charts;
+using Sql2Csv.Core.Models.Analysis;
 
 namespace DataSpark.Web.Models
 {

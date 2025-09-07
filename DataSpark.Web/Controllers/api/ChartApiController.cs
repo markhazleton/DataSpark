@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using DataSpark.Web.Models;
-using DataSpark.Web.Models.Chart;
+using Sql2Csv.Core.Models.Analysis;
+using Sql2Csv.Core.Models.Charts;
+using Sql2Csv.Core.Services.Charts;
 using DataSpark.Web.Services.Chart;
+using DataSpark.Web.Models.Chart;
 
 namespace DataSpark.Web.Controllers.Api;
 
@@ -13,14 +15,14 @@ namespace DataSpark.Web.Controllers.Api;
 public class ChartApiController : ControllerBase
 {
     private readonly IChartService _chartService;
-    private readonly IDataService _dataService;
+    private readonly IChartDataService _dataService;
     private readonly IChartRenderingService _renderingService;
     private readonly IChartValidationService _validationService;
     private readonly ILogger<ChartApiController> _logger;
 
     public ChartApiController(
-        IChartService chartService,
-        IDataService dataService,
+    IChartService chartService,
+    IChartDataService dataService,
         IChartRenderingService renderingService,
         IChartValidationService validationService,
         ILogger<ChartApiController> logger)

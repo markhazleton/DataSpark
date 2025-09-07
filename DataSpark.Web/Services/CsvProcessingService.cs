@@ -1,4 +1,5 @@
-﻿using DataSpark.Web.Models;
+﻿using Sql2Csv.Core.Models.Analysis;
+using Sql2Csv.Core.Services;
 using Microsoft.Data.Analysis;
 using System.Data;
 using System.Text.Json;

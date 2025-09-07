@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using DataSpark.Web.Models.Chart;
 using DataSpark.Web.Services.Chart;
+using Sql2Csv.Core.Models.Charts;
+using Sql2Csv.Core.Services.Charts;
 using DataSpark.Web.Services;
+using DataSpark.Web.Models.Chart;
 
 namespace DataSpark.Web.Controllers;
 
@@ -16,11 +18,12 @@ public class ChartController : BaseController
         ILogger<ChartController> logger,
         CsvFileService csvFileService,
         CsvProcessingService csvProcessingService,
-        IChartService chartService,
-        IDataService dataService,
-        IChartRenderingService renderingService,
-        IChartValidationService validationService)
-        : base(env, logger, csvFileService, csvProcessingService, chartService, dataService, renderingService, validationService)
+    IChartService chartService,
+    IChartDataService dataService,
+    IChartRenderingService renderingService,
+    IChartValidationService validationService,
+    IChartConfigurationViewModelBuilder viewModelBuilder)
+    : base(env, logger, csvFileService, csvProcessingService, chartService, dataService, renderingService, validationService, viewModelBuilder)
     {
     }
 
@@ -54,7 +57,7 @@ public class ChartController : BaseController
             // Create a default configuration if no active data source
             if (!string.IsNullOrWhiteSpace(activeDataSource))
             {
-                viewModel.CurrentConfiguration = CreateDefaultConfiguration(activeDataSource);
+                viewModel.CurrentConfiguration = _chartViewModelBuilder!.CreateDefaultConfiguration(activeDataSource);
             }
 
             return View(viewModel);
@@ -100,10 +103,10 @@ public class ChartController : BaseController
                     return BadRequest("No data source specified and no available data sources found");
                 }
 
-                configuration = CreateDefaultConfiguration(dataSource);
+                configuration = _chartViewModelBuilder!.CreateDefaultConfiguration(dataSource);
             }
 
-            var viewModel = await BuildConfigurationViewModel(configuration, dataSource!);
+            var viewModel = await _chartViewModelBuilder!.BuildAsync(configuration, dataSource!);
 
             return View(viewModel);
         }
@@ -112,9 +115,9 @@ public class ChartController : BaseController
             _logger.LogError(ex, "Error loading chart configuration");
             var errorViewModel = new ChartConfigurationViewModel
             {
-                DataSource = dataSource,
+                DataSource = dataSource ?? string.Empty,
                 ErrorMessage = $"Error loading chart configuration: {ex.Message}",
-                Configuration = CreateDefaultConfiguration(dataSource ?? "")
+                Configuration = _chartViewModelBuilder!.CreateDefaultConfiguration(dataSource ?? "")
             };
             return View(errorViewModel);
         }
@@ -187,7 +190,7 @@ public class ChartController : BaseController
                 _logger.LogWarning("ModelState validation failed: {Errors}", string.Join("; ", errors));
 
                 // Rebuild view model with validation errors
-                var viewModel = await BuildConfigurationViewModel(model?.Configuration ?? CreateDefaultConfiguration(model?.DataSource ?? ""), model?.DataSource ?? "");
+                var viewModel = await _chartViewModelBuilder!.BuildAsync(model?.Configuration ?? _chartViewModelBuilder.CreateDefaultConfiguration(model?.DataSource ?? ""), model?.DataSource ?? "");
                 viewModel.ErrorMessage = $"Please correct the validation errors: {string.Join(", ", errors)}";
                 return View(viewModel);
             }
@@ -195,21 +198,21 @@ public class ChartController : BaseController
             // Additional validation for required fields
             if (string.IsNullOrWhiteSpace(model?.Configuration?.Name))
             {
-                var viewModel = await BuildConfigurationViewModel(model?.Configuration ?? CreateDefaultConfiguration(model?.DataSource ?? ""), model?.DataSource ?? "");
+                var viewModel = await _chartViewModelBuilder!.BuildAsync(model?.Configuration ?? _chartViewModelBuilder.CreateDefaultConfiguration(model?.DataSource ?? ""), model?.DataSource ?? "");
                 viewModel.ErrorMessage = "Chart name is required.";
                 return View(viewModel);
             }
 
             if (string.IsNullOrWhiteSpace(model?.Configuration?.ChartType))
             {
-                var viewModel = await BuildConfigurationViewModel(model?.Configuration ?? CreateDefaultConfiguration(model?.DataSource ?? ""), model?.DataSource ?? "");
+                var viewModel = await _chartViewModelBuilder!.BuildAsync(model?.Configuration ?? _chartViewModelBuilder.CreateDefaultConfiguration(model?.DataSource ?? ""), model?.DataSource ?? "");
                 viewModel.ErrorMessage = "Chart type is required.";
                 return View(viewModel);
             }
 
             if (model?.Configuration?.Series == null || model.Configuration.Series.Count == 0)
             {
-                var viewModel = await BuildConfigurationViewModel(model?.Configuration ?? CreateDefaultConfiguration(model?.DataSource ?? ""), model?.DataSource ?? "");
+                var viewModel = await _chartViewModelBuilder!.BuildAsync(model?.Configuration ?? _chartViewModelBuilder.CreateDefaultConfiguration(model?.DataSource ?? ""), model?.DataSource ?? "");
                 viewModel.ErrorMessage = "At least one data series is required. Please add a series with a name and data column.";
                 return View(viewModel);
             }
@@ -220,13 +223,13 @@ public class ChartController : BaseController
                 var series = model.Configuration.Series[i];
                 if (string.IsNullOrWhiteSpace(series.Name))
                 {
-                    var viewModel = await BuildConfigurationViewModel(model.Configuration, model.DataSource!);
+                    var viewModel = await _chartViewModelBuilder!.BuildAsync(model.Configuration, model.DataSource!);
                     viewModel.ErrorMessage = $"Series {i + 1} requires a name.";
                     return View(viewModel);
                 }
                 if (string.IsNullOrWhiteSpace(series.DataColumn))
                 {
-                    var viewModel = await BuildConfigurationViewModel(model.Configuration, model.DataSource!);
+                    var viewModel = await _chartViewModelBuilder!.BuildAsync(model.Configuration, model.DataSource!);
                     viewModel.ErrorMessage = $"Series '{series.Name}' requires a data column selection.";
                     return View(viewModel);
                 }
@@ -237,7 +240,7 @@ public class ChartController : BaseController
             if (!validationResult.IsValid)
             {
                 _logger.LogWarning("Chart validation failed: {Errors}", string.Join("; ", validationResult.Errors));
-                var viewModel = await BuildConfigurationViewModel(model.Configuration, model.DataSource!);
+                var viewModel = await _chartViewModelBuilder!.BuildAsync(model.Configuration, model.DataSource!);
                 viewModel.ErrorMessage = $"Configuration validation failed: {string.Join(", ", validationResult.Errors)}";
                 return View(viewModel);
             }
@@ -260,7 +263,7 @@ public class ChartController : BaseController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error saving chart configuration: {Name}", model.Configuration?.Name);
-            var viewModel = await BuildConfigurationViewModel(model.Configuration ?? CreateDefaultConfiguration(model.DataSource!), model.DataSource!);
+            var viewModel = await _chartViewModelBuilder!.BuildAsync(model.Configuration ?? _chartViewModelBuilder.CreateDefaultConfiguration(model.DataSource!), model.DataSource!);
             viewModel.ErrorMessage = $"Error saving chart configuration: {ex.Message}";
             return View(viewModel);
         }
@@ -333,10 +336,10 @@ public class ChartController : BaseController
             var processedData = await _dataService.ProcessDataAsync(request.DataSource!, request.Configuration);
 
             // Limit data points for preview
-            if (processedData.DataPoints.Count > request.MaxDataPoints)
+            if (request.MaxDataPoints.HasValue && processedData.DataPoints.Count > request.MaxDataPoints.Value)
             {
-                processedData.DataPoints = processedData.DataPoints.Take(request.MaxDataPoints).ToList();
-                processedData.ProcessingNotes += $" (Limited to {request.MaxDataPoints} data points for preview)";
+                processedData.DataPoints = processedData.DataPoints.Take(request.MaxDataPoints.Value).ToList();
+                processedData.ProcessingNotes += $" (Limited to {request.MaxDataPoints.Value} data points for preview)";
             }
 
             // Generate chart JSON
