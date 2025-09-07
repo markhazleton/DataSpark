@@ -1,3 +1,6 @@
+using Sql2Csv.Core.Services;
+using Sql2Csv.Core.Interfaces;
+using Sql2Csv.Core.Models;
 using Sql2Csv.Core.Models.Analysis;
 using DataSpark.Web.Models;
 using Sql2Csv.Core.Models.Charts;
@@ -6,7 +9,6 @@ using DataSpark.Web.Services.Chart;
 using Sql2Csv.Core.Services.Charts;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
-using DataSpark.Web.Models.Chart;
 
 namespace DataSpark.Web.Controllers;
 
@@ -14,9 +16,10 @@ public class BaseController : Controller
 {
     protected readonly IWebHostEnvironment _env;
     protected readonly ILogger _logger;
-    protected readonly CsvFileService _csvFileService;
+    protected readonly DataSpark.Web.Services.CsvFileService _csvFileService;
     protected readonly Sql2Csv.Core.Services.Analysis.ICsvProcessingService _csvProcessingService;
-    protected readonly Sql2Csv.Core.Services.Export.IExportService _exportService;
+    protected readonly IExportService _exportService;
+    protected readonly IDataExportService _dataExportService;
 
     // Chart services (optional for controllers that don't need them)
     protected readonly IChartService? _chartService;
@@ -27,26 +30,29 @@ public class BaseController : Controller
 
     // Constructor for CSV-only controllers (like HomeController)
     public BaseController(IWebHostEnvironment env, ILogger logger,
-        CsvFileService csvFileService,
+        DataSpark.Web.Services.CsvFileService csvFileService,
         Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
-        Sql2Csv.Core.Services.Export.IExportService exportService)
+        IExportService exportService,
+        IDataExportService dataExportService)
     {
         _env = env;
         _logger = logger;
         _csvFileService = csvFileService;
         _csvProcessingService = csvProcessingService;
         _exportService = exportService;
+        _dataExportService = dataExportService;
     }
 
     // Constructor for Chart controllers (like ChartController)
     public BaseController(IWebHostEnvironment env, ILogger logger,
-        CsvFileService csvFileService,
+        DataSpark.Web.Services.CsvFileService csvFileService,
         Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
-        Sql2Csv.Core.Services.Export.IExportService exportService,
+        IExportService exportService,
+        IDataExportService dataExportService,
         IChartService chartService, IChartDataService dataService,
         IChartRenderingService renderingService, IChartValidationService validationService,
         IChartConfigurationViewModelBuilder chartViewModelBuilder)
-        : this(env, logger, csvFileService, csvProcessingService, exportService)
+        : this(env, logger, csvFileService, csvProcessingService, exportService, dataExportService)
     {
         _chartService = chartService;
         _dataService = dataService;
@@ -181,7 +187,7 @@ public class BaseController : Controller
     {
         if (configuration != null && !string.IsNullOrEmpty(dataSource))
         {
-            var viewModel = new Models.Chart.ChartConfigurationViewModel
+            var viewModel = new ChartConfigurationViewModel
             {
                 Configuration = configuration,
                 ErrorMessage = errorMessage,
@@ -190,7 +196,7 @@ public class BaseController : Controller
             return View("Configure", viewModel);
         }
 
-        return View("Configure", new Models.Chart.ChartConfigurationViewModel
+        return View("Configure", new ChartConfigurationViewModel
         {
             ErrorMessage = errorMessage
         });
@@ -222,13 +228,13 @@ public class BaseController : Controller
     }
 
     protected IActionResult ExportAsCsv(List<Dictionary<string, object>> data, string fileName)
-        => data.Any() ? File(_exportService.ExportCsv(data), "text/csv", fileName) : BadRequest("No data to export");
+        => data.Any() ? File(_dataExportService.ExportCsv(data), "text/csv", fileName) : BadRequest("No data to export");
 
     protected IActionResult ExportAsTsv(List<Dictionary<string, object>> data, string fileName)
-        => data.Any() ? File(_exportService.ExportTsv(data), "text/tab-separated-values", fileName) : BadRequest("No data to export");
+        => data.Any() ? File(_dataExportService.ExportTsv(data), "text/tab-separated-values", fileName) : BadRequest("No data to export");
 
     protected IActionResult ExportAsJson<T>(List<Dictionary<string, object>> data, T config, string fileName)
-        => File(_exportService.ExportJson(data, config), "application/json", fileName);
+        => File(_dataExportService.ExportJson(data, config), "application/json", fileName);
 
     protected IActionResult ExportAsExcel(List<Dictionary<string, object>> data, string fileName)
         => ExportAsCsv(data, fileName.Replace(".xlsx", ".csv"));

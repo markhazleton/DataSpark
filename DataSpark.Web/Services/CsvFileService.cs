@@ -1,6 +1,8 @@
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Data.Analysis;
+using Sql2Csv.Core.Services;
+using Sql2Csv.Core.Services.Analysis;
 using System.Globalization;
 using System.Text;
 

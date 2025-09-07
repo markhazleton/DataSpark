@@ -1,5 +1,7 @@
 using Microsoft.Data.Analysis;
 using Microsoft.Extensions.Logging;
+using Sql2Csv.Core.Interfaces;
+using Sql2Csv.Core.Models;
 using Sql2Csv.Core.Models.Analysis;
 using System.Data;
 using System.Text.Json;
@@ -172,19 +174,4 @@ public class CsvProcessingService : ICsvProcessingService
         }
         return JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true });
     }
-}
-
-/// <summary>
-/// Minimal abstraction allowing Core service to obtain DataFrames and raw records without referencing web implementation.
-/// </summary>
-public interface ICsvFileReader
-{
-    Task<CsvFileReadResult<DataFrame>> ReadCsvAsDataFrameAsync(string fileName, char delimiter, bool allString);
-}
-
-public class CsvFileReadResult<T>
-{
-    public bool Success { get; set; }
-    public List<T> Data { get; set; } = new();
-    public string? ErrorMessage { get; set; }
 }

@@ -1,4 +1,5 @@
-﻿using Sql2Csv.Core.Models.Analysis;
+﻿using Sql2Csv.Core.Interfaces;
+using Sql2Csv.Core.Models.Analysis;
 using DataSpark.Web.Services;
 using DataSpark.Web.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -7,10 +8,10 @@ namespace DataSpark.Web.Controllers;
 
 public class UnivariateController : BaseController
 {
-    public UnivariateController(IWebHostEnvironment env, ILogger<UnivariateController> logger, CsvFileService csvFileService,
+    public UnivariateController(IWebHostEnvironment env, ILogger<UnivariateController> logger, DataSpark.Web.Services.CsvFileService csvFileService,
         Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
-        Sql2Csv.Core.Services.Export.IExportService exportService)
-        : base(env, logger, csvFileService, csvProcessingService, exportService)
+        IExportService exportService, IDataExportService dataExportService)
+        : base(env, logger, csvFileService, csvProcessingService, exportService, dataExportService)
     {
     }
 

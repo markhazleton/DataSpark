@@ -1,7 +1,7 @@
 ﻿@{
     ViewData["Title"] = "CSV AI Analysis";
-    var uploadedFiles = ViewBag.UploadedFiles as IReadOnlyList<DataSpark.Web.Services.UploadedCsvFile> ?? new
-    List<DataSpark.Web.Services.UploadedCsvFile>();
+    var uploadedFiles = ViewBag.UploadedFiles as IReadOnlyList<Sql2Csv.Core.Models.UploadedCsvFile> ?? new
+    List<Sql2Csv.Core.Models.UploadedCsvFile>();
     var availableFiles = ViewBag.AvailableFiles as List<string> ?? new List<string>();
     var selectedFile = ViewBag.SelectedFile as string ?? "";
     var errorMessage = ViewBag.ErrorMessage as string ?? "";
@@ -53,14 +53,7 @@ else
                             <i class="fas fa-chart-bar"></i> Analyze Selected File
                         </button>
                     </form>
-
-                    <form asp-controller="CsvAIProcessing" asp-action="UploadAndRegisterFile" method="post"
-                        class="d-inline ms-2">
-                        <input type="hidden" name="fileName" value="@selectedFile" />
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-upload"></i> Upload to AI for Future Use
-                        </button>
-                    </form>
+                    <!-- Upload/registration capability intentionally removed per requirements -->
                 </div>
             }
 

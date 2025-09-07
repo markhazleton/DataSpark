@@ -8,8 +8,39 @@
             <h1 class="card-title mb-0"><i class="bi bi-lightning"></i> Data Spark - Complete Analysis</h1>
         </div>
         <div class="card-body">
+            <div class="row g-3 align-items-end mb-4">
+                <div class="col-md-4">
+                    <label for="fileSelect" class="form-label">Select Existing CSV</label>
+                    <select id="fileSelect" class="form-select">
+                        <option value="">-- Choose File --</option>
+                        @foreach (var f in (Model.AvailableCsvFiles ?? new List<string>()))
+                        {
+                            if (Model.FileName == f)
+                            {
+                                <option value="@f" selected>@f</option>
+                            }
+                            else
+                            {
+                                <option value="@f">@f</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <!-- Upload removed for this page as requested -->
+            </div>
+            <div id="statusArea"></div>
+            @if (string.IsNullOrWhiteSpace(Model.FileName))
+            {
+                <div class="alert alert-info"><i class="bi bi-info-circle"></i> @Model.Message</div>
+            }
+            else if(Model.RowCount == 0)
+            {
+                <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> @Model.Message</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.FileName) && Model.RowCount > 0)
+            {
             <!-- Overview Section -->
-            <div class="mb-4 p-3 bg-light rounded shadow-sm">
+            <div class="mb-4 p-3 bg-light rounded shadow-sm" id="univariateSection">
                 <h2 class="mb-2"><i class="bi bi-info-circle"></i> Data Overview</h2>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item"><strong>Table Name:</strong> @Model.FileName</li>
@@ -43,7 +74,7 @@
             </div>
 
             <hr class="mt-5 mb-4">
-            <div class="mb-4 p-3 bg-light rounded shadow-sm">
+            <div class="mb-4 p-3 bg-light rounded shadow-sm" id="bivariateSection">
                 <h2 class="mt-4 mb-3">Univariate Analysis</h2>
                 <div class="accordion" id="columnAnalysisAccordion">
                     @foreach (var column in Model.ColumnDetails)
@@ -281,6 +312,7 @@
                         longer left tail. Skewed data can impact statistical analyses that assume normality.</p>
                 </div>
             </div>
+            }
         </div>
         <div class="card-footer text-end">
             <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">
@@ -296,6 +328,19 @@
 
 @section PageScripts {
     <script>
+        (function(){
+            const fileSelect = document.getElementById('fileSelect');
+            fileSelect?.addEventListener('change', () => {
+                const f = fileSelect.value;
+                const url = new URL(window.location.href);
+                if (f) url.searchParams.set('fileName', f); else url.searchParams.delete('fileName');
+                window.location.href = url.toString();
+            });
+            function statusMsg(msg, isErr=false){
+                const area = document.getElementById('statusArea');
+                area.innerHTML = `<div class="alert ${isErr?'alert-danger':'alert-info'} py-2 mb-3">${msg}</div>`;
+            }
+        })();
         $(document).ready(function ()
         {
             // Load the analysis when an accordion item is expanded

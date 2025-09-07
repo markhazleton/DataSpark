@@ -34,14 +34,45 @@
     async function loadColumns(fileName)
     {
         if (!fileName) return [];
-        const resp = await fetch(`/api/files/analyze?fileName=${encodeURIComponent(fileName)}`);
-        const data = await resp.json();
-        return data;
+        try {
+            const resp = await fetch(`/api/files/analyze?fileName=${encodeURIComponent(fileName)}`);
+            if (!resp.ok) {
+                let errText = await resp.text();
+                try { const parsed = JSON.parse(errText); if (parsed) { const det = typeof parsed.details === 'object' ? JSON.stringify(parsed.details) : (parsed.details||''); errText = (parsed.error||'') + (det? ' - '+det : ''); } } catch { /* ignore parse error */ }
+                console.warn('Failed to load columns:', errText);
+                showStatus(`Failed to load columns: ${errText}`, true);
+                return [];
+            }
+            const data = await resp.json();
+            if (!Array.isArray(data)) {
+                console.warn('Unexpected columns response', data);
+                showStatus('Unexpected response when loading columns.', true);
+                return [];
+            }
+            showStatus('Columns loaded.', false, 2000);
+            return data;
+        } catch (e) {
+            console.error('Error loading columns', e);
+            showStatus('Error loading columns: ' + e.message, true);
+            return [];
+        }
+    }
+    function showStatus(message, isError=false, timeout=null) {
+        let el = document.getElementById('statusMsg');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'statusMsg';
+            document.querySelector('.container')?.prepend(el);
+        }
+        el.className = isError ? 'alert alert-danger mt-2' : 'alert alert-info mt-2';
+        el.textContent = message;
+        if (timeout) setTimeout(()=> el.remove(), timeout);
     }
     // Populate column dropdowns
     async function updateColumns()
     {
         const fileName = document.getElementById('fileSelect').value;
+        showStatus('Loading columns...');
         const cols = await loadColumns(fileName);
         const col1 = document.getElementById('col1Select');
         const col2 = document.getElementById('col2Select');
@@ -52,6 +83,9 @@
             col1.innerHTML += `<option value="${c}">${c}</option>`;
             col2.innerHTML += `<option value="${c}">${c}</option>`;
         });
+        if (!cols || cols.length === 0) {
+            showStatus('No columns detected in selected file.', true, 5000);
+        }
     }
     // Handle file/column selection
     window.addEventListener('DOMContentLoaded', () =>
