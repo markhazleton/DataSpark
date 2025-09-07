@@ -15,6 +15,7 @@ public sealed class ApplicationService
     private readonly IExportService _exportService;
     private readonly ISchemaService _schemaService;
     private readonly ICodeGenerationService _codeGenerationService;
+    private readonly ISchemaReportSink _schemaReportSink;
     private readonly Sql2CsvOptions _options;
 
     /// <summary>
@@ -26,13 +27,15 @@ public sealed class ApplicationService
         IExportService exportService,
         ISchemaService schemaService,
         ICodeGenerationService codeGenerationService,
-        IOptions<Sql2CsvOptions> options)
+    ISchemaReportSink schemaReportSink,
+    IOptions<Sql2CsvOptions> options)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _discoveryService = discoveryService ?? throw new ArgumentNullException(nameof(discoveryService));
         _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
         _schemaService = schemaService ?? throw new ArgumentNullException(nameof(schemaService));
         _codeGenerationService = codeGenerationService ?? throw new ArgumentNullException(nameof(codeGenerationService));
+    _schemaReportSink = schemaReportSink ?? throw new ArgumentNullException(nameof(schemaReportSink));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
     }
 
@@ -166,9 +169,7 @@ public sealed class ApplicationService
                 _logger.LogInformation("Generating schema report for database: {DatabaseName}", database.Name);
 
                 var report = await _schemaService.GenerateSchemaReportAsync(database.ConnectionString, format, cancellationToken);
-
-                Console.WriteLine($"\n=== Schema Report for {database.Name} ({format}) ===");
-                Console.WriteLine(report);
+                await _schemaReportSink.WriteReportAsync(database.Name, format, report, cancellationToken);
             }
         }
         catch (Exception ex)

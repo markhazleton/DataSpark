@@ -18,6 +18,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sql2Csv.Web", "sql2csv.web\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sql2Csv.Benchmarks", "Sql2Csv.Benchmarks\Sql2Csv.Benchmarks.csproj", "{7E2B7A09-3E5C-4A36-9C29-E8B0E1E4F4A1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataSpark.Web", "DataSpark.Web\DataSpark.Web.csproj", "{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -88,6 +90,18 @@ Global
 		{7E2B7A09-3E5C-4A36-9C29-E8B0E1E4F4A1}.Release|x64.Build.0 = Release|Any CPU
 		{7E2B7A09-3E5C-4A36-9C29-E8B0E1E4F4A1}.Release|x86.ActiveCfg = Release|Any CPU
 		{7E2B7A09-3E5C-4A36-9C29-E8B0E1E4F4A1}.Release|x86.Build.0 = Release|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Debug|x64.Build.0 = Debug|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Debug|x86.Build.0 = Debug|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Release|x64.ActiveCfg = Release|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Release|x64.Build.0 = Release|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Release|x86.ActiveCfg = Release|Any CPU
+		{6BAFB191-7482-B907-23AE-BCAC9CC4AE35}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -48,7 +48,8 @@ public class CsvAnalysisService : ICsvAnalysisService
                 MissingFieldFound = null // Ignore missing fields for analysis
             };
 
-            using var reader = new StringReader(await File.ReadAllTextAsync(filePath, encoding, cancellationToken));
+            await using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var reader = new StreamReader(fs, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: 8192, leaveOpen: false);
             using var csv = new CsvReader(reader, config);
 
             // Read headers or generate them
@@ -95,6 +96,7 @@ public class CsvAnalysisService : ICsvAnalysisService
                 await csv.ReadAsync(); // Skip header row if we read it already
             }
 
+            const int analysisRowLimit = 100_000; // could be made configurable
             while (await csv.ReadAsync())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -120,15 +122,11 @@ public class CsvAnalysisService : ICsvAnalysisService
                         }
 
                         // Try to refine data type detection
-                        if (analysis.DataType == "TEXT")
-                        {
-                            analysis.DataType = DetectDataType(value);
-                        }
+            analysis.DataType = PromoteDataType(analysis.DataType, value);
                     }
                 }
 
-                // Limit analysis to prevent memory issues with very large files
-                if (rowCount >= 100000)
+        if (rowCount >= analysisRowLimit)
                 {
                     _logger.LogWarning("CSV analysis limited to first 100,000 rows for performance");
                     break;
@@ -193,7 +191,8 @@ public class CsvAnalysisService : ICsvAnalysisService
                 MissingFieldFound = null
             };
 
-            using var reader = new StringReader(await File.ReadAllTextAsync(filePath, encoding, cancellationToken));
+            await using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var reader = new StreamReader(fs, encoding, true);
             using var csv = new CsvReader(reader, config);
 
             // Read headers
@@ -334,13 +333,31 @@ public class CsvAnalysisService : ICsvAnalysisService
         return (delimiter, Encoding.UTF8, hasHeaders);
     }
 
-    private string DetectDataType(string value)
+    private static string DetectDataType(string value)
     {
         if (int.TryParse(value, out _)) return "INTEGER";
         if (double.TryParse(value, out _)) return "REAL";
         if (DateTime.TryParse(value, out _)) return "DATETIME";
         if (bool.TryParse(value, out _)) return "BOOLEAN";
         return "TEXT";
+    }
+
+    private static string PromoteDataType(string current, string newValue)
+    {
+        var detected = DetectDataType(newValue);
+        if (current == detected) return current;
+        return (current, detected) switch
+        {
+            ("TEXT", var d) => d,
+            ("INTEGER", "REAL") => "REAL",
+            ("INTEGER", "DATETIME") => "DATETIME",
+            ("INTEGER", "BOOLEAN") => "INTEGER",
+            ("REAL", "INTEGER") => "REAL",
+            ("BOOLEAN", "INTEGER") => "INTEGER",
+            ("BOOLEAN", "REAL") => "REAL",
+            (var c, "TEXT") => c,
+            _ => current
+        };
     }
 
     private async Task CalculateNumericStatisticsAsync(CsvAnalysisResult result, string filePath, CancellationToken cancellationToken)
@@ -363,7 +380,8 @@ public class CsvAnalysisService : ICsvAnalysisService
                 MissingFieldFound = null
             };
 
-            using var reader = new StringReader(await File.ReadAllTextAsync(filePath, encoding, cancellationToken));
+            await using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var reader = new StreamReader(fs, encoding, true);
             using var csv = new CsvReader(reader, config);
 
             if (hasHeaders)

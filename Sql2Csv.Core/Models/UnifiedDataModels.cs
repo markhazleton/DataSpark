@@ -264,6 +264,16 @@ public class UnifiedAnalysisResult
     /// Gets or sets the analysis timestamp.
     /// </summary>
     public DateTime AnalysisDate { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Flags describing which metrics were populated (bitwise OR of <see cref="UnifiedAnalysisCapabilities"/>).
+    /// </summary>
+    public UnifiedAnalysisCapabilities Capabilities { get; set; } = UnifiedAnalysisCapabilities.None;
+
+    /// <summary>
+    /// Indicates that deeper statistics for this source type are not implemented.
+    /// </summary>
+    public bool IsPartial { get; set; }
 }
 
 /// <summary>
@@ -381,4 +391,19 @@ public class UnifiedDataResult
     /// Gets or sets any errors encountered.
     /// </summary>
     public List<string> Errors { get; set; } = new();
+}
+
+/// <summary>
+/// Capability flags for unified analysis results.
+/// </summary>
+[Flags]
+public enum UnifiedAnalysisCapabilities
+{
+    None = 0,
+    RowCount = 1 << 0,
+    ColumnCount = 1 << 1,
+    ColumnStatistics = 1 << 2,
+    NumericStats = 1 << 3,
+    SampleValues = 1 << 4,
+    // Future: Distribution = 1 << 5,
 }

@@ -18,6 +18,7 @@ public class ApplicationServiceTests
     private Mock<IExportService> _mockExportService = null!;
     private Mock<ISchemaService> _mockSchemaService = null!;
     private Mock<ICodeGenerationService> _mockCodeGenerationService = null!;
+    private Mock<ISchemaReportSink> _mockSchemaReportSink = null!;
     private Mock<IOptions<Sql2CsvOptions>> _mockOptions = null!;
     private ApplicationService _applicationService = null!;
     private Sql2CsvOptions _options = null!;
@@ -30,6 +31,7 @@ public class ApplicationServiceTests
         _mockExportService = new Mock<IExportService>();
         _mockSchemaService = new Mock<ISchemaService>();
         _mockCodeGenerationService = new Mock<ICodeGenerationService>();
+    _mockSchemaReportSink = new Mock<ISchemaReportSink>();
         _mockOptions = new Mock<IOptions<Sql2CsvOptions>>();
 
         _options = new Sql2CsvOptions
@@ -47,6 +49,7 @@ public class ApplicationServiceTests
             _mockExportService.Object,
             _mockSchemaService.Object,
             _mockCodeGenerationService.Object,
+            _mockSchemaReportSink.Object,
             _mockOptions.Object);
     }
 
@@ -60,6 +63,7 @@ public class ApplicationServiceTests
             _mockExportService.Object,
             _mockSchemaService.Object,
             _mockCodeGenerationService.Object,
+            _mockSchemaReportSink.Object,
             _mockOptions.Object);
 
         action.Should().Throw<ArgumentNullException>().WithParameterName("logger");
@@ -75,6 +79,7 @@ public class ApplicationServiceTests
             _mockExportService.Object,
             _mockSchemaService.Object,
             _mockCodeGenerationService.Object,
+            _mockSchemaReportSink.Object,
             _mockOptions.Object);
 
         action.Should().Throw<ArgumentNullException>().WithParameterName("discoveryService");
@@ -90,6 +95,7 @@ public class ApplicationServiceTests
             null!,
             _mockSchemaService.Object,
             _mockCodeGenerationService.Object,
+            _mockSchemaReportSink.Object,
             _mockOptions.Object);
 
         action.Should().Throw<ArgumentNullException>().WithParameterName("exportService");
@@ -105,6 +111,7 @@ public class ApplicationServiceTests
             _mockExportService.Object,
             null!,
             _mockCodeGenerationService.Object,
+            _mockSchemaReportSink.Object,
             _mockOptions.Object);
 
         action.Should().Throw<ArgumentNullException>().WithParameterName("schemaService");
@@ -120,6 +127,7 @@ public class ApplicationServiceTests
             _mockExportService.Object,
             _mockSchemaService.Object,
             null!,
+            _mockSchemaReportSink.Object,
             _mockOptions.Object);
 
         action.Should().Throw<ArgumentNullException>().WithParameterName("codeGenerationService");
@@ -135,6 +143,7 @@ public class ApplicationServiceTests
             _mockExportService.Object,
             _mockSchemaService.Object,
             _mockCodeGenerationService.Object,
+            null!,
             null!);
 
         action.Should().Throw<ArgumentNullException>().WithParameterName("options");
