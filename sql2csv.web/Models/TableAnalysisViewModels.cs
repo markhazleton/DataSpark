@@ -1,24 +1,43 @@
 using System.ComponentModel.DataAnnotations;
+using Sql2Csv.Core.Models;
 
 namespace Sql2Csv.Web.Models;
 
 /// <summary>
-/// View model for table analysis results
+/// Web-specific view model for table analysis results
 /// </summary>
 public class TableAnalysisViewModel
 {
     public required string DatabaseName { get; init; }
     public required string TableName { get; init; }
     public required string FilePath { get; init; }
-    public TableStatisticsViewModel Statistics { get; init; } = new();
+    public TableStatisticsViewModel? Statistics { get; init; }
     public List<ColumnAnalysisViewModel> ColumnAnalyses { get; init; } = [];
     public TimeSpan AnalysisDuration { get; init; }
     public string? ErrorMessage { get; init; }
     public bool IsSuccess { get; init; } = true;
+
+    /// <summary>
+    /// Creates from core model
+    /// </summary>
+    public static TableAnalysisViewModel FromCore(TableAnalysisResult coreResult)
+    {
+        return new TableAnalysisViewModel
+        {
+            DatabaseName = coreResult.DatabaseName,
+            TableName = coreResult.TableName,
+            FilePath = coreResult.FilePath,
+            Statistics = coreResult.Statistics != null ? TableStatisticsViewModel.FromCore(coreResult.Statistics) : null,
+            ColumnAnalyses = coreResult.ColumnAnalyses.Select(ColumnAnalysisViewModel.FromCore).ToList(),
+            AnalysisDuration = coreResult.AnalysisDuration,
+            ErrorMessage = coreResult.ErrorMessage,
+            IsSuccess = coreResult.IsSuccess
+        };
+    }
 }
 
 /// <summary>
-/// View model for table-level statistics
+/// Web-specific view model for table-level statistics
 /// </summary>
 public class TableStatisticsViewModel
 {
@@ -38,6 +57,25 @@ public class TableStatisticsViewModel
         ? Math.Round((1.0 - (double)NullableColumns / TotalColumns) * 100, 1)
         : 0;
 
+    /// <summary>
+    /// Creates from core model
+    /// </summary>
+    public static TableStatisticsViewModel FromCore(TableStatistics coreModel)
+    {
+        return new TableStatisticsViewModel
+        {
+            TotalRows = coreModel.TotalRows,
+            TotalColumns = coreModel.TotalColumns,
+            NumericColumns = coreModel.NumericColumns,
+            TextColumns = coreModel.TextColumns,
+            DateTimeColumns = coreModel.DateTimeColumns,
+            NullableColumns = coreModel.NullableColumns,
+            PrimaryKeyColumns = coreModel.PrimaryKeyColumns,
+            DataQualityScore = coreModel.DataQualityScore,
+            EstimatedSizeBytes = coreModel.EstimatedSizeBytes
+        };
+    }
+
     private static string FormatFileSize(long bytes)
     {
         string[] sizes = { "B", "KB", "MB", "GB" };
@@ -53,7 +91,7 @@ public class TableStatisticsViewModel
 }
 
 /// <summary>
-/// View model for column-level analysis
+/// Web-specific view model for column-level analysis
 /// </summary>
 public record ColumnAnalysisViewModel
 {
@@ -93,7 +131,7 @@ public record ColumnAnalysisViewModel
     public TimeSpan? DateRange => MaxDate.HasValue && MinDate.HasValue ? MaxDate - MinDate : null;
 
     // Value frequencies (top 10 most common values)
-    public List<ValueFrequency> TopValues { get; init; } = [];
+    public List<ValueFrequencyViewModel> TopValues { get; init; } = [];
 
     // Data quality indicators
     public bool HasOutliers { get; init; }
@@ -126,72 +164,58 @@ public record ColumnAnalysisViewModel
         >= 0.5 => "text-orange-600 bg-orange-100",
         _ => "text-red-600 bg-red-100"
     };
+
+    /// <summary>
+    /// Creates from core model
+    /// </summary>
+    public static ColumnAnalysisViewModel FromCore(ColumnAnalysis coreModel)
+    {
+        return new ColumnAnalysisViewModel
+        {
+            ColumnName = coreModel.ColumnName,
+            DataType = coreModel.DataType,
+            IsNullable = coreModel.IsNullable,
+            IsPrimaryKey = coreModel.IsPrimaryKey,
+            DefaultValue = coreModel.DefaultValue,
+            TotalCount = coreModel.TotalCount,
+            NullCount = coreModel.NullCount,
+            UniqueCount = coreModel.UniqueCount,
+            MinValue = double.TryParse(coreModel.MinValue, out var min) ? min : null,
+            MaxValue = double.TryParse(coreModel.MaxValue, out var max) ? max : null,
+            MeanValue = coreModel.MeanValue,
+            MedianValue = coreModel.MedianValue,
+            MinLength = coreModel.MinLength,
+            MaxLength = coreModel.MaxLength,
+            AverageLength = coreModel.AverageLength,
+            MinDate = coreModel.MinDate,
+            MaxDate = coreModel.MaxDate,
+            TopValues = coreModel.TopValues.Select(ValueFrequencyViewModel.FromCore).ToList(),
+            DataQualityScore = coreModel.DataQualityScore
+        };
+    }
 }
 
 /// <summary>
-/// Value frequency data for displaying common values
+/// Web-specific value frequency data for displaying common values
 /// </summary>
-public class ValueFrequency
+public class ValueFrequencyViewModel
 {
     public required string Value { get; init; }
     public long Count { get; init; }
     public double Percentage { get; init; }
 
     public string DisplayValue => Value?.Length > 50 ? $"{Value[..47]}..." : Value ?? "(null)";
-}
 
-/// <summary>
-/// Data transfer object for DataTables server-side processing
-/// </summary>
-public class TableDataResult
-{
-    public int Draw { get; init; }
-    public long RecordsTotal { get; init; }
-    public long RecordsFiltered { get; init; }
-    public object?[][] Data { get; init; } = [];
-    public List<string> Columns { get; init; } = [];
-    public string? Error { get; init; }
-}
-
-/// <summary>
-/// Request model for DataTables server-side processing
-/// </summary>
-public class DataTablesRequest
-{
-    public int Draw { get; set; }
-    public int Start { get; set; }
-    public int Length { get; set; }
-    public string? SearchValue { get; set; }
-    public List<DataTablesColumn> Columns { get; set; } = [];
-    public List<DataTablesOrder> Order { get; set; } = [];
-}
-
-/// <summary>
-/// Column information for DataTables request
-/// </summary>
-public class DataTablesColumn
-{
-    public string? Data { get; set; }
-    public string? Name { get; set; }
-    public bool Searchable { get; set; }
-    public bool Orderable { get; set; }
-    public DataTablesSearch? Search { get; set; }
-}
-
-/// <summary>
-/// Search information for DataTables column
-/// </summary>
-public class DataTablesSearch
-{
-    public string? Value { get; set; }
-    public bool Regex { get; set; }
-}
-
-/// <summary>
-/// Order information for DataTables request
-/// </summary>
-public class DataTablesOrder
-{
-    public int Column { get; set; }
-    public string Dir { get; set; } = "asc";
+    /// <summary>
+    /// Creates from core model
+    /// </summary>
+    public static ValueFrequencyViewModel FromCore(ValueFrequency coreModel)
+    {
+        return new ValueFrequencyViewModel
+        {
+            Value = coreModel.Value,
+            Count = coreModel.Count,
+            Percentage = coreModel.Percentage
+        };
+    }
 }

@@ -18,13 +18,17 @@ public class ExportResultTests
         var duration = TimeSpan.FromSeconds(5);
         var isSuccess = true;
         var errorMessage = "Test error";
+        var fileName = "users.csv";
+        var fileContent = "id,name\n1,John\n2,Jane";
 
         // Act
         var result = new ExportResult
         {
             DatabaseName = databaseName,
             TableName = tableName,
-            OutputFilePath = outputFilePath,
+            FileName = fileName,
+            FileContent = fileContent,
+            FilePath = outputFilePath,
             RowCount = rowCount,
             Duration = duration,
             IsSuccess = isSuccess,
@@ -34,7 +38,9 @@ public class ExportResultTests
         // Assert
         result.DatabaseName.Should().Be(databaseName);
         result.TableName.Should().Be(tableName);
-        result.OutputFilePath.Should().Be(outputFilePath);
+        result.FileName.Should().Be(fileName);
+        result.FileContent.Should().Be(fileContent);
+        result.FilePath.Should().Be(outputFilePath);
         result.RowCount.Should().Be(rowCount);
         result.Duration.Should().Be(duration);
         result.IsSuccess.Should().Be(isSuccess);
@@ -49,7 +55,9 @@ public class ExportResultTests
         {
             DatabaseName = "TestDB",
             TableName = "Users",
-            OutputFilePath = @"C:\Output\users.csv",
+            FileName = "users.csv",
+            FileContent = "id,name\n1,John",
+            FilePath = @"C:\Output\users.csv",
             RowCount = 100,
             Duration = TimeSpan.FromSeconds(5),
             IsSuccess = true,
@@ -69,7 +77,9 @@ public class ExportResultTests
         {
             DatabaseName = "TestDB",
             TableName = "Users",
-            OutputFilePath = @"C:\Output\users.csv",
+            FileName = "users.csv",
+            FileContent = string.Empty,
+            FilePath = @"C:\Output\users.csv",
             RowCount = 0,
             Duration = TimeSpan.FromSeconds(1),
             IsSuccess = false,

@@ -179,8 +179,8 @@ public class ApplicationServiceTests
 
         var exportResults = new List<ExportResult>
         {
-            new() { DatabaseName = "DB1", TableName = "Users", OutputFilePath = @"C:\Output\DB1\users.csv", RowCount = 100, IsSuccess = true, Duration = TimeSpan.FromSeconds(1) },
-            new() { DatabaseName = "DB2", TableName = "Orders", OutputFilePath = @"C:\Output\DB2\orders.csv", RowCount = 50, IsSuccess = true, Duration = TimeSpan.FromSeconds(2) }
+            new() { DatabaseName = "DB1", TableName = "Users", FileName = "users.csv", FileContent = "id,name", FilePath = @"C:\Output\DB1\users.csv", RowCount = 100, IsSuccess = true, Duration = TimeSpan.FromSeconds(1) },
+            new() { DatabaseName = "DB2", TableName = "Orders", FileName = "orders.csv", FileContent = "id,product", FilePath = @"C:\Output\DB2\orders.csv", RowCount = 50, IsSuccess = true, Duration = TimeSpan.FromSeconds(2) }
         };
 
         _mockDiscoveryService.Setup(d => d.DiscoverDatabasesAsync(databasePath, It.IsAny<CancellationToken>()))

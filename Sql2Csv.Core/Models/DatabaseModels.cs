@@ -16,9 +16,19 @@ public sealed record ExportResult
     public required string TableName { get; init; }
 
     /// <summary>
+    /// Gets the output file name.
+    /// </summary>
+    public required string FileName { get; init; }
+
+    /// <summary>
+    /// Gets the exported file content.
+    /// </summary>
+    public required string FileContent { get; init; }
+
+    /// <summary>
     /// Gets the output file path.
     /// </summary>
-    public required string OutputFilePath { get; init; }
+    public string? FilePath { get; init; }
 
     /// <summary>
     /// Gets the number of rows exported.
@@ -96,4 +106,20 @@ public sealed record TableInfo
     /// Gets the estimated row count.
     /// </summary>
     public long RowCount { get; init; }
+
+    // Compatibility properties for web project
+    /// <summary>
+    /// Gets the table name (alias for compatibility).
+    /// </summary>
+    public string TableName => Name;
+
+    /// <summary>
+    /// Gets the column count (calculated property).
+    /// </summary>
+    public int ColumnCount => Columns.Count;
+
+    /// <summary>
+    /// Gets a value indicating whether the table has a primary key.
+    /// </summary>
+    public bool HasPrimaryKey => Columns.Any(c => c.IsPrimaryKey);
 }

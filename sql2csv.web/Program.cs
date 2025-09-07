@@ -1,5 +1,6 @@
 using Sql2Csv.Core.Interfaces;
 using Sql2Csv.Core.Services;
+using Sql2Csv.Core.Configuration;
 using Sql2Csv.Web.Services;
 using System.Text.Json;
 
@@ -25,22 +26,42 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true; // required for non‑EU cookie consent simplicity
 });
 
+// Configure Core services
+builder.Services.Configure<FileStorageOptions>(options =>
+{
+    var config = builder.Configuration;
+    options.PersistedDirectory = config["FileUpload:PersistedDirectory"] 
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Sql2Csv.Web", "PersistedDatabases");
+    
+    var maxAgeDays = config.GetValue("FileUpload:MaxAgeDays", 30);
+    options.MaxFileAge = TimeSpan.FromDays(maxAgeDays);
+    
+    var maxSizeMB = config.GetValue("FileUpload:MaxStorageSizeMB", 1024);
+    options.MaxStorageSizeBytes = maxSizeMB * 1024L * 1024L;
+});
+
 // Register Core services
 builder.Services.AddScoped<IDatabaseDiscoveryService, DatabaseDiscoveryService>();
 builder.Services.AddScoped<ISchemaService, SchemaService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<ICodeGenerationService, CodeGenerationService>();
 
-// Register new unified data services
+// Register new Core services
+builder.Services.AddScoped<Sql2Csv.Core.Interfaces.IDatabaseAnalysisService, Sql2Csv.Core.Services.DatabaseAnalysisService>();
+builder.Services.AddScoped<Sql2Csv.Core.Interfaces.IPersistedFileService, Sql2Csv.Core.Services.PersistedFileService>();
+
+// Register new unified data services (keeping existing services for compatibility)
 builder.Services.AddScoped<ICsvAnalysisService, CsvAnalysisService>();
 builder.Services.AddScoped<IDataFileDiscoveryService, DataFileDiscoveryService>();
 builder.Services.AddScoped<IUnifiedAnalysisService, UnifiedAnalysisService>();
 
 // Register Web services
 builder.Services.AddScoped<IWebDatabaseService, WebDatabaseService>();
-builder.Services.AddScoped<IPersistedFileService, PersistedFileService>();
 builder.Services.AddScoped<IUnifiedWebDataService, UnifiedWebDataService>();
 builder.Services.AddSingleton<IPerformanceMetricsService, PerformanceMetricsService>();
+
+// Register Web-specific file storage options
+builder.Services.AddScoped<IFileStorageOptions, WebFileStorageOptions>();
 
 // Configure file upload limits
 builder.Services.Configure<IISServerOptions>(options =>
