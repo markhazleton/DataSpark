@@ -20,7 +20,10 @@ builder.Services.AddSession(options =>
 
 // Register DataSpark services
 builder.Services.AddScoped<CsvFileService>();
-builder.Services.AddScoped<CsvProcessingService>();
+// Core CSV processing & export services
+builder.Services.AddScoped<Sql2Csv.Core.Services.Analysis.ICsvFileReader, WebCsvFileReaderAdapter>();
+builder.Services.AddScoped<Sql2Csv.Core.Services.Analysis.ICsvProcessingService, Sql2Csv.Core.Services.Analysis.CsvProcessingService>();
+builder.Services.AddScoped<Sql2Csv.Core.Services.Export.IExportService, Sql2Csv.Core.Services.Export.ExportService>();
 
 // Register chart storage provider & repository (core implementation)
 builder.Services.AddScoped<IChartStoragePathProvider, WebChartStoragePathProvider>();

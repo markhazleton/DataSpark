@@ -15,7 +15,8 @@ public class BaseController : Controller
     protected readonly IWebHostEnvironment _env;
     protected readonly ILogger _logger;
     protected readonly CsvFileService _csvFileService;
-    protected readonly CsvProcessingService _csvProcessingService;
+    protected readonly Sql2Csv.Core.Services.Analysis.ICsvProcessingService _csvProcessingService;
+    protected readonly Sql2Csv.Core.Services.Export.IExportService _exportService;
 
     // Chart services (optional for controllers that don't need them)
     protected readonly IChartService? _chartService;
@@ -26,21 +27,26 @@ public class BaseController : Controller
 
     // Constructor for CSV-only controllers (like HomeController)
     public BaseController(IWebHostEnvironment env, ILogger logger,
-        CsvFileService csvFileService, CsvProcessingService csvProcessingService)
+        CsvFileService csvFileService,
+        Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+        Sql2Csv.Core.Services.Export.IExportService exportService)
     {
         _env = env;
         _logger = logger;
         _csvFileService = csvFileService;
         _csvProcessingService = csvProcessingService;
+        _exportService = exportService;
     }
 
     // Constructor for Chart controllers (like ChartController)
     public BaseController(IWebHostEnvironment env, ILogger logger,
-        CsvFileService csvFileService, CsvProcessingService csvProcessingService,
+        CsvFileService csvFileService,
+        Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+        Sql2Csv.Core.Services.Export.IExportService exportService,
         IChartService chartService, IChartDataService dataService,
         IChartRenderingService renderingService, IChartValidationService validationService,
         IChartConfigurationViewModelBuilder chartViewModelBuilder)
-        : this(env, logger, csvFileService, csvProcessingService)
+        : this(env, logger, csvFileService, csvProcessingService, exportService)
     {
         _chartService = chartService;
         _dataService = dataService;
@@ -216,72 +222,16 @@ public class BaseController : Controller
     }
 
     protected IActionResult ExportAsCsv(List<Dictionary<string, object>> data, string fileName)
-    {
-        if (!data.Any()) return BadRequest("No data to export");
-
-        var csv = new System.Text.StringBuilder();
-        var headers = data.First().Keys.ToList();
-
-        // Add headers
-        csv.AppendLine(string.Join(",", headers.Select(h => $"\"{h}\"")));
-
-        // Add data rows
-        foreach (var row in data)
-        {
-            var values = headers.Select(h => $"\"{row.GetValueOrDefault(h, string.Empty)}\"");
-            csv.AppendLine(string.Join(",", values));
-        }
-
-        var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
-        return File(bytes, "text/csv", fileName);
-    }
+        => data.Any() ? File(_exportService.ExportCsv(data), "text/csv", fileName) : BadRequest("No data to export");
 
     protected IActionResult ExportAsTsv(List<Dictionary<string, object>> data, string fileName)
-    {
-        if (!data.Any()) return BadRequest("No data to export");
-
-        var tsv = new System.Text.StringBuilder();
-        var headers = data.First().Keys.ToList();
-
-        // Add headers
-        tsv.AppendLine(string.Join("\t", headers));
-
-        // Add data rows
-        foreach (var row in data)
-        {
-            var values = headers.Select(h => row.GetValueOrDefault(h, string.Empty)?.ToString() ?? string.Empty);
-            tsv.AppendLine(string.Join("\t", values));
-        }
-
-        var bytes = System.Text.Encoding.UTF8.GetBytes(tsv.ToString());
-        return File(bytes, "text/tab-separated-values", fileName);
-    }
+        => data.Any() ? File(_exportService.ExportTsv(data), "text/tab-separated-values", fileName) : BadRequest("No data to export");
 
     protected IActionResult ExportAsJson<T>(List<Dictionary<string, object>> data, T config, string fileName)
-    {
-        var exportObject = new
-        {
-            Data = data,
-            Configuration = config,
-            ExportedAt = DateTime.Now,
-            RecordCount = data.Count
-        };
-
-        var json = JsonSerializer.Serialize(exportObject, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
-
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        return File(bytes, "application/json", fileName);
-    }
+        => File(_exportService.ExportJson(data, config), "application/json", fileName);
 
     protected IActionResult ExportAsExcel(List<Dictionary<string, object>> data, string fileName)
-    {
-        // For now, export as CSV since we don't have Excel library
-        // In a real application, you'd use libraries like EPPlus or ClosedXML
-        return ExportAsCsv(data, fileName.Replace(".xlsx", ".csv"));
-    }
+        => ExportAsCsv(data, fileName.Replace(".xlsx", ".csv"));
 
     protected PivotTableViewModel BuildPivotTableViewModel(string? currentFile = null)
     {

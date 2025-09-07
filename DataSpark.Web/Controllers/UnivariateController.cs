@@ -7,8 +7,10 @@ namespace DataSpark.Web.Controllers;
 
 public class UnivariateController : BaseController
 {
-    public UnivariateController(IWebHostEnvironment env, ILogger<UnivariateController> logger, CsvFileService csvFileService, CsvProcessingService csvProcessingService)
-        : base(env, logger, csvFileService, csvProcessingService)
+    public UnivariateController(IWebHostEnvironment env, ILogger<UnivariateController> logger, CsvFileService csvFileService,
+        Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+        Sql2Csv.Core.Services.Export.IExportService exportService)
+        : base(env, logger, csvFileService, csvProcessingService, exportService)
     {
     }
 

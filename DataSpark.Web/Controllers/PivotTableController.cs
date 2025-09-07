@@ -12,9 +12,10 @@ public class PivotTableController : BaseController
     public PivotTableController(
         IWebHostEnvironment env,
         ILogger<PivotTableController> logger,
-        CsvFileService csvFileService,
-        CsvProcessingService csvProcessingService)
-        : base(env, logger, csvFileService, csvProcessingService)
+    CsvFileService csvFileService,
+    Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+    Sql2Csv.Core.Services.Export.IExportService exportService)
+    : base(env, logger, csvFileService, csvProcessingService, exportService)
     {
     }
 

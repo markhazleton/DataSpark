@@ -17,13 +17,14 @@ public class ChartController : BaseController
         IWebHostEnvironment env,
         ILogger<ChartController> logger,
         CsvFileService csvFileService,
-        CsvProcessingService csvProcessingService,
+        Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+        Sql2Csv.Core.Services.Export.IExportService exportService,
     IChartService chartService,
     IChartDataService dataService,
     IChartRenderingService renderingService,
     IChartValidationService validationService,
     IChartConfigurationViewModelBuilder viewModelBuilder)
-    : base(env, logger, csvFileService, csvProcessingService, chartService, dataService, renderingService, validationService, viewModelBuilder)
+    : base(env, logger, csvFileService, csvProcessingService, exportService, chartService, dataService, renderingService, validationService, viewModelBuilder)
     {
     }
 
