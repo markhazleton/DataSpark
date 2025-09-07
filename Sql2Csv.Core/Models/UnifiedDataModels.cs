@@ -307,6 +307,16 @@ public class ColumnAnalysis
     public bool IsPrimaryKey { get; set; }
 
     /// <summary>
+    /// Gets or sets the default value for the column.
+    /// </summary>
+    public string? DefaultValue { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of values.
+    /// </summary>
+    public long TotalCount { get; set; }
+
+    /// <summary>
     /// Gets or sets the number of non-null values.
     /// </summary>
     public long NonNullCount { get; set; }
@@ -320,6 +330,16 @@ public class ColumnAnalysis
     /// Gets or sets the number of unique values.
     /// </summary>
     public long UniqueCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the data quality score.
+    /// </summary>
+    public double DataQualityScore { get; set; }
+
+    /// <summary>
+    /// Gets or sets the top values by frequency.
+    /// </summary>
+    public List<ValueFrequency> TopValues { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the minimum value.
@@ -337,9 +357,44 @@ public class ColumnAnalysis
     public double? Mean { get; set; }
 
     /// <summary>
+    /// Gets or sets the mean value (alias for compatibility).
+    /// </summary>
+    public double? MeanValue { get => Mean; set => Mean = value; }
+
+    /// <summary>
+    /// Gets or sets the median value (for numeric columns).
+    /// </summary>
+    public double? MedianValue { get; set; }
+
+    /// <summary>
     /// Gets or sets the standard deviation (for numeric columns).
     /// </summary>
     public double? StandardDeviation { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum text length (for text columns).
+    /// </summary>
+    public int? MinLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum text length (for text columns).
+    /// </summary>
+    public int? MaxLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average text length (for text columns).
+    /// </summary>
+    public double? AverageLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum date value (for date columns).
+    /// </summary>
+    public DateTime? MinDate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum date value (for date columns).
+    /// </summary>
+    public DateTime? MaxDate { get; set; }
 
     /// <summary>
     /// Gets or sets sample values from the column.

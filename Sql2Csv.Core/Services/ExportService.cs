@@ -229,11 +229,26 @@ public sealed class ExportService : IExportService
             stopwatch.Stop();
             _logger.LogDebug("Successfully exported table {TableName} with {RowCount} rows", tableName, rowCount);
 
+            // Read the file content for the result
+            var fileContent = string.Empty;
+            var fileName = Path.GetFileName(outputFilePath);
+            
+            try
+            {
+                fileContent = await File.ReadAllTextAsync(outputFilePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not read exported file content for {OutputFile}", outputFilePath);
+            }
+
             return new ExportResult
             {
                 DatabaseName = databaseConfig.Name,
                 TableName = tableName,
-                OutputFilePath = outputFilePath,
+                FileName = fileName,
+                FileContent = fileContent,
+                FilePath = outputFilePath,
                 RowCount = rowCount,
                 Duration = stopwatch.Elapsed,
                 IsSuccess = true
@@ -248,7 +263,9 @@ public sealed class ExportService : IExportService
             {
                 DatabaseName = databaseConfig.Name,
                 TableName = tableName,
-                OutputFilePath = outputFilePath,
+                FileName = Path.GetFileName(outputFilePath),
+                FileContent = string.Empty,
+                FilePath = outputFilePath,
                 RowCount = rowCount,
                 Duration = stopwatch.Elapsed,
                 IsSuccess = false,

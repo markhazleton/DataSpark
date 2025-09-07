@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Sql2Csv.Core.Models;
 
 namespace Sql2Csv.Web.Models;
 
@@ -37,7 +38,7 @@ public class FileUploadViewModel
 }
 
 /// <summary>
-/// View model for database analysis results
+/// Web-specific view model for database analysis results
 /// </summary>
 public class DatabaseAnalysisViewModel
 {
@@ -46,10 +47,25 @@ public class DatabaseAnalysisViewModel
     public List<TableInfoViewModel> Tables { get; init; } = [];
     public string? SchemaReport { get; init; }
     public TimeSpan AnalysisDuration { get; init; }
+
+    /// <summary>
+    /// Creates from core model
+    /// </summary>
+    public static DatabaseAnalysisViewModel FromCore(DatabaseAnalysisResult coreResult)
+    {
+        return new DatabaseAnalysisViewModel
+        {
+            DatabaseName = coreResult.DatabaseName,
+            FilePath = coreResult.FilePath,
+            Tables = coreResult.Tables.Select(TableInfoViewModel.FromCore).ToList(),
+            SchemaReport = coreResult.SchemaReport,
+            AnalysisDuration = coreResult.AnalysisDuration
+        };
+    }
 }
 
 /// <summary>
-/// View model for table information
+/// Web-specific view model for table information
 /// </summary>
 public class TableInfoViewModel
 {
@@ -60,10 +76,24 @@ public class TableInfoViewModel
     public List<ColumnInfoViewModel> Columns { get; init; } = [];
     public int ColumnCount => Columns.Count; // Calculated property
     public bool HasPrimaryKey => Columns.Any(c => c.IsPrimaryKey);
+
+    /// <summary>
+    /// Creates from core model
+    /// </summary>
+    public static TableInfoViewModel FromCore(TableInfo coreModel)
+    {
+        return new TableInfoViewModel
+        {
+            Name = coreModel.Name,
+            Schema = coreModel.Schema,
+            RowCount = coreModel.RowCount,
+            Columns = coreModel.Columns.Select(ColumnInfoViewModel.FromCore).ToList()
+        };
+    }
 }
 
 /// <summary>
-/// View model for column information
+/// Web-specific view model for column information
 /// </summary>
 public class ColumnInfoViewModel
 {
@@ -72,6 +102,21 @@ public class ColumnInfoViewModel
     public bool IsNullable { get; init; }
     public bool IsPrimaryKey { get; init; }
     public string? DefaultValue { get; init; }
+
+    /// <summary>
+    /// Creates from core model
+    /// </summary>
+    public static ColumnInfoViewModel FromCore(ColumnInfo coreModel)
+    {
+        return new ColumnInfoViewModel
+        {
+            Name = coreModel.Name,
+            DataType = coreModel.DataType,
+            IsNullable = coreModel.IsNullable,
+            IsPrimaryKey = coreModel.IsPrimaryKey,
+            DefaultValue = coreModel.DefaultValue
+        };
+    }
 }
 
 /// <summary>
@@ -88,7 +133,7 @@ public class ExportViewModel
 }
 
 /// <summary>
-/// View model for export results
+/// Web-specific view model for export results
 /// </summary>
 public class ExportResultViewModel
 {
@@ -102,6 +147,24 @@ public class ExportResultViewModel
     public bool Success => IsSuccess; // Alias for compatibility
     public string? ErrorMessage { get; init; }
     public string? Message => ErrorMessage; // Alias for compatibility
+
+    /// <summary>
+    /// Creates from core model
+    /// </summary>
+    public static ExportResultViewModel FromCore(ExportResult coreResult)
+    {
+        return new ExportResultViewModel
+        {
+            TableName = coreResult.TableName,
+            FileName = coreResult.FileName,
+            FileContent = coreResult.FileContent,
+            FilePath = coreResult.FilePath,
+            RowCount = coreResult.RowCount,
+            Duration = coreResult.Duration,
+            IsSuccess = coreResult.IsSuccess,
+            ErrorMessage = coreResult.ErrorMessage
+        };
+    }
 }
 
 /// <summary>
@@ -116,7 +179,7 @@ public class CodeGenerationViewModel
 }
 
 /// <summary>
-/// View model for generated code results
+/// Web-specific view model for generated code results
 /// </summary>
 public class GeneratedCodeViewModel
 {
@@ -124,26 +187,20 @@ public class GeneratedCodeViewModel
     public required string ClassName { get; init; }
     public required string Code { get; init; }
     public CodeLanguage Language { get; init; }
-}
 
-/// <summary>
-/// Available export formats
-/// </summary>
-public enum ExportFormat
-{
-    CSV,
-    JSON,
-    XML
-}
-
-/// <summary>
-/// Available code generation languages
-/// </summary>
-public enum CodeLanguage
-{
-    CSharp,
-    TypeScript,
-    Python
+    /// <summary>
+    /// Creates from core model
+    /// </summary>
+    public static GeneratedCodeViewModel FromCore(GeneratedCodeResult coreResult)
+    {
+        return new GeneratedCodeViewModel
+        {
+            TableName = coreResult.TableName,
+            ClassName = coreResult.ClassName,
+            Code = coreResult.Code,
+            Language = coreResult.Language
+        };
+    }
 }
 
 /// <summary>
@@ -178,4 +235,15 @@ public class ViewDataViewModel
     public required string DatabaseName { get; init; }
     public required string FilePath { get; init; }
     public List<ColumnInfoViewModel> Columns { get; init; } = [];
+}
+
+/// <summary>
+/// View model for file selection page
+/// </summary>
+public class FileSelectionViewModel
+{
+    public List<PersistedDatabaseFile> PersistedFiles { get; init; } = [];
+    public FileUploadViewModel UploadModel { get; init; } = new();
+    public string? SelectedFileId { get; set; }
+    public bool ShowUploadForm { get; set; } = true;
 }

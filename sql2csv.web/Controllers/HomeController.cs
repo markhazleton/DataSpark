@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Sql2Csv.Web.Models;
 using Sql2Csv.Web.Services;
 using Sql2Csv.Core.Models;
+using Sql2Csv.Core.Interfaces;
 using System.Diagnostics;
 
 namespace Sql2Csv.Web.Controllers;
@@ -10,13 +11,13 @@ public class HomeController : Controller
 {
     private readonly IWebDatabaseService _databaseService;
     private readonly IUnifiedWebDataService _unifiedDataService;
-    private readonly IPersistedFileService _persistedFileService;
+    private readonly Sql2Csv.Core.Interfaces.IPersistedFileService _persistedFileService;
     private readonly ILogger<HomeController> _logger;
 
     public HomeController(
         IWebDatabaseService databaseService,
         IUnifiedWebDataService unifiedDataService,
-        IPersistedFileService persistedFileService, 
+        Sql2Csv.Core.Interfaces.IPersistedFileService persistedFileService, 
         ILogger<HomeController> logger)
     {
         _databaseService = databaseService;
@@ -147,7 +148,7 @@ public class HomeController : Controller
                         }
 
                         await _persistedFileService.SavePersistedFileAsync(
-                            model.DatabaseFile,
+                            new FormFileWrapper(model.DatabaseFile),
                             uploadedFilePath,
                             tableCount,
                             model.FileDescription
@@ -223,7 +224,7 @@ public class HomeController : Controller
                     _logger.LogInformation("Setting table count to 1 for CSV file in API upload");
                 }
 
-                var persisted = await _persistedFileService.SavePersistedFileAsync(file, filePath, tableCount, description);
+                var persisted = await _persistedFileService.SavePersistedFileAsync(new FormFileWrapper(file), filePath, tableCount, description);
                 persistedId = persisted.Id;
             }
         }

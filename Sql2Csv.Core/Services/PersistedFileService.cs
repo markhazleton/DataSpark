@@ -1,24 +1,9 @@
 using System.Text.Json;
-using Sql2Csv.Web.Models;
+using Microsoft.Extensions.Logging;
 using Sql2Csv.Core.Interfaces;
+using Sql2Csv.Core.Models;
 
-namespace Sql2Csv.Web.Services;
-
-/// <summary>
-/// Interface for managing persisted database files
-/// </summary>
-public interface IPersistedFileService
-{
-    Task<List<PersistedDatabaseFile>> GetPersistedFilesAsync();
-    Task<List<PersistedDatabaseFile>> GetAvailableFilesAsync();
-    Task<PersistedDatabaseFile?> GetPersistedFileAsync(string fileId);
-    Task<PersistedDatabaseFile> SavePersistedFileAsync(IFormFile file, string tempFilePath, int tableCount, string? description = null);
-    Task<bool> DeletePersistedFileAsync(string fileId);
-    Task<bool> UpdateFileDescriptionAsync(string fileId, string? description);
-    Task UpdateLastAccessedAsync(string fileId);
-    Task CleanupOldFilesAsync(TimeSpan maxAge);
-    Task<long> GetTotalStorageSizeAsync();
-}
+namespace Sql2Csv.Core.Services;
 
 /// <summary>
 /// Service for managing persisted database files
@@ -26,6 +11,7 @@ public interface IPersistedFileService
 public class PersistedFileService : IPersistedFileService
 {
     private readonly ILogger<PersistedFileService> _logger;
+    private readonly IFileStorageOptions _storageOptions;
     private readonly string _persistedDirectory;
     private readonly string _metadataFilePath;
     private readonly SemaphoreSlim _fileLock = new(1, 1);
@@ -35,15 +21,14 @@ public class PersistedFileService : IPersistedFileService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public PersistedFileService(ILogger<PersistedFileService> logger, IConfiguration configuration)
+    public PersistedFileService(
+        ILogger<PersistedFileService> logger,
+        IFileStorageOptions storageOptions)
     {
-        _logger = logger;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _storageOptions = storageOptions ?? throw new ArgumentNullException(nameof(storageOptions));
 
-        // Get persisted directory from configuration or use default
-        var baseDirectory = configuration["FileUpload:PersistedDirectory"]
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Sql2Csv.Web", "PersistedDatabases");
-
-        _persistedDirectory = baseDirectory;
+        _persistedDirectory = storageOptions.PersistedDirectory;
         _metadataFilePath = Path.Combine(_persistedDirectory, "metadata.json");
 
         // Ensure directory exists
@@ -108,7 +93,11 @@ public class PersistedFileService : IPersistedFileService
         return await GetPersistedFilesAsync();
     }
 
-    public async Task<PersistedDatabaseFile> SavePersistedFileAsync(IFormFile file, string tempFilePath, int tableCount, string? description = null)
+    public async Task<PersistedDatabaseFile> SavePersistedFileAsync(
+        IUploadedFileInfo file,
+        string tempFilePath,
+        int tableCount,
+        string? description = null)
     {
         await _fileLock.WaitAsync();
         try

@@ -169,7 +169,7 @@ public class ExportServiceTests : DatabaseTestBase
         result.IsSuccess.Should().BeTrue();
         result.DatabaseName.Should().Be("TestDB");
         result.TableName.Should().Be("Users");
-        result.OutputFilePath.Should().Be(outputFilePath);
+        result.FilePath.Should().Be(outputFilePath);
         result.RowCount.Should().Be(3);
         result.ErrorMessage.Should().BeNull();
 
