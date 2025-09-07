@@ -9,8 +9,10 @@ namespace DataSpark.Web.Controllers;
 
 public class HomeController : BaseController
 {
-    public HomeController(IWebHostEnvironment env, ILogger<HomeController> logger, CsvFileService csvFileService, CsvProcessingService csvProcessingService)
-        : base(env, logger, csvFileService, csvProcessingService)
+    public HomeController(IWebHostEnvironment env, ILogger<HomeController> logger, CsvFileService csvFileService,
+        Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+        Sql2Csv.Core.Services.Export.IExportService exportService)
+        : base(env, logger, csvFileService, csvProcessingService, exportService)
     {
     }
     public IActionResult Index()
