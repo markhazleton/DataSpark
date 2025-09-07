@@ -1,10 +1,11 @@
-using DataSpark.Web.Models.Chart;
-using DataSpark.Web.Services.Chart;
+using Sql2Csv.Core.Models.Charts;
+using Microsoft.Extensions.Logging;
 
-namespace DataSpark.Web.Services.Chart;
+namespace Sql2Csv.Core.Services.Charts;
 
 /// <summary>
-/// Implementation of chart configuration service
+/// Default implementation of <see cref="IChartService"/> providing CRUD and duplication logic
+/// for <see cref="ChartConfiguration"/> instances using the configured repository & validation service.
 /// </summary>
 public class ChartService : IChartService
 {
@@ -39,10 +40,8 @@ public class ChartService : IChartService
     {
         try
         {
-            _logger.LogInformation("Starting save operation for chart configuration: {Name}, DataSource: {DataSource}, SeriesCount: {SeriesCount}",
-                config.Name, config.CsvFile, config.Series?.Count ?? 0);
+            _logger.LogInformation("Saving chart configuration: {Name} (DataSource: {DataSource})", config.Name, config.CsvFile);
 
-            // Validate configuration
             var validationResult = await _validationService.ValidateConfigurationAsync(config);
             if (!validationResult.IsValid)
             {
@@ -51,54 +50,29 @@ public class ChartService : IChartService
                 throw new InvalidOperationException(errorMessage);
             }
 
-            // Check for duplicate names
             var existingConfig = await _repository.GetByNameAsync(config.Name, config.CsvFile);
             if (existingConfig != null && existingConfig.Id != config.Id)
             {
-                var errorMessage = $"A chart named '{config.Name}' already exists for this data source. Please choose a different name.";
+                var errorMessage = $"A chart named '{config.Name}' already exists for this data source.";
                 _logger.LogWarning("Duplicate chart name detected: {Name} for data source: {DataSource}", config.Name, config.CsvFile);
                 throw new InvalidOperationException(errorMessage);
             }
 
-            // Additional validation logging
-            _logger.LogDebug("Chart configuration details - Type: {ChartType}, Style: {ChartStyle}, Dimensions: {Width}x{Height}",
-                config.ChartType, config.ChartStyle, config.Width, config.Height);
+            ChartConfiguration savedConfig = config.Id == 0
+                ? await _repository.CreateAsync(config)
+                : await _repository.UpdateAsync(config);
 
-            if (config.Series != null)
-            {
-                for (int i = 0; i < config.Series.Count; i++)
-                {
-                    var series = config.Series[i];
-                    _logger.LogDebug("Series {Index}: Name='{Name}', Column='{Column}', Aggregation='{Aggregation}'",
-                        i + 1, series.Name, series.DataColumn, series.AggregationFunction);
-                }
-            }
-
-            ChartConfiguration savedConfig;
-            if (config.Id == 0)
-            {
-                _logger.LogInformation("Creating new chart configuration: {Name}", config.Name);
-                savedConfig = await _repository.CreateAsync(config);
-                _logger.LogInformation("Successfully created chart configuration: {Name} with ID {Id}", config.Name, savedConfig.Id);
-            }
-            else
-            {
-                _logger.LogInformation("Updating existing chart configuration: {Name} (ID: {Id})", config.Name, config.Id);
-                savedConfig = await _repository.UpdateAsync(config);
-                _logger.LogInformation("Successfully updated chart configuration: {Name} (ID: {Id})", config.Name, savedConfig.Id);
-            }
-
+            _logger.LogInformation("Chart configuration {Name} saved with ID {Id}", savedConfig.Name, savedConfig.Id);
             return savedConfig;
         }
         catch (InvalidOperationException)
         {
-            // Re-throw validation errors as-is (they already have user-friendly messages)
-            throw;
+            throw; // propagate user-friendly validation errors
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error saving chart configuration: {Name}. Error: {Message}", config.Name, ex.Message);
-            throw new InvalidOperationException($"Failed to save chart configuration '{config.Name}'. Please check that all required fields are filled and try again.", ex);
+            _logger.LogError(ex, "Unexpected error saving chart configuration: {Name}", config.Name);
+            throw new InvalidOperationException($"Failed to save chart configuration '{config.Name}'.", ex);
         }
     }
 
@@ -107,10 +81,7 @@ public class ChartService : IChartService
         try
         {
             var result = await _repository.DeleteAsync(id);
-            if (result)
-            {
-                _logger.LogInformation("Deleted chart configuration {Id}", id);
-            }
+            if (result) _logger.LogInformation("Deleted chart configuration {Id}", id);
             return result;
         }
         catch (Exception ex)
@@ -128,7 +99,7 @@ public class ChartService : IChartService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving chart configurations for data source: {DataSource}", dataSource);
+            _logger.LogError(ex, "Error retrieving chart configurations (DataSource: {DataSource})", dataSource);
             return new List<ChartConfigurationSummary>();
         }
     }
@@ -154,7 +125,7 @@ public class ChartService : IChartService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if configuration exists: {Name}", name);
+            _logger.LogError(ex, "Error checking configuration existence: {Name}", name);
             return false;
         }
     }
@@ -163,25 +134,16 @@ public class ChartService : IChartService
     {
         try
         {
-            var originalConfig = await _repository.GetByIdAsync(id);
-            if (originalConfig == null)
-            {
-                throw new ArgumentException($"Configuration with ID {id} not found");
-            }
+            var originalConfig = await _repository.GetByIdAsync(id) ?? throw new ArgumentException($"Configuration with ID {id} not found");
 
-            // Create a copy
             var duplicatedConfig = originalConfig.Clone();
             duplicatedConfig.Name = newName;
 
-            // Check for name conflicts
             if (await _repository.ExistsByNameAsync(newName, duplicatedConfig.CsvFile))
-            {
                 throw new InvalidOperationException($"A configuration with the name '{newName}' already exists");
-            }
 
             var savedConfig = await _repository.CreateAsync(duplicatedConfig);
             _logger.LogInformation("Duplicated chart configuration {OriginalId} as {NewName}", id, newName);
-
             return savedConfig;
         }
         catch (Exception ex)
@@ -208,9 +170,9 @@ public class ChartService : IChartService
     {
         try
         {
-            var deletedCount = await _repository.DeleteByIdsAsync(ids);
-            _logger.LogInformation("Deleted {Count} chart configurations", deletedCount);
-            return deletedCount;
+            var deleted = await _repository.DeleteByIdsAsync(ids);
+            _logger.LogInformation("Deleted {Count} chart configurations", deleted);
+            return deleted;
         }
         catch (Exception ex)
         {

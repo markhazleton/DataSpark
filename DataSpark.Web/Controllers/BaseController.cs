@@ -1,9 +1,12 @@
+using Sql2Csv.Core.Models.Analysis;
 using DataSpark.Web.Models;
-using DataSpark.Web.Models.Chart;
+using Sql2Csv.Core.Models.Charts;
 using DataSpark.Web.Services;
 using DataSpark.Web.Services.Chart;
+using Sql2Csv.Core.Services.Charts;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using DataSpark.Web.Models.Chart;
 
 namespace DataSpark.Web.Controllers;
 
@@ -16,9 +19,10 @@ public class BaseController : Controller
 
     // Chart services (optional for controllers that don't need them)
     protected readonly IChartService? _chartService;
-    protected readonly IDataService? _dataService;
+    protected readonly IChartDataService? _dataService;
     protected readonly IChartRenderingService? _renderingService;
     protected readonly IChartValidationService? _validationService;
+    protected readonly IChartConfigurationViewModelBuilder? _chartViewModelBuilder;
 
     // Constructor for CSV-only controllers (like HomeController)
     public BaseController(IWebHostEnvironment env, ILogger logger,
@@ -33,14 +37,16 @@ public class BaseController : Controller
     // Constructor for Chart controllers (like ChartController)
     public BaseController(IWebHostEnvironment env, ILogger logger,
         CsvFileService csvFileService, CsvProcessingService csvProcessingService,
-        IChartService chartService, IDataService dataService,
-        IChartRenderingService renderingService, IChartValidationService validationService)
+        IChartService chartService, IChartDataService dataService,
+        IChartRenderingService renderingService, IChartValidationService validationService,
+        IChartConfigurationViewModelBuilder chartViewModelBuilder)
         : this(env, logger, csvFileService, csvProcessingService)
     {
         _chartService = chartService;
         _dataService = dataService;
         _renderingService = renderingService;
         _validationService = validationService;
+        _chartViewModelBuilder = chartViewModelBuilder;
     }
 
     // Protected method for handling common file validation logic
@@ -127,83 +133,21 @@ public class BaseController : Controller
     }
 
     // Chart-related helper methods
-    protected async Task<Models.Chart.ChartConfigurationViewModel> BuildConfigurationViewModel(ChartConfiguration configuration, string dataSource)
-    {
-        if (_dataService == null || _chartService == null)
-            throw new InvalidOperationException("Chart services not available in this controller");
-
-        var availableColumns = await _dataService.GetColumnsAsync(dataSource);
-        var columnValues = new Dictionary<string, List<string>>();
-
-        // Get values for categorical columns (limited for performance)
-        var categoricalColumns = availableColumns.Where(c => c.IsCategory || !c.IsNumeric).Take(10);
-        foreach (var column in categoricalColumns)
-        {
-            var values = await _dataService.GetColumnValuesAsync(dataSource, column.Column, 100);
-            columnValues[column.Column] = values;
-        }
-
-        return new Models.Chart.ChartConfigurationViewModel
-        {
-            Configuration = configuration,
-            AvailableColumns = availableColumns,
-            ChartTypes = ChartTypes.GetNames(),
-            ColorPalettes = ColorPalettes.GetNames(),
-            ColumnValues = columnValues,
-            DataSource = dataSource,
-            IsEditMode = configuration.Id > 0,
-            SavedConfigurations = await _chartService.GetConfigurationsAsync(dataSource)
-        };
-    }
-
-    protected ChartConfiguration CreateDefaultConfiguration(string dataSource)
-    {
-        var config = new ChartConfiguration
-        {
-            Name = "New Chart",
-            CsvFile = dataSource,
-            ChartType = "Column",
-            ChartStyle = "2D",
-            ChartPalette = "BrightPastel",
-            Width = 800,
-            Height = 400,
-            Title = "Chart Title",
-            ShowLegend = true,
-            IsAnimated = true
-        };
-
-        // Create a default series so the form has something to work with
-        config.Series.Add(new ChartSeries
-        {
-            Name = "Series 1",
-            DataColumn = "", // Will be selected by user
-            AggregationFunction = "Sum",
-            IsVisible = true,
-            DisplayOrder = 1
-        });
-
-        // Create default X-axis
-        config.XAxis = new ChartAxis
-        {
-            AxisType = "X",
-            DataColumn = "", // Will be selected by user
-            Title = "Category"
-        };
-
-        return config;
-    }
+    // Removed BuildConfigurationViewModel & CreateDefaultConfiguration from BaseController.
+    // These concerns are now handled by IChartConfigurationViewModelBuilder to thin controllers.
 
     protected List<ExportOption> GetExportOptions()
     {
         return new List<ExportOption>
-    {
-        new ExportOption { Key = "png", Name = "PNG Image", Description = "Portable Network Graphics", MimeType = "image/png", FileExtension = "png" },
-        new ExportOption { Key = "jpg", Name = "JPEG Image", Description = "Joint Photographic Experts Group", MimeType = "image/jpeg", FileExtension = "jpg" },
-        new ExportOption { Key = "svg", Name = "SVG Vector", Description = "Scalable Vector Graphics", MimeType = "image/svg+xml", FileExtension = "svg" },
-        new ExportOption { Key = "pdf", Name = "PDF Document", Description = "Portable Document Format", MimeType = "application/pdf", FileExtension = "pdf" },
-        new ExportOption { Key = "csv", Name = "CSV Data", Description = "Comma Separated Values", MimeType = "text/csv", FileExtension = "csv" },
-        new ExportOption { Key = "json", Name = "JSON Data", Description = "JavaScript Object Notation", MimeType = "application/json", FileExtension = "json" }
-    };
+        {
+            new ExportOption { Key = "png", Name = "PNG Image", Description = "Portable Network Graphics", MimeType = "image/png", FileExtension = "png" },
+            new ExportOption { Key = "jpg", Name = "JPEG Image", Description = "Joint Photographic Experts Group", MimeType = "image/jpeg", FileExtension = "jpg" },
+            new ExportOption { Key = "svg", Name = "SVG Vector", Description = "Scalable Vector Graphics", MimeType = "image/svg+xml", FileExtension = "svg" },
+            new ExportOption { Key = "pdf", Name = "PDF Document", Description = "Portable Document Format", MimeType = "application/pdf", FileExtension = "pdf" },
+            new ExportOption { Key = "csv", Name = "CSV Data", Description = "Comma Separated Values", MimeType = "text/csv", FileExtension = "csv" },
+            new ExportOption { Key = "tsv", Name = "TSV Data", Description = "Tab Separated Values", MimeType = "text/tab-separated-values", FileExtension = "tsv" },
+            new ExportOption { Key = "json", Name = "JSON Data", Description = "JavaScript Object Notation", MimeType = "application/json", FileExtension = "json" }
+        };
     }
 
     // Protected method for handling chart errors with logging

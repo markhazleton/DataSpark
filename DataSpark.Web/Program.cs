@@ -1,6 +1,6 @@
 using DataSpark.Web.Services;
 using DataSpark.Web.Services.Chart;
-using DataSpark.Web.Models.Chart;
+using Sql2Csv.Core.Services.Charts;
 using WebSpark.Bootswatch;
 using static DataSpark.Web.Services.OpenAIFileAnalysisService;
 
@@ -22,12 +22,17 @@ builder.Services.AddSession(options =>
 builder.Services.AddScoped<CsvFileService>();
 builder.Services.AddScoped<CsvProcessingService>();
 
-// Register Chart services
-builder.Services.AddScoped<IChartConfigurationRepository, FileChartConfigurationRepository>();
-builder.Services.AddScoped<IChartService, ChartService>();
-builder.Services.AddScoped<IDataService, ChartDataService>();
+// Register chart storage provider & repository (core implementation)
+builder.Services.AddScoped<IChartStoragePathProvider, WebChartStoragePathProvider>();
+builder.Services.AddScoped<IChartConfigurationRepository, FileSystemChartConfigurationRepository>();
+builder.Services.AddScoped<IChartService, Sql2Csv.Core.Services.Charts.ChartService>();
+// Core domain services
+builder.Services.AddScoped<IChartDataService, Sql2Csv.Core.Services.Charts.ChartDataService>();
+builder.Services.AddScoped<IChartValidationService, Sql2Csv.Core.Services.Charts.ChartValidationService>();
+// Web rendering service (still presentation layer)
 builder.Services.AddScoped<IChartRenderingService, ChartRenderingService>();
-builder.Services.AddScoped<IChartValidationService, ChartValidationService>();
+// ViewModel builder to thin controllers
+builder.Services.AddScoped<IChartConfigurationViewModelBuilder, ChartConfigurationViewModelBuilder>();
 
 // Add memory cache services
 builder.Services.AddMemoryCache();

@@ -1,3 +1,4 @@
+@using DataSpark.Web.Models.Chart
 @model ChartIndexViewModel
 @{
     ViewData["Title"] = "Chart Configuration";
@@ -154,8 +155,8 @@
                                                     }
                                                 </td>
                                                 <td>
-                                                    <small class="text-muted" title="@config.ModifiedDate.ToString("F")">
-                                                        @config.ModifiedDate.ToString("MM/dd/yyyy")
+                                                    <small class="text-muted" title="@config.ModifiedDate?.ToString()">
+                                                        @config.ModifiedDate?.ToString("MM/dd/yyyy")
                                                     </small>
                                                 </td>
                                                 <td>
@@ -201,7 +202,7 @@
                                                     }
                                                 </p>
                                                 <small class="text-muted">Modified:
-                                                    @config.ModifiedDate.ToString("MM/dd/yyyy")</small>
+                                                    @config.ModifiedDate?.ToString("MM/dd/yyyy")</small>
                                             </div>
                                             <div class="card-footer">
                                                 <div class="btn-group w-100" role="group">

@@ -1,4 +1,4 @@
-﻿namespace DataSpark.Web.Models;
+namespace Sql2Csv.Core.Models.Analysis;
 
 public class ColumnInfo
 {
@@ -19,7 +19,6 @@ public class ColumnInfo
     public double Q1 { get; set; }
     public double Q3 { get; set; }
     public double IQR { get; set; }
-    public List<string> Errors { get; set; } = []; // New property for capturing errors
-    public List<string> Observations { get; set; } = []; // New property for storing detailed observations
+    public List<string> Errors { get; set; } = [];
+    public List<string> Observations { get; set; } = [];
 }
-

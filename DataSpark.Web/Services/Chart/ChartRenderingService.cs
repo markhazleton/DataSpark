@@ -1,5 +1,5 @@
-using DataSpark.Web.Models.Chart;
-using DataSpark.Web.Services.Chart;
+using Sql2Csv.Core.Models.Charts;
+using Sql2Csv.Core.Services.Charts;
 using System.Text.Json;
 using System.Text;
 

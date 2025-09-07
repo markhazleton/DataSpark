@@ -1,6 +1,6 @@
-﻿using Microsoft.Data.Analysis;
+using Microsoft.Data.Analysis;
 
-namespace DataSpark.Web.Models;
+namespace Sql2Csv.Core.Models.Analysis;
 
 public class CsvViewModel
 {
@@ -12,8 +12,8 @@ public class CsvViewModel
     public string FileName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
     public DataFrame Head { get; set; } = new();
-    public DataFrame Info { get; internal set; } = new();
+    // Setter made public to allow web layer population after analysis processing
+    public DataFrame Info { get; set; } = new();
     public string Message { get; set; } = string.Empty;
     public long RowCount { get; set; }
 }
-

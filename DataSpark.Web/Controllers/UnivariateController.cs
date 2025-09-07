@@ -1,5 +1,6 @@
-﻿using DataSpark.Web.Models;
+﻿using Sql2Csv.Core.Models.Analysis;
 using DataSpark.Web.Services;
+using DataSpark.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DataSpark.Web.Controllers;

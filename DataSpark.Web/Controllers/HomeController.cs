@@ -1,3 +1,4 @@
+using Sql2Csv.Core.Models.Analysis;
 using DataSpark.Web.Models;
 using DataSpark.Web.Services;
 using Microsoft.AspNetCore.Mvc;
