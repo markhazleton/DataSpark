@@ -134,7 +134,7 @@ public class ApplicationServiceTests
     }
 
     [TestMethod]
-    public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
+    public void Constructor_WithNullSchemaReportSink_ShouldThrowArgumentNullException()
     {
         // Act & Assert
         var action = () => new ApplicationService(
@@ -144,6 +144,22 @@ public class ApplicationServiceTests
             _mockSchemaService.Object,
             _mockCodeGenerationService.Object,
             null!,
+            _mockOptions.Object);
+
+        action.Should().Throw<ArgumentNullException>().WithParameterName("schemaReportSink");
+    }
+
+    [TestMethod]
+    public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
+    {
+        // Act & Assert
+        var action = () => new ApplicationService(
+            _mockLogger.Object,
+            _mockDiscoveryService.Object,
+            _mockExportService.Object,
+            _mockSchemaService.Object,
+            _mockCodeGenerationService.Object,
+            _mockSchemaReportSink.Object,
             null!);
 
         action.Should().Throw<ArgumentNullException>().WithParameterName("options");

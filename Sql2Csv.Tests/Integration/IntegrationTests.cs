@@ -44,6 +44,7 @@ public class IntegrationTests : DatabaseTestBase
         services.AddScoped<ISchemaService, SchemaService>();
         services.AddScoped<IExportService, ExportService>();
         services.AddScoped<ICodeGenerationService, CodeGenerationService>();
+        services.AddScoped<ISchemaReportSink, LoggingSchemaReportSink>();
         services.AddScoped<ApplicationService>();
 
         _serviceProvider = services.BuildServiceProvider();
