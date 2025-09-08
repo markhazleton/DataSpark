@@ -17,12 +17,12 @@ public interface IDatabaseDiscoveryService
 }
 
 /// <summary>
-/// Service for discovering data files (both database and CSV).
+/// Service for discovering data files.
 /// </summary>
 public interface IDataFileDiscoveryService
 {
     /// <summary>
-    /// Discovers data files (SQLite and CSV) in the specified directory.
+    /// Discovers database files in the specified directory.
     /// </summary>
     /// <param name="directoryPath">The directory path to search.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -31,44 +31,12 @@ public interface IDataFileDiscoveryService
 }
 
 /// <summary>
-/// Service for CSV file analysis and processing.
-/// </summary>
-public interface ICsvAnalysisService
-{
-    /// <summary>
-    /// Analyzes a CSV file and returns column information and statistics.
-    /// </summary>
-    /// <param name="filePath">The CSV file path.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>Analysis results for the CSV file.</returns>
-    Task<CsvAnalysisResult> AnalyzeCsvAsync(string filePath, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets column information for a CSV file.
-    /// </summary>
-    /// <param name="filePath">The CSV file path.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A collection of column information.</returns>
-    Task<IEnumerable<ColumnInfo>> GetCsvColumnsAsync(string filePath, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets data from a CSV file with pagination support.
-    /// </summary>
-    /// <param name="filePath">The CSV file path.</param>
-    /// <param name="skip">Number of rows to skip.</param>
-    /// <param name="take">Number of rows to take.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>CSV data with pagination information.</returns>
-    Task<CsvDataResult> GetCsvDataAsync(string filePath, int skip = 0, int take = 100, CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Unified service for analyzing both database tables and CSV files.
+/// Unified service for analyzing database tables.
 /// </summary>
 public interface IUnifiedAnalysisService
 {
     /// <summary>
-    /// Analyzes a data source (database table or CSV file).
+    /// Analyzes a data source (database table).
     /// </summary>
     /// <param name="dataSource">The data source configuration.</param>
     /// <param name="cancellationToken">The cancellation token.</param>

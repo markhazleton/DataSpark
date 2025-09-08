@@ -4,12 +4,12 @@ using Sql2Csv.Core.Models;
 namespace Sql2Csv.Web.Models;
 
 /// <summary>
-/// View model for file upload - now supports both database and CSV files
+/// View model for file upload - supports database files
 /// </summary>
 public class FileUploadViewModel
 {
-    [Required(ErrorMessage = "Please select a data file")]
-    [Display(Name = "Data File (Database or CSV)")]
+    [Required(ErrorMessage = "Please select a database file")]
+    [Display(Name = "Database File")]
     public IFormFile? DatabaseFile { get; set; }
 
     public string? ErrorMessage { get; set; }
@@ -30,10 +30,7 @@ public class FileUploadViewModel
     { 
         ".db (SQLite Database)",
         ".sqlite (SQLite Database)", 
-        ".sqlite3 (SQLite Database)",
-        ".csv (Comma Separated Values)",
-        ".tsv (Tab Separated Values)",
-        ".txt (Text/Delimited File)"
+        ".sqlite3 (SQLite Database)"
     };
 }
 

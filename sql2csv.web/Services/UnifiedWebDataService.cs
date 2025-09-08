@@ -5,17 +5,17 @@ using Sql2Csv.Web.Models;
 namespace Sql2Csv.Web.Services;
 
 /// <summary>
-/// Unified service for handling both database and CSV file operations in the web application
+/// Unified service for handling database file operations in the web application
 /// </summary>
 public interface IUnifiedWebDataService
 {
     /// <summary>
-    /// Saves an uploaded file (database or CSV) and returns basic information
+    /// Saves an uploaded database file and returns basic information
     /// </summary>
     Task<(bool Success, string? ErrorMessage, string? FilePath, DataSourceType FileType, object AdditionalInfo)> SaveUploadedFileAsync(IFormFile file, CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Analyzes a data source (database or CSV file) and returns unified analysis results
+    /// Analyzes a database file and returns unified analysis results
     /// </summary>
     Task<UnifiedAnalysisViewModel> AnalyzeDataSourceAsync(string filePath, DataSourceType fileType, string? tableName = null, CancellationToken cancellationToken = default);
     
@@ -25,12 +25,12 @@ public interface IUnifiedWebDataService
     Task<TableDataResult> GetDataAsync(string filePath, DataSourceType fileType, string? tableName, DataTablesRequest request, CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Gets available tables/data sources for a file
+    /// Gets available tables for a database file
     /// </summary>
     Task<List<DataSourceInfo>> GetAvailableDataSourcesAsync(string filePath, DataSourceType fileType, CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Exports data to CSV (for database tables, this converts to CSV; for CSV files, this might apply transformations)
+    /// Exports database tables to CSV
     /// </summary>
     Task<List<ExportResultViewModel>> ExportToCsvAsync(string filePath, DataSourceType fileType, List<string> dataSourceNames, CancellationToken cancellationToken = default);
     
@@ -52,7 +52,6 @@ public class UnifiedWebDataService : IUnifiedWebDataService
 {
     private readonly IWebDatabaseService _databaseService;
     private readonly IUnifiedAnalysisService _unifiedAnalysisService;
-    private readonly ICsvAnalysisService _csvAnalysisService;
     private readonly ILogger<UnifiedWebDataService> _logger;
     private readonly string _tempDirectory;
     private readonly HashSet<string> _tempFiles = [];
@@ -60,12 +59,10 @@ public class UnifiedWebDataService : IUnifiedWebDataService
     public UnifiedWebDataService(
         IWebDatabaseService databaseService,
         IUnifiedAnalysisService unifiedAnalysisService,
-        ICsvAnalysisService csvAnalysisService,
         ILogger<UnifiedWebDataService> logger)
     {
         _databaseService = databaseService;
         _unifiedAnalysisService = unifiedAnalysisService;
-        _csvAnalysisService = csvAnalysisService;
         _logger = logger;
         _tempDirectory = Path.Combine(Path.GetTempPath(), "Sql2Csv.Web.Unified");
 
@@ -89,14 +86,7 @@ public class UnifiedWebDataService : IUnifiedWebDataService
             return Task.FromResult<(DataSourceType Type, string? ErrorMessage)>((DataSourceType.Database, null));
         }
 
-        // Check for CSV files
-        var csvExtensions = new[] { ".csv", ".tsv", ".txt", ".tab" };
-        if (csvExtensions.Contains(fileExtension))
-        {
-            return Task.FromResult<(DataSourceType Type, string? ErrorMessage)>((DataSourceType.Csv, null));
-        }
-
-        return Task.FromResult<(DataSourceType Type, string? ErrorMessage)>((DataSourceType.Database, $"Unsupported file type: {fileExtension}. Supported types: .db, .sqlite, .sqlite3, .csv, .tsv, .txt, .tab"));
+        return Task.FromResult<(DataSourceType Type, string? ErrorMessage)>((DataSourceType.Database, $"Unsupported file type: {fileExtension}. Supported types: .db, .sqlite, .sqlite3"));
     }
 
     public async Task<(bool Success, string? ErrorMessage, string? FilePath, DataSourceType FileType, object AdditionalInfo)> SaveUploadedFileAsync(IFormFile file, CancellationToken cancellationToken = default)
@@ -105,7 +95,7 @@ public class UnifiedWebDataService : IUnifiedWebDataService
         {
             if (file == null)
             {
-                return (false, "No file provided", null, DataSourceType.Csv, new { });
+                return (false, "No file provided", null, DataSourceType.Database, new { });
             }
 
             _logger.LogInformation("Starting file upload for: {FileName}", file.FileName);
@@ -118,16 +108,11 @@ public class UnifiedWebDataService : IUnifiedWebDataService
                 return (false, typeError, null, fileType, new { });
             }
 
-            else if (fileType == DataSourceType.Database)
+            if (fileType == DataSourceType.Database)
             {
                 _logger.LogInformation("Processing as database file");
                 var (success, errorMessage, filePath, tableCount) = await _databaseService.SaveUploadedFileAsync(file, cancellationToken).ConfigureAwait(false);
                 return (success, errorMessage, filePath, fileType, new { TableCount = tableCount });
-            }
-            else if (fileType == DataSourceType.Csv)
-            {
-                _logger.LogInformation("Processing as CSV file");
-                return await SaveCsvFileAsync(file, cancellationToken);
             }
 
             return (false, "Unsupported file type", null, fileType, new { });
@@ -135,81 +120,7 @@ public class UnifiedWebDataService : IUnifiedWebDataService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error saving uploaded file: {FileName}", file?.FileName);
-            return (false, $"Error saving file: {ex.Message}", null, DataSourceType.Database, new { });
-        }
-    }
-
-    private async Task<(bool Success, string? ErrorMessage, string? FilePath, DataSourceType FileType, object AdditionalInfo)> SaveCsvFileAsync(IFormFile file, CancellationToken cancellationToken)
-    {
-        try
-        {
-            _logger.LogInformation("Starting CSV file save for: {FileName}, Size: {Size}", file.FileName, file.Length);
-            
-            // Validate file size (max 100MB for CSV files)
-            if (file.Length > 100 * 1024 * 1024)
-            {
-                return (false, "File size too large. Maximum size is 100MB for CSV files.", null, DataSourceType.Csv, new { });
-            }
-
-            // Generate unique filename
-            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            var fileName = $"{Guid.NewGuid()}{fileExtension}";
-            var filePath = Path.Combine(_tempDirectory, fileName);
-            
-            _logger.LogInformation("Saving CSV file to: {FilePath}, TempDir: {TempDir}", filePath, _tempDirectory);
-
-            // Save file to disk
-            using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-            {
-                await file.CopyToAsync(fileStream, cancellationToken);
-            }
-
-            // Track temp file for cleanup
-            _tempFiles.Add(filePath);
-
-            // Quick validation - try to read first few lines
-            try
-            {
-                _logger.LogInformation("Starting CSV validation for: {FilePath}", filePath);
-                
-                using var reader = new StreamReader(filePath);
-                var firstLine = await reader.ReadLineAsync().ConfigureAwait(false);
-                if (string.IsNullOrWhiteSpace(firstLine))
-                {
-                    File.Delete(filePath);
-                    _tempFiles.Remove(filePath);
-                    return (false, "CSV file appears to be empty.", null, DataSourceType.Csv, new { });
-                }
-
-                _logger.LogInformation("CSV file has content, starting analysis");
-                
-                // Basic analysis to get column count
-                var quickAnalysis = await _csvAnalysisService.AnalyzeCsvAsync(filePath, cancellationToken).ConfigureAwait(false);
-                
-                _logger.LogInformation("Successfully uploaded and validated CSV file: {FileName} with {ColumnCount} columns, {RowCount} rows", 
-                    file.FileName, quickAnalysis.ColumnCount, quickAnalysis.RowCount);
-
-                return (true, null, filePath, DataSourceType.Csv, new 
-                { 
-                    ColumnCount = quickAnalysis.ColumnCount, 
-                    RowCount = quickAnalysis.RowCount,
-                    HasHeaders = quickAnalysis.HasHeaders,
-                    Delimiter = quickAnalysis.Delimiter
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "CSV analysis failed for: {FilePath}", filePath);
-                // Cleanup invalid file
-                File.Delete(filePath);
-                _tempFiles.Remove(filePath);
-                return (false, $"Invalid CSV file: {ex.Message}", null, DataSourceType.Csv, new { });
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error uploading CSV file: {FileName}", file?.FileName);
-            return (false, $"Error uploading CSV file: {ex.Message}", null, DataSourceType.Csv, new { });
+            return (false, "An error occurred while saving the file", null, DataSourceType.Database, new { });
         }
     }
 
@@ -222,10 +133,6 @@ public class UnifiedWebDataService : IUnifiedWebDataService
                 // Use existing database analysis but adapt to unified format
                 var dbAnalysis = await _databaseService.AnalyzeDatabaseAsync(filePath, cancellationToken);
                 return AdaptDatabaseAnalysisToUnified(dbAnalysis, filePath);
-            }
-            else if (fileType == DataSourceType.Csv)
-            {
-                return await AnalyzeCsvFileAsync(filePath, cancellationToken);
             }
 
             throw new NotSupportedException($"File type {fileType} is not supported");
@@ -264,57 +171,6 @@ public class UnifiedWebDataService : IUnifiedWebDataService
         };
     }
 
-    private async Task<UnifiedAnalysisViewModel> AnalyzeCsvFileAsync(string filePath, CancellationToken cancellationToken)
-    {
-        var csvAnalysis = await _csvAnalysisService.AnalyzeCsvAsync(filePath, cancellationToken).ConfigureAwait(false);
-        
-        return new UnifiedAnalysisViewModel
-        {
-            FilePath = filePath,
-            FileName = csvAnalysis.FileName,
-            FileType = DataSourceType.Csv,
-            DataSources = new List<DataSourceInfoViewModel>
-            {
-                new DataSourceInfoViewModel
-                {
-                    Name = Path.GetFileNameWithoutExtension(csvAnalysis.FileName),
-                    DisplayName = csvAnalysis.FileName,
-                    Type = "CSV File",
-                    RowCount = csvAnalysis.RowCount,
-                    ColumnCount = csvAnalysis.ColumnCount,
-                    Description = $"CSV file with {csvAnalysis.ColumnCount} columns, {csvAnalysis.RowCount} rows",
-                    AdditionalInfo = new Dictionary<string, object>
-                    {
-                        ["Delimiter"] = csvAnalysis.Delimiter,
-                        ["HasHeaders"] = csvAnalysis.HasHeaders,
-                        ["Encoding"] = csvAnalysis.Encoding
-                    }
-                }
-            },
-            Summary = new DataSourceSummaryViewModel
-            {
-                TotalDataSources = 1,
-                TotalColumns = csvAnalysis.ColumnCount,
-                TotalRows = csvAnalysis.RowCount,
-                FileSize = csvAnalysis.FileSize,
-                AnalysisDate = DateTime.UtcNow
-            },
-            ColumnAnalyses = csvAnalysis.ColumnAnalyses.Select(col => new UnifiedColumnAnalysisViewModel
-            {
-                ColumnName = col.ColumnName,
-                DataType = col.DataType,
-                NonNullCount = col.NonNullCount,
-                NullCount = col.NullCount,
-                UniqueCount = col.UniqueCount,
-                MinValue = col.MinValue,
-                MaxValue = col.MaxValue,
-                Mean = col.Mean,
-                StandardDeviation = col.StandardDeviation,
-                SampleValues = col.SampleValues
-            }).ToList()
-        };
-    }
-
     public async Task<TableDataResult> GetDataAsync(string filePath, DataSourceType fileType, string? tableName, DataTablesRequest request, CancellationToken cancellationToken = default)
     {
         try
@@ -327,37 +183,14 @@ public class UnifiedWebDataService : IUnifiedWebDataService
                 }
                 return await _databaseService.GetTableDataAsync(filePath, tableName, request, cancellationToken);
             }
-            else if (fileType == DataSourceType.Csv)
-            {
-                return await GetCsvDataAsync(filePath, request, cancellationToken);
-            }
 
             throw new NotSupportedException($"File type {fileType} is not supported");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting data: {FilePath} ({FileType})", filePath, fileType);
+            _logger.LogError(ex, "Error getting data: {FilePath} ({FileType}) - Table: {TableName}", filePath, fileType, tableName);
             throw;
         }
-    }
-
-    private async Task<TableDataResult> GetCsvDataAsync(string filePath, DataTablesRequest request, CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("GetCsvDataAsync called for file: {FilePath}, Start: {Start}, Length: {Length}", filePath, request.Start, request.Length);
-        
-        var csvData = await _csvAnalysisService.GetCsvDataAsync(filePath, request.Start, request.Length, cancellationToken);
-        
-        _logger.LogInformation("CSV data retrieved - TotalRows: {TotalRows}, ReturnedRows: {ReturnedRows}, Columns: {ColumnCount}", 
-            csvData.TotalRows, csvData.ReturnedRows, csvData.Columns.Count);
-        
-        return new TableDataResult
-        {
-            Data = csvData.Rows.Select(row => row.Cast<object?>().ToArray()).ToArray(),
-            Draw = request.Draw,
-            RecordsTotal = (int)csvData.TotalRows,
-            RecordsFiltered = (int)csvData.TotalRows, // TODO: Implement filtering for CSV
-            Columns = csvData.Columns
-        };
     }
 
     public async Task<List<DataSourceInfo>> GetAvailableDataSourcesAsync(string filePath, DataSourceType fileType, CancellationToken cancellationToken = default)
@@ -376,23 +209,8 @@ public class UnifiedWebDataService : IUnifiedWebDataService
                     ColumnCount = t.ColumnCount
                 }).ToList();
             }
-            else if (fileType == DataSourceType.Csv)
-            {
-                var csvAnalysis = await _csvAnalysisService.AnalyzeCsvAsync(filePath, cancellationToken);
-                return new List<DataSourceInfo>
-                {
-                    new DataSourceInfo
-                    {
-                        Name = Path.GetFileNameWithoutExtension(csvAnalysis.FileName),
-                        DisplayName = csvAnalysis.FileName,
-                        Type = DataSourceType.Csv,
-                        RowCount = csvAnalysis.RowCount,
-                        ColumnCount = csvAnalysis.ColumnCount
-                    }
-                };
-            }
 
-            return new List<DataSourceInfo>();
+            throw new NotSupportedException($"File type {fileType} is not supported");
         }
         catch (Exception ex)
         {
@@ -409,26 +227,8 @@ public class UnifiedWebDataService : IUnifiedWebDataService
             {
                 return await _databaseService.ExportTablesToCsvAsync(filePath, dataSourceNames, cancellationToken);
             }
-            else if (fileType == DataSourceType.Csv)
-            {
-                // For CSV files, we might just copy the file or apply transformations
-                // For now, just indicate that the file is already in CSV format
-                return new List<ExportResultViewModel>
-                {
-                    new ExportResultViewModel
-                    {
-                        TableName = Path.GetFileNameWithoutExtension(filePath),
-                        FilePath = filePath,
-                        FileName = Path.GetFileName(filePath),
-                        FileContent = "", // CSV files don't need content since they're already files
-                        IsSuccess = true,
-                        ErrorMessage = "File is already in CSV format",
-                        RowCount = 0 // Could get actual count if needed
-                    }
-                };
-            }
 
-            return new List<ExportResultViewModel>();
+            throw new NotSupportedException($"File type {fileType} is not supported");
         }
         catch (Exception ex)
         {

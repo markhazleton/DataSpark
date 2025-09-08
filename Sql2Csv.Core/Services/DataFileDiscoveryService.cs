@@ -5,7 +5,7 @@ using Sql2Csv.Core.Models;
 namespace Sql2Csv.Core.Services;
 
 /// <summary>
-/// Service for discovering both database and CSV data files.
+/// Service for discovering database data files.
 /// </summary>
 public class DataFileDiscoveryService : IDataFileDiscoveryService
 {
@@ -68,7 +68,7 @@ public class DataFileDiscoveryService : IDataFileDiscoveryService
                     Id = Guid.NewGuid().ToString(),
                     Name = Path.GetFileNameWithoutExtension(csvFile),
                     FilePath = csvFile,
-                    Type = DataSourceType.Csv,
+                    Type = DataSourceType.Database,
                     FileSize = fileInfo.Length,
                     CreatedDate = fileInfo.CreationTime,
                     LastModified = fileInfo.LastWriteTime,
@@ -98,7 +98,7 @@ public class DataFileDiscoveryService : IDataFileDiscoveryService
                             Id = Guid.NewGuid().ToString(),
                             Name = Path.GetFileNameWithoutExtension(file),
                             FilePath = file,
-                            Type = DataSourceType.Csv,
+                            Type = DataSourceType.Database,
                             FileSize = fileInfo.Length,
                             CreatedDate = fileInfo.CreationTime,
                             LastModified = fileInfo.LastWriteTime,
@@ -113,10 +113,8 @@ public class DataFileDiscoveryService : IDataFileDiscoveryService
                 }
             }
 
-            _logger.LogInformation("Discovered {Count} data files: {DatabaseCount} databases, {CsvCount} CSV files", 
-                dataSources.Count,
-                dataSources.Count(d => d.Type == DataSourceType.Database),
-                dataSources.Count(d => d.Type == DataSourceType.Csv));
+            _logger.LogInformation("Discovered {Count} database files", 
+                dataSources.Count);
         }
         catch (Exception ex)
         {
