@@ -6,21 +6,18 @@ using Sql2Csv.Core.Models;
 namespace Sql2Csv.Core.Services;
 
 /// <summary>
-/// Unified service for analyzing both database tables and CSV files.
+/// Unified service for analyzing database tables.
 /// </summary>
 public class UnifiedAnalysisService : IUnifiedAnalysisService
 {
     private readonly ISchemaService _schemaService;
-    private readonly ICsvAnalysisService _csvAnalysisService;
     private readonly ILogger<UnifiedAnalysisService> _logger;
 
     public UnifiedAnalysisService(
         ISchemaService schemaService,
-        ICsvAnalysisService csvAnalysisService,
         ILogger<UnifiedAnalysisService> logger)
     {
         _schemaService = schemaService;
-        _csvAnalysisService = csvAnalysisService;
         _logger = logger;
     }
 
@@ -42,10 +39,6 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
             if (dataSource.Type == DataSourceType.Database)
             {
                 await AnalyzeDatabaseTableAsync(dataSource, result, cancellationToken);
-            }
-            else if (dataSource.Type == DataSourceType.Csv)
-            {
-                await AnalyzeCsvFileAsync(dataSource, result, cancellationToken);
             }
             else
             {
@@ -77,10 +70,6 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
             if (dataSource.Type == DataSourceType.Database)
             {
                 await GetDatabaseDataAsync(dataSource, result, skip, take, cancellationToken);
-            }
-            else if (dataSource.Type == DataSourceType.Csv)
-            {
-                await GetCsvDataAsync(dataSource, result, skip, take, cancellationToken);
             }
             else
             {
@@ -163,32 +152,6 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
         }
     }
 
-    private async Task AnalyzeCsvFileAsync(DataSourceConfiguration dataSource, UnifiedAnalysisResult result, CancellationToken cancellationToken)
-    {
-        var csvAnalysis = await _csvAnalysisService.AnalyzeCsvAsync(dataSource.FilePath, cancellationToken);
-        
-        result.RowCount = csvAnalysis.RowCount;
-        result.ColumnCount = csvAnalysis.ColumnCount;
-        result.Errors.AddRange(csvAnalysis.Errors);
-
-        result.ColumnAnalyses = csvAnalysis.ColumnAnalyses.Select(col => new ColumnAnalysis
-        {
-            ColumnName = col.ColumnName,
-            ColumnIndex = col.ColumnIndex,
-            DataType = col.DataType,
-            IsNullable = col.NullCount > 0,
-            IsPrimaryKey = false,
-            NonNullCount = col.NonNullCount,
-            NullCount = col.NullCount,
-            UniqueCount = col.UniqueCount,
-            MinValue = col.MinValue,
-            MaxValue = col.MaxValue,
-            Mean = col.Mean,
-            StandardDeviation = col.StandardDeviation,
-            SampleValues = col.SampleValues
-        }).ToList();
-    }
-
     private async Task GetDatabaseDataAsync(DataSourceConfiguration dataSource, UnifiedDataResult result, int skip, int take, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(dataSource.ConnectionString) || string.IsNullOrEmpty(dataSource.TableName))
@@ -237,23 +200,4 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
         }
     }
 
-    private async Task GetCsvDataAsync(DataSourceConfiguration dataSource, UnifiedDataResult result, int skip, int take, CancellationToken cancellationToken)
-    {
-        var csvData = await _csvAnalysisService.GetCsvDataAsync(dataSource.FilePath, skip, take, cancellationToken);
-        
-        result.Columns = csvData.Columns;
-        result.TotalRows = csvData.TotalRows;
-        result.ReturnedRows = csvData.ReturnedRows;
-
-        // Convert CSV rows to dictionary format
-        result.Rows = csvData.Rows.Select(row => 
-        {
-            var dict = new Dictionary<string, object?>();
-            for (int i = 0; i < Math.Min(row.Count, result.Columns.Count); i++)
-            {
-                dict[result.Columns[i]] = row[i];
-            }
-            return dict;
-        }).ToList();
-    }
 }

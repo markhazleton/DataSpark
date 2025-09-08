@@ -3,7 +3,7 @@ using Sql2Csv.Core.Models;
 namespace Sql2Csv.Web.Models;
 
 /// <summary>
-/// View model for unified data source analysis that handles both database tables and CSV files
+/// View model for unified data source analysis that handles database tables
 /// </summary>
 public class UnifiedDataSourceAnalysisViewModel
 {
@@ -180,8 +180,6 @@ public class UnifiedDataSourceConfiguration
             Type = FileType,
             TableName = FileType == DataSourceType.Database ? DataSourceName : null,
             ConnectionString = FileType == DataSourceType.Database ? $"Data Source={FilePath};Mode=ReadOnly;Cache=Shared;" : null,
-            CsvDelimiter = Parameters.GetValueOrDefault("Delimiter", ","),
-            CsvHasHeaders = Parameters.ContainsKey("HasHeaders") ? bool.Parse(Parameters["HasHeaders"]) : true,
             FileSize = File.Exists(FilePath) ? new FileInfo(FilePath).Length : 0,
             CreatedDate = File.Exists(FilePath) ? File.GetCreationTime(FilePath) : DateTime.UtcNow,
             LastModified = File.Exists(FilePath) ? File.GetLastWriteTime(FilePath) : DateTime.UtcNow,

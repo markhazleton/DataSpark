@@ -19,7 +19,6 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IDatabaseDiscoveryService, DatabaseDiscoveryService>();
         services.AddScoped<IDataFileDiscoveryService, DataFileDiscoveryService>();
-        services.AddScoped<ICsvAnalysisService, CsvAnalysisService>();
         services.AddScoped<IUnifiedAnalysisService, UnifiedAnalysisService>();
         services.AddScoped<IExportService, ExportService>();
         services.AddScoped<ISchemaService, SchemaService>();

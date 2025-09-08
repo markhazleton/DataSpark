@@ -51,7 +51,6 @@ builder.Services.AddScoped<Sql2Csv.Core.Interfaces.IDatabaseAnalysisService, Sql
 builder.Services.AddScoped<Sql2Csv.Core.Interfaces.IPersistedFileService, Sql2Csv.Core.Services.PersistedFileService>();
 
 // Register new unified data services (keeping existing services for compatibility)
-builder.Services.AddScoped<ICsvAnalysisService, CsvAnalysisService>();
 builder.Services.AddScoped<IDataFileDiscoveryService, DataFileDiscoveryService>();
 builder.Services.AddScoped<IUnifiedAnalysisService, UnifiedAnalysisService>();
 

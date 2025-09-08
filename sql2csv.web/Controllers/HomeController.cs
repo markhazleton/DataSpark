@@ -89,11 +89,8 @@ public class HomeController : Controller
                     filePath = persistedFile.StoredFilePath;
                     fileName = persistedFile.OriginalFileName;
                     
-                    // Determine file type from extension
-                    var extension = Path.GetExtension(fileName).ToLowerInvariant();
-                    fileType = new[] { ".csv", ".tsv", ".txt", ".tab" }.Contains(extension) 
-                        ? DataSourceType.Csv 
-                        : DataSourceType.Database;
+                    // Only database files are supported
+                    fileType = DataSourceType.Database;
                     
                     await _persistedFileService.UpdateLastAccessedAsync(model.SelectedFileId);
 
@@ -110,7 +107,7 @@ public class HomeController : Controller
             // Handle new file upload
             else if (model.DatabaseFile != null)
             {
-                // Use unified service to handle both database and CSV files
+                // Use unified service to handle database files
                 var (success, errorMessage, uploadedFilePath, detectedFileType, uploadAdditionalInfo) = 
                     await _unifiedDataService.SaveUploadedFileAsync(model.DatabaseFile);
 
@@ -139,12 +136,6 @@ public class HomeController : Controller
                         {
                             var dict = uploadAdditionalInfo as dynamic;
                             tableCount = dict?.TableCount ?? 0;
-                        }
-                        else if (fileType == DataSourceType.Csv)
-                        {
-                            // CSV files represent one data source (conceptually one "table")
-                            tableCount = 1;
-                            _logger.LogInformation("Setting table count to 1 for CSV file");
                         }
 
                         await _persistedFileService.SavePersistedFileAsync(
@@ -217,12 +208,6 @@ public class HomeController : Controller
                     var dict = additionalInfo as dynamic;
                     tableCount = dict?.TableCount ?? 0;
                 }
-                else if (fileType == DataSourceType.Csv)
-                {
-                    // CSV files represent one data source (conceptually one "table")
-                    tableCount = 1;
-                    _logger.LogInformation("Setting table count to 1 for CSV file in API upload");
-                }
 
                 var persisted = await _persistedFileService.SavePersistedFileAsync(new FormFileWrapper(file), filePath, tableCount, description);
                 persistedId = persisted.Id;
@@ -258,22 +243,6 @@ public class HomeController : Controller
                 response.fileType,
                 response.persisted,
                 tableCount = dict?.TableCount ?? 0
-            };
-            return Ok(enrichedResponse);
-        }
-        else if (fileType == DataSourceType.Csv && additionalInfo is not null)
-        {
-            var dict = additionalInfo as dynamic;
-            var enrichedResponse = new
-            {
-                response.id,
-                response.name,
-                response.fileType,
-                response.persisted,
-                columnCount = dict?.ColumnCount ?? 0,
-                rowCount = dict?.RowCount ?? 0,
-                hasHeaders = dict?.HasHeaders ?? false,
-                delimiter = dict?.Delimiter ?? ","
             };
             return Ok(enrichedResponse);
         }
@@ -396,25 +365,6 @@ public class HomeController : Controller
 
                 _logger.LogInformation("Database analysis completed successfully");
                 return View(analysis);
-            }
-            else if (fileType == DataSourceType.Csv)
-            {
-                // Use unified analysis for CSV files
-                var unifiedAnalysis = await _unifiedDataService.AnalyzeDataSourceAsync(filePath, fileType, null, cts.Token);
-                
-                // Persist file info in session for AJAX data retrieval
-                HttpContext.Session.SetString("CurrentDataFilePath", filePath);
-                HttpContext.Session.SetString("CurrentDataFileType", fileType.ToString());
-                if (!string.IsNullOrEmpty(fileName))
-                    HttpContext.Session.SetString("CurrentDataFileName", fileName);
-
-                // Keep the file path for subsequent operations
-                TempData.Keep("DataFilePath");
-                TempData.Keep("DataFileName");
-                TempData.Keep("DataFileType");
-
-                _logger.LogInformation("CSV analysis completed successfully");
-                return View("AnalyzeUnified", unifiedAnalysis);
             }
             else
             {
@@ -542,177 +492,6 @@ public class HomeController : Controller
         {
             _logger.LogError(ex, "Error analyzing table: {TableName} in file: {FilePath}", tableName, filePath);
             TempData["ErrorMessage"] = "An error occurred while analyzing the table.";
-            return RedirectToAction("Analyze");
-        }
-    }
-
-    public async Task<IActionResult> AnalyzeCsvDetail(string fileName)
-    {
-        var filePath = TempData["DataFilePath"] as string;
-        var fileTypeString = TempData["DataFileType"] as string;
-
-        _logger.LogInformation("AnalyzeCsvDetail action called with FileName: {FileName}, FilePath: {FilePath}", fileName, filePath);
-
-        if (string.IsNullOrEmpty(filePath))
-        {
-            _logger.LogWarning("Missing file path, redirecting to Index");
-            return RedirectToAction("Index");
-        }
-
-        // Parse file type
-        if (!Enum.TryParse<DataSourceType>(fileTypeString, out var fileType) || fileType != DataSourceType.Csv)
-        {
-            _logger.LogWarning("Invalid file type for CSV analysis: {FileType}", fileTypeString);
-            return RedirectToAction("Index");
-        }
-
-        // Check if file exists
-        if (!System.IO.File.Exists(filePath))
-        {
-            _logger.LogError("File not found at path: {FilePath}", filePath);
-            TempData["ErrorMessage"] = "The selected CSV file is no longer available.";
-            return RedirectToAction("Index");
-        }
-
-        try
-        {
-            _logger.LogInformation("Starting detailed CSV analysis for file: {FilePath}", filePath);
-
-            // Add timeout to the analysis operation
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-
-            var analysis = await _unifiedDataService.AnalyzeDataSourceAsync(filePath, fileType, null, cts.Token);
-
-            // Keep session file path up to date
-            HttpContext.Session.SetString("CurrentDataFilePath", filePath);
-            HttpContext.Session.SetString("CurrentDataFileType", fileType.ToString());
-            HttpContext.Session.SetString("CurrentDataFileName", fileName);
-
-            // Keep the file path for subsequent operations
-            TempData.Keep("DataFilePath");
-            TempData.Keep("DataFileName");
-            TempData.Keep("DataFileType");
-
-            // Create a detailed analysis view model similar to TableAnalysisViewModel
-            var detailedAnalysis = new CsvDetailedAnalysisViewModel
-            {
-                FileName = fileName,
-                FilePath = filePath,
-                FileType = fileType,
-                Summary = analysis.Summary,
-                ColumnAnalyses = analysis.ColumnAnalyses,
-                DataSources = analysis.DataSources
-            };
-
-            _logger.LogInformation("Detailed CSV analysis completed successfully for file: {FileName}", fileName);
-            return View("AnalyzeCsvDetail", detailedAnalysis);
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogError("CSV detailed analysis timed out for file: {FilePath}", filePath);
-            TempData["ErrorMessage"] = "Analysis timed out. The file might be too large.";
-            return RedirectToAction("Analyze");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error analyzing CSV file: {FilePath}", filePath);
-            TempData["ErrorMessage"] = "An error occurred while analyzing the CSV file.";
-            return RedirectToAction("Analyze");
-        }
-    }
-
-    public async Task<IActionResult> ViewCsvData(string fileName)
-    {
-        var filePath = TempData["DataFilePath"] as string;
-        var fileTypeString = TempData["DataFileType"] as string;
-        var originalFileName = TempData["DataFileName"] as string;
-
-        // If TempData is missing, try to get from session first
-        if (string.IsNullOrEmpty(filePath))
-        {
-            filePath = HttpContext.Session.GetString("CurrentDataFilePath");
-            fileTypeString = HttpContext.Session.GetString("CurrentDataFileType");
-            originalFileName = HttpContext.Session.GetString("CurrentDataFileName");
-        }
-
-        // If still missing, reconstruct the file path from fileName
-        if (string.IsNullOrEmpty(filePath))
-        {
-            var tempDirectory = Path.Combine(Path.GetTempPath(), "Sql2Csv.Web.Unified");
-            filePath = Path.Combine(tempDirectory, fileName);
-            fileTypeString = "Csv"; // We know it's CSV from the action name
-            _logger.LogInformation("Reconstructed file path from fileName: {FileName} -> {FilePath}", fileName, filePath);
-        }
-
-        _logger.LogInformation("ViewCsvData action called with FileName: {FileName}, FilePath: {FilePath}, OriginalFileName: {OriginalFileName}", fileName, filePath, originalFileName);
-
-        // Parse file type
-        if (!Enum.TryParse<DataSourceType>(fileTypeString, out var fileType) || fileType != DataSourceType.Csv)
-        {
-            _logger.LogWarning("Invalid file type for CSV viewing: {FileType}", fileTypeString);
-            return RedirectToAction("Index");
-        }
-
-        // Check if file exists
-        if (!System.IO.File.Exists(filePath))
-        {
-            _logger.LogError("File not found at path: {FilePath}", filePath);
-            TempData["ErrorMessage"] = "The selected CSV file is no longer available.";
-            return RedirectToAction("Index");
-        }
-
-        try
-        {
-            _logger.LogInformation("Getting CSV data view for file: {FilePath}", filePath);
-
-            // Get basic analysis to set up the view
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-            var analysis = await _unifiedDataService.AnalyzeDataSourceAsync(filePath, fileType, null, cts.Token);
-
-            // Persist in session for subsequent AJAX calls
-            HttpContext.Session.SetString("CurrentDataFilePath", filePath);
-            HttpContext.Session.SetString("CurrentDataFileType", fileType.ToString());
-            HttpContext.Session.SetString("CurrentDataFileName", originalFileName ?? fileName);
-
-            // Keep the file path for subsequent operations
-            TempData.Keep("DataFilePath");
-            TempData.Keep("DataFileName");
-            TempData.Keep("DataFileType");
-
-            var model = new UnifiedViewDataViewModel
-            {
-                DataSourceName = Path.GetFileNameWithoutExtension(originalFileName ?? fileName),
-                DisplayName = originalFileName ?? fileName,
-                FilePath = filePath,
-                FileType = fileType,
-                Columns = analysis.ColumnAnalyses.Select(c => new ColumnInfoViewModel
-                {
-                    Name = c.ColumnName,
-                    DataType = c.DataType,
-                    IsNullable = c.NullCount > 0,
-                    IsPrimaryKey = false // CSV files don't have primary keys
-                }).ToList(),
-                AdditionalInfo = new Dictionary<string, object>
-                {
-                    ["TotalRows"] = analysis.Summary.TotalRows,
-                    ["TotalColumns"] = analysis.Summary.TotalColumns,
-                    ["FileSize"] = analysis.Summary.FileSizeFormatted
-                }
-            };
-
-            _logger.LogInformation("CSV data view prepared successfully for file: {FileName}", fileName);
-            return View("ViewUnifiedData", model);
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogError("ViewCsvData operation timed out for file: {FilePath}", filePath);
-            TempData["ErrorMessage"] = "Operation timed out. The file might be too large.";
-            return RedirectToAction("Analyze");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting CSV data view: {FilePath}", filePath);
-            TempData["ErrorMessage"] = "An error occurred while accessing the CSV file.";
             return RedirectToAction("Analyze");
         }
     }
@@ -963,27 +742,6 @@ public class HomeController : Controller
         TempData["DataFileType"] = DataSourceType.Database.ToString();
 
         return AnalyzeUnified(fileName, tableName);
-    }
-
-    /// <summary>
-    /// Legacy support - redirects CSV analysis to unified controller
-    /// </summary>
-    public IActionResult AnalyzeCsvUnified(string fileName)
-    {
-        var filePath = TempData["DataFilePath"] as string ?? HttpContext.Session.GetString("CurrentDataFilePath");
-
-        if (string.IsNullOrEmpty(filePath))
-        {
-            TempData["ErrorMessage"] = "CSV file information not found.";
-            return RedirectToAction("Index");
-        }
-
-        // Set up for unified analysis
-        TempData["DataFilePath"] = filePath;
-        TempData["DataFileName"] = fileName;
-        TempData["DataFileType"] = DataSourceType.Csv.ToString();
-
-        return AnalyzeUnified(fileName);
     }
 
     public IActionResult About()

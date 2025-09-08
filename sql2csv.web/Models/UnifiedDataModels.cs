@@ -3,7 +3,7 @@ using Sql2Csv.Core.Models;
 namespace Sql2Csv.Web.Models;
 
 /// <summary>
-/// View model for unified analysis results that can handle both database and CSV files
+/// View model for unified analysis results that can handle database files
 /// </summary>
 public class UnifiedAnalysisViewModel
 {
@@ -17,7 +17,7 @@ public class UnifiedAnalysisViewModel
 }
 
 /// <summary>
-/// View model for individual data source information (table or CSV file)
+/// View model for individual data source information (table)
 /// </summary>
 public class DataSourceInfoViewModel
 {
@@ -58,7 +58,7 @@ public class DataSourceSummaryViewModel
 }
 
 /// <summary>
-/// View model for unified column analysis that works for both database and CSV columns
+/// View model for unified column analysis that works for database columns
 /// </summary>
 public class UnifiedColumnAnalysisViewModel
 {
@@ -93,7 +93,7 @@ public class DataSourceInfo
 }
 
 /// <summary>
-/// Enhanced file upload view model that supports both database and CSV files
+/// Enhanced file upload view model that supports database files
 /// </summary>
 public class UnifiedFileUploadViewModel
 {
@@ -107,15 +107,12 @@ public class UnifiedFileUploadViewModel
     { 
         ".db (SQLite Database)",
         ".sqlite (SQLite Database)", 
-        ".sqlite3 (SQLite Database)",
-        ".csv (Comma Separated Values)",
-        ".tsv (Tab Separated Values)",
-        ".txt (Text/Delimited File)"
+        ".sqlite3 (SQLite Database)"
     };
 }
 
 /// <summary>
-/// View model for analyzing a specific data source (table or CSV)
+/// View model for analyzing a specific data source (table)
 /// </summary>
 public class DataSourceAnalysisViewModel
 {
@@ -142,20 +139,4 @@ public class UnifiedViewDataViewModel
     public DataSourceType FileType { get; set; }
     public List<ColumnInfoViewModel> Columns { get; set; } = new();
     public Dictionary<string, object> AdditionalInfo { get; set; } = new();
-}
-
-/// <summary>
-/// View model for detailed CSV analysis (similar to TableAnalysisViewModel for databases)
-/// </summary>
-public class CsvDetailedAnalysisViewModel
-{
-    public string FileName { get; set; } = string.Empty;
-    public string FilePath { get; set; } = string.Empty;
-    public DataSourceType FileType { get; set; }
-    public DataSourceSummaryViewModel Summary { get; set; } = new();
-    public List<UnifiedColumnAnalysisViewModel> ColumnAnalyses { get; set; } = new();
-    public List<DataSourceInfoViewModel> DataSources { get; set; } = new();
-    public List<string> Errors { get; set; } = new();
-    public TimeSpan AnalysisDuration { get; set; }
-    public bool IsSuccess => !Errors.Any();
 }

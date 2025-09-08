@@ -10,7 +10,7 @@
             Data File Analyzer
         </h1>
         <p class="text-xl text-secondary-600 max-w-2xl mx-auto">
-            Upload your database or CSV files to explore their structure, analyze data, export tables, or generate model classes.
+            Upload your database files to explore their structure, analyze data, export tables, or generate model classes.
             A complete data analysis and export tool built with .NET 9.0.
         </p>
     </div>
@@ -89,14 +89,14 @@
                     <div class="card-header">
                         <h2 class="text-xl font-semibold text-secondary-900">Upload Data File</h2>
                         <p class="text-secondary-600 mt-1">
-                            Select a database file (.db, .sqlite, .sqlite3) or CSV file (.csv, .tsv, .txt) to get started. Maximum file size: 50MB.
+                            Select a SQLite database file (.db, .sqlite, .sqlite3) to get started. Maximum file size: 50MB.
                         </p>
                     </div>
 
                     <!-- File Upload Zone -->
                     <div class="upload-zone" x-data="{ dragging: false }" @@dragover.prevent="dragging = true"
                         @@dragleave="dragging = false" @@drop.prevent="dragging = false" :class="{ 'dragover': dragging }">
-                        <input type="file" name="DatabaseFile" id="database-file" accept=".db,.sqlite,.sqlite3,.csv,.tsv,.txt"
+                        <input type="file" name="DatabaseFile" id="database-file" accept=".db,.sqlite,.sqlite3"
                             class="sr-only" />
                         <label for="database-file" class="cursor-pointer block" id="drop-label">
                             <div class="flex flex-col items-center">
@@ -112,7 +112,7 @@
                                             upload</span>
                                         or drag and drop
                                     </p>
-                                    <p class="text-xs text-secondary-500 mt-1">Database files (.db, .sqlite, .sqlite3) or CSV files (.csv, .tsv, .txt) - MAX. 50MB</p>
+                                    <p class="text-xs text-secondary-500 mt-1">SQLite Database files (.db, .sqlite, .sqlite3) - MAX. 50MB</p>
                                 </div>
                             </div>
                         </label>
@@ -196,7 +196,7 @@
                 <span class="mr-2">🚀</span>Try Our Unified Analysis
             </h3>
             <p class="text-secondary-600 mb-4">
-                Experience our new unified interface that works seamlessly with both database tables and CSV files.
+                Experience our unified interface that works seamlessly with database tables for comprehensive analysis.
             </p>
             <a asp-controller="UnifiedData" asp-action="Index" 
                class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium">
@@ -215,7 +215,7 @@
                     <span class="text-2xl">🔗</span>
                 </div>
                 <h3 class="text-xl font-semibold text-secondary-900 mb-2">Unified Analysis</h3>
-                <p class="text-secondary-600">Analyze both database tables and CSV files with a single, consistent interface and unified tools.</p>
+                <p class="text-secondary-600">Analyze database tables with a comprehensive, consistent interface and powerful analysis tools.</p>
             </div>
             <div class="text-center">
                 <div class="bg-primary-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
@@ -274,7 +274,7 @@
         }
 
         async function uploadFile(file) {
-            const validExt = ['.db', '.sqlite', '.sqlite3', '.csv', '.tsv', '.txt'];
+            const validExt = ['.db', '.sqlite', '.sqlite3'];
             const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
             if (!validExt.includes(ext)) { alert('Invalid file type. Supported: ' + validExt.join(', ')); return; }
             const fd = new FormData();

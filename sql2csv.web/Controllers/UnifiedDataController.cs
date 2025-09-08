@@ -6,7 +6,7 @@ using Sql2Csv.Web.Services;
 namespace Sql2Csv.Web.Controllers;
 
 /// <summary>
-/// Unified controller for handling both database tables and CSV files using a common data access pattern
+/// Unified controller for handling database tables using a common data access pattern
 /// </summary>
 public class UnifiedDataController : Controller
 {
@@ -31,11 +31,11 @@ public class UnifiedDataController : Controller
     }
 
     /// <summary>
-    /// Unified analysis endpoint that handles both database tables and CSV files
+    /// Unified analysis endpoint that handles database tables
     /// </summary>
     /// <param name="fileId">Unique identifier for the file</param>
-    /// <param name="fileType">Type of data source (Database or Csv)</param>
-    /// <param name="dataSourceName">Table name for databases, null for CSV files</param>
+    /// <param name="fileType">Type of data source (Database)</param>
+    /// <param name="dataSourceName">Table name for databases</param>
     /// <returns>Unified analysis view</returns>
     public async Task<IActionResult> Analyze(string fileId, DataSourceType fileType, string? dataSourceName = null)
     {
@@ -134,7 +134,7 @@ public class UnifiedDataController : Controller
     }
 
     /// <summary>
-    /// API endpoint for DataTables server-side processing - handles both database and CSV data
+    /// API endpoint for DataTables server-side processing - handles database data
     /// </summary>
     [HttpPost]
     public async Task<JsonResult> GetDataTableData([FromBody] UnifiedDataTableRequest request)
@@ -155,8 +155,8 @@ public class UnifiedDataController : Controller
                 SearchValue = request.Search?.Value,
                 Columns = request.Columns?.Select(c => new DataTablesColumn
                 {
-                    Data = c.Data,
-                    Name = c.Name,
+                    Data = c.Data ?? string.Empty,
+                    Name = c.Name ?? string.Empty,
                     Searchable = c.Searchable,
                     Orderable = c.Orderable
                 }).ToList() ?? new List<DataTablesColumn>(),
@@ -294,7 +294,6 @@ public class UnifiedDataController : Controller
         {
             DataSourceType.Database when !string.IsNullOrEmpty(dataSourceName) => $"{fileName}.{dataSourceName}",
             DataSourceType.Database => fileName,
-            DataSourceType.Csv => fileName,
             _ => fileName
         };
     }
