@@ -358,10 +358,14 @@ public class HomeController : Controller
                 if (!string.IsNullOrEmpty(fileName))
                     HttpContext.Session.SetString("CurrentDatabaseFileName", fileName);
 
-                // Keep the file path for subsequent operations
+                // Keep the file path for subsequent operations - store in both new and legacy TempData keys
                 TempData.Keep("DataFilePath");
                 TempData.Keep("DataFileName");
                 TempData.Keep("DataFileType");
+                
+                // Add legacy keys for backward compatibility with AnalyzeTable
+                TempData["DatabaseFilePath"] = filePath;
+                TempData["DatabaseFileName"] = fileName;
 
                 _logger.LogInformation("Database analysis completed successfully");
                 return View(analysis);
@@ -442,8 +446,14 @@ public class HomeController : Controller
 
     public async Task<IActionResult> AnalyzeTable(string tableName)
     {
-        var filePath = TempData["DatabaseFilePath"] as string;
-        var fileName = TempData["DatabaseFileName"] as string;
+        // Try multiple sources for file path - prioritize newer pattern, fallback to legacy and session
+        var filePath = TempData["DataFilePath"] as string ?? 
+                      TempData["DatabaseFilePath"] as string ?? 
+                      HttpContext.Session.GetString("CurrentDatabaseFilePath");
+                      
+        var fileName = TempData["DataFileName"] as string ?? 
+                      TempData["DatabaseFileName"] as string ?? 
+                      HttpContext.Session.GetString("CurrentDatabaseFileName");
 
         _logger.LogInformation("AnalyzeTable action called with TableName: {TableName}, FilePath: {FilePath}", tableName, filePath);
 
@@ -475,9 +485,18 @@ public class HomeController : Controller
             if (!string.IsNullOrEmpty(fileName))
                 HttpContext.Session.SetString("CurrentDatabaseFileName", fileName);
 
-            // Keep the file path for subsequent operations
+            // Keep the file path for subsequent operations - maintain both new and legacy keys
+            TempData.Keep("DataFilePath");
+            TempData.Keep("DataFileName");
+            TempData.Keep("DataFileType");
             TempData.Keep("DatabaseFilePath");
             TempData.Keep("DatabaseFileName");
+            
+            // Ensure TempData has current values if they were sourced from session
+            TempData["DataFilePath"] = filePath;
+            TempData["DataFileName"] = fileName;
+            TempData["DatabaseFilePath"] = filePath;
+            TempData["DatabaseFileName"] = fileName;
 
             _logger.LogInformation("Table analysis completed successfully for table: {TableName}", tableName);
             return View(analysis);
@@ -557,10 +576,16 @@ public class HomeController : Controller
 
     public async Task<IActionResult> ViewTableData(string tableName)
     {
-        var filePath = TempData["DatabaseFilePath"] as string;
-        var fileName = TempData["DatabaseFileName"] as string;
+        // Try multiple sources for file path - prioritize newer pattern, fallback to legacy and session  
+        var filePath = TempData["DataFilePath"] as string ?? 
+                      TempData["DatabaseFilePath"] as string ?? 
+                      HttpContext.Session.GetString("CurrentDatabaseFilePath");
+                      
+        var fileName = TempData["DataFileName"] as string ?? 
+                      TempData["DatabaseFileName"] as string ?? 
+                      HttpContext.Session.GetString("CurrentDatabaseFileName");
 
-        _logger.LogInformation("ViewData action called with TableName: {TableName}, FilePath: {FilePath}", tableName, filePath);
+        _logger.LogInformation("ViewTableData action called with TableName: {TableName}, FilePath: {FilePath}", tableName, filePath);
 
         if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(tableName))
         {
@@ -589,9 +614,18 @@ public class HomeController : Controller
             if (!string.IsNullOrEmpty(fileName))
                 HttpContext.Session.SetString("CurrentDatabaseFileName", fileName);
 
-            // Keep the file path for subsequent operations
+            // Keep the file path for subsequent operations - maintain both new and legacy keys
+            TempData.Keep("DataFilePath");
+            TempData.Keep("DataFileName");
+            TempData.Keep("DataFileType");
             TempData.Keep("DatabaseFilePath");
             TempData.Keep("DatabaseFileName");
+            
+            // Ensure TempData has current values if they were sourced from session
+            TempData["DataFilePath"] = filePath;
+            TempData["DataFileName"] = fileName;
+            TempData["DatabaseFilePath"] = filePath;
+            TempData["DatabaseFileName"] = fileName;
 
             var model = new ViewDataViewModel
             {
