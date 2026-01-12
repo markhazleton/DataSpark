@@ -133,9 +133,14 @@ public class DataFileDiscoveryService : IDataFileDiscoveryService
             using var reader = new StreamReader(filePath);
             var sampleLines = new List<string>();
             
-            for (int i = 0; i < 5 && !reader.EndOfStream; i++)
+            for (int i = 0; i < 5; i++)
             {
                 var line = await reader.ReadLineAsync();
+                if (line is null)
+                {
+                    break;
+                }
+
                 if (!string.IsNullOrWhiteSpace(line))
                 {
                     sampleLines.Add(line);

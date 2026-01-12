@@ -225,10 +225,18 @@ public class FilesController : Controller
     {
         await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var reader = new StreamReader(stream);
-        while (!reader.EndOfStream)
+        while (true)
         {
             var line = await reader.ReadLineAsync();
-            if (!string.IsNullOrWhiteSpace(line)) return line;
+            if (line is null)
+            {
+                break;
+            }
+
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                return line;
+            }
         }
         return null;
     }
