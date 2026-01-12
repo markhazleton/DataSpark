@@ -28,7 +28,8 @@ public static class Program
             var host = CreateHostBuilder(args).Build();
 
             var rootCommand = CommandFactory.CreateRootCommand(host.Services);
-            return await rootCommand.InvokeAsync(args);
+            var parseResult = rootCommand.Parse(args);
+            return await parseResult.InvokeAsync(parseResult.InvocationConfiguration, CancellationToken.None);
         }
         catch (Exception ex)
         {

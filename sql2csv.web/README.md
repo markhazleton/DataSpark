@@ -1,6 +1,6 @@
 # Sql2Csv Web Application
 
-A modern, responsive web application for SQLite database analysis and CSV export built with .NET 9.0 and Tailwind CSS.
+A modern, responsive web application for SQLite database analysis and CSV export built with .NET 10.0 and Tailwind CSS.
 
 ## Features
 
@@ -14,7 +14,7 @@ A modern, responsive web application for SQLite database analysis and CSV export
 
 ### Backend
 
-- .NET 9.0
+- .NET 10.0
 - ASP.NET Core MVC
 - Microsoft.Data.Sqlite
 - Dependency Injection
@@ -31,7 +31,7 @@ A modern, responsive web application for SQLite database analysis and CSV export
 
 ### Prerequisites
 
-- .NET 9.0 SDK
+- .NET 10.0 SDK
 - Node.js (for frontend build tools)
 
 ### Installation

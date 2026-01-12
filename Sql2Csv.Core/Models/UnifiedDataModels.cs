@@ -7,7 +7,8 @@ namespace Sql2Csv.Core.Models;
 /// </summary>
 public enum DataSourceType
 {
-    Database
+    Database,
+    Csv
 }
 
 /// <summary>

@@ -22,10 +22,10 @@ public static class CommandFactory
     {
         var rootCommand = new RootCommand("SQL to CSV Exporter - Exports SQLite databases to CSV format");
 
-        rootCommand.AddCommand(CreateExportCommand(services));
-        rootCommand.AddCommand(CreateSchemaCommand(services));
-        rootCommand.AddCommand(CreateGenerateCommand(services));
-        rootCommand.AddCommand(CreateDiscoverCommand(services));
+        rootCommand.Add(CreateExportCommand(services));
+        rootCommand.Add(CreateSchemaCommand(services));
+        rootCommand.Add(CreateGenerateCommand(services));
+        rootCommand.Add(CreateDiscoverCommand(services));
 
         return rootCommand;
     }
@@ -34,15 +34,17 @@ public static class CommandFactory
     {
         var discoverCommand = new Command("discover", "Discover SQLite database files and print a summary");
 
-        var pathOption = new Option<string>(
-            "--path",
-            description: "Path to directory containing SQLite databases",
-            getDefaultValue: () => GetDefaultDataPath(services));
-
-        discoverCommand.AddOption(pathOption);
-
-        discoverCommand.SetHandler(async (path) =>
+        var pathOption = new Option<string>("--path")
         {
+            Description = "Path to directory containing SQLite databases",
+            DefaultValueFactory = _ => GetDefaultDataPath(services)
+        };
+
+        discoverCommand.Add(pathOption);
+
+        discoverCommand.SetAction(async parseResult =>
+        {
+            var path = parseResult.GetValue(pathOption) ?? GetDefaultDataPath(services);
             using var scope = services.CreateScope();
             var discovery = scope.ServiceProvider.GetRequiredService<IDatabaseDiscoveryService>();
             var loggerFactory = scope.ServiceProvider.GetService<ILoggerFactory>();
@@ -62,7 +64,7 @@ public static class CommandFactory
                 logger?.LogError(ex, "Error during discovery");
                 Console.Error.WriteLine($"Error: {ex.Message}");
             }
-        }, pathOption);
+        });
 
         return discoverCommand;
     }
@@ -71,36 +73,47 @@ public static class CommandFactory
     {
         var exportCommand = new Command("export", "Export database tables to CSV files");
 
-        var pathOption = new Option<string>(
-            "--path",
-            description: "Path to directory containing SQLite databases",
-            getDefaultValue: () => GetDefaultDataPath(services));
-
-        var outputOption = new Option<string>(
-            "--output",
-            description: "Output directory for CSV files",
-            getDefaultValue: () => GetDefaultExportPath(services));
-
-        var delimiterOption = new Option<string?>(
-            "--delimiter",
-            description: "Optional CSV delimiter override (defaults to configured option)");
-
-        var headersOption = new Option<bool?>(
-            "--headers",
-            description: "Override to include (true) or exclude (false) headers; omit to use configured option");
-
-        var tablesOption = new Option<string?>(
-            name: "--tables",
-            description: "Optional comma or semicolon separated list of tables to export (case-insensitive). Example: --tables Users,Orders;Products");
-
-        exportCommand.AddOption(pathOption);
-        exportCommand.AddOption(outputOption);
-        exportCommand.AddOption(delimiterOption);
-        exportCommand.AddOption(headersOption);
-        exportCommand.AddOption(tablesOption);
-
-        exportCommand.SetHandler(async (path, output, delimiter, headers, tables) =>
+        var pathOption = new Option<string>("--path")
         {
+            Description = "Path to directory containing SQLite databases",
+            DefaultValueFactory = _ => GetDefaultDataPath(services)
+        };
+
+        var outputOption = new Option<string>("--output")
+        {
+            Description = "Output directory for CSV files",
+            DefaultValueFactory = _ => GetDefaultExportPath(services)
+        };
+
+        var delimiterOption = new Option<string?>("--delimiter")
+        {
+            Description = "Optional CSV delimiter override (defaults to configured option)"
+        };
+
+        var headersOption = new Option<bool?>("--headers")
+        {
+            Description = "Override to include (true) or exclude (false) headers; omit to use configured option"
+        };
+
+        var tablesOption = new Option<string?>("--tables")
+        {
+            Description = "Optional comma or semicolon separated list of tables to export (case-insensitive). Example: --tables Users,Orders;Products"
+        };
+
+        exportCommand.Add(pathOption);
+        exportCommand.Add(outputOption);
+        exportCommand.Add(delimiterOption);
+        exportCommand.Add(headersOption);
+        exportCommand.Add(tablesOption);
+
+        exportCommand.SetAction(async parseResult =>
+        {
+            var path = parseResult.GetValue(pathOption) ?? GetDefaultDataPath(services);
+            var output = parseResult.GetValue(outputOption) ?? GetDefaultExportPath(services);
+            var delimiter = parseResult.GetValue(delimiterOption);
+            var headers = parseResult.GetValue(headersOption);
+            var tables = parseResult.GetValue(tablesOption);
+
             using var scope = services.CreateScope();
             var app = scope.ServiceProvider.GetRequiredService<ApplicationService>();
             var tableList = ParseTables(tables);
@@ -120,7 +133,7 @@ public static class CommandFactory
             {
                 await app.ExportDatabasesAsync(path, output, delimiter, headers);
             }
-        }, pathOption, outputOption, delimiterOption, headersOption, tablesOption);
+        });
 
         return exportCommand;
     }
@@ -129,31 +142,38 @@ public static class CommandFactory
     {
         var schemaCommand = new Command("schema", "Generate schema reports for databases");
 
-        var pathOption = new Option<string>(
-            "--path",
-            description: "Path to directory containing SQLite databases",
-            getDefaultValue: () => GetDefaultDataPath(services));
-
-        var formatOption = new Option<string>(
-            name: "--format",
-            description: "Output format: text (default), json, markdown",
-            getDefaultValue: () => "text");
-
-        var tablesOption = new Option<string?>(
-            name: "--tables",
-            description: "Optional comma or semicolon separated list of tables to include in schema report (currently informational only).");
-
-        schemaCommand.AddOption(pathOption);
-        schemaCommand.AddOption(formatOption);
-        schemaCommand.AddOption(tablesOption);
-
-        schemaCommand.SetHandler(async (path, format, tables) =>
+        var pathOption = new Option<string>("--path")
         {
+            Description = "Path to directory containing SQLite databases",
+            DefaultValueFactory = _ => GetDefaultDataPath(services)
+        };
+
+        var formatOption = new Option<string>("--format")
+        {
+            Description = "Output format: text (default), json, markdown",
+            DefaultValueFactory = _ => "text"
+        };
+
+        var tablesOption = new Option<string?>("--tables")
+        {
+            Description = "Optional comma or semicolon separated list of tables to include in schema report (currently informational only)."
+        };
+
+        schemaCommand.Add(pathOption);
+        schemaCommand.Add(formatOption);
+        schemaCommand.Add(tablesOption);
+
+        schemaCommand.SetAction(async parseResult =>
+        {
+            var path = parseResult.GetValue(pathOption) ?? GetDefaultDataPath(services);
+            var format = parseResult.GetValue(formatOption) ?? "text";
+            var tables = parseResult.GetValue(tablesOption);
+
             using var scope = services.CreateScope();
             var app = scope.ServiceProvider.GetRequiredService<ApplicationService>();
             var tableList = ParseTables(tables);
             await app.GenerateSchemaReportsAsync(path, format, tableList.Any() ? tableList : null);
-        }, pathOption, formatOption, tablesOption);
+        });
 
         return schemaCommand;
     }
@@ -162,37 +182,46 @@ public static class CommandFactory
     {
         var generateCommand = new Command("generate", "Generate DTO classes from database schema");
 
-        var pathOption = new Option<string>(
-            "--path",
-            description: "Path to directory containing SQLite databases",
-            getDefaultValue: () => GetDefaultDataPath(services));
-
-        var outputOption = new Option<string>(
-            "--output",
-            description: "Output directory for generated code",
-            getDefaultValue: () => GetDefaultGeneratedPath(services));
-
-        var namespaceOption = new Option<string>(
-            "--namespace",
-            description: "Namespace for generated classes",
-            getDefaultValue: () => "Sql2Csv.Generated");
-
-        var tablesOption = new Option<string?>(
-            name: "--tables",
-            description: "Optional comma or semicolon separated list of tables to generate DTO classes for (currently ignored).");
-
-        generateCommand.AddOption(pathOption);
-        generateCommand.AddOption(outputOption);
-        generateCommand.AddOption(namespaceOption);
-        generateCommand.AddOption(tablesOption);
-
-        generateCommand.SetHandler(async (path, output, namespaceName, tables) =>
+        var pathOption = new Option<string>("--path")
         {
+            Description = "Path to directory containing SQLite databases",
+            DefaultValueFactory = _ => GetDefaultDataPath(services)
+        };
+
+        var outputOption = new Option<string>("--output")
+        {
+            Description = "Output directory for generated code",
+            DefaultValueFactory = _ => GetDefaultGeneratedPath(services)
+        };
+
+        var namespaceOption = new Option<string>("--namespace")
+        {
+            Description = "Namespace for generated classes",
+            DefaultValueFactory = _ => "Sql2Csv.Generated"
+        };
+
+        var tablesOption = new Option<string?>("--tables")
+        {
+            Description = "Optional comma or semicolon separated list of tables to generate DTO classes for (currently ignored)."
+        };
+
+        generateCommand.Add(pathOption);
+        generateCommand.Add(outputOption);
+        generateCommand.Add(namespaceOption);
+        generateCommand.Add(tablesOption);
+
+        generateCommand.SetAction(async parseResult =>
+        {
+            var path = parseResult.GetValue(pathOption) ?? GetDefaultDataPath(services);
+            var output = parseResult.GetValue(outputOption) ?? GetDefaultGeneratedPath(services);
+            var namespaceName = parseResult.GetValue(namespaceOption) ?? "Sql2Csv.Generated";
+            var tables = parseResult.GetValue(tablesOption);
+
             using var scope = services.CreateScope();
             var app = scope.ServiceProvider.GetRequiredService<ApplicationService>();
             var tableList = ParseTables(tables);
             await app.GenerateCodeAsync(path, output, namespaceName, tableList.Any() ? tableList : null);
-        }, pathOption, outputOption, namespaceOption, tablesOption);
+        });
 
         return generateCommand;
     }

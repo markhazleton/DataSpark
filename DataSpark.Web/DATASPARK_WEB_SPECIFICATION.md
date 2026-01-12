@@ -446,7 +446,7 @@ DataSpark.Web/
 ### Development Environment
 
 **Requirements**:
-- .NET 9.0 SDK
+- .NET 10.0 SDK
 - Visual Studio 2022 or VS Code
 - Node.js (for frontend package management)
 - Git for version control
