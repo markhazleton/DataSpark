@@ -22,7 +22,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Restore
         run: dotnet restore sql2csv.sln
@@ -50,11 +50,12 @@ jobs:
       - name: Report coverage summary
         shell: bash
         run: |
+          set +e  # Disable exit on error for this section
           echo "Searching for coverage.cobertura.xml..."
           COVERAGE_FILE=$(find TestResults -name 'coverage.cobertura.xml' | head -n 1 || true)
           if [ -f "$COVERAGE_FILE" ]; then
             echo "Found: $COVERAGE_FILE"
-            RATE=$(grep -o 'line-rate="[0-9.]*"' "$COVERAGE_FILE" | head -n 1 | sed -E 's/.*="([0-9.]+)"/\1/')
+            RATE=$(grep -o 'line-rate="[0-9.]*"' "$COVERAGE_FILE" | head -n 1 | sed -E 's/.*="([0-9.]+)"/\1/' || true)
             PERCENT=$(awk -v r="$RATE" 'BEGIN { printf("%.2f", r*100) }')
             echo "Coverage: ${PERCENT}%" | tee coverage-summary.txt
             COLOR=$(awk -v p="$PERCENT" 'BEGIN { if (p >= 85) print "brightgreen"; else if (p >= 70) print "yellow"; else print "orange" }')
@@ -62,6 +63,7 @@ jobs:
           else
             echo "Coverage: unknown" | tee coverage-summary.txt
           fi
+          set -e  # Re-enable exit on error
 
       - name: Copy coverage XML to web/data
         shell: bash
