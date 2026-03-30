@@ -9,11 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
-        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.1" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
         <PackageReference Include="Microsoft.Data.Analysis" Version="0.23.0" />
-        <PackageReference Include="ScottPlot" Version="5.1.57" />
+        <PackageReference Include="ScottPlot" Version="5.1.58" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     </ItemGroup>
 
@@ -22,7 +22,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Markdig" Version="0.44.0" />
+        <PackageReference Include="Markdig" Version="1.1.2" />
     </ItemGroup>
 
     <!-- Build targets for frontend assets -->
