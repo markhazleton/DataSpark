@@ -131,7 +131,7 @@ public class ChartController : BaseController
     /// Save chart configuration
     /// </summary>
     [HttpPost("Configure")]
-    // [ValidateAntiForgeryToken] // Temporarily disabled for debugging
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Configure(ChartConfigurationViewModel model)
     {
         try
@@ -322,6 +322,7 @@ public class ChartController : BaseController
     /// Chart preview (AJAX)
     /// </summary>
     [HttpPost("Preview")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Preview([FromBody] ChartPreviewRequest request)
     {
         try
@@ -416,6 +417,7 @@ public class ChartController : BaseController
     /// Duplicate chart configuration
     /// </summary>
     [HttpPost("Duplicate/{id}")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Duplicate(int id, [FromForm] string newName)
     {
         try

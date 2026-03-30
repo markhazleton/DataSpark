@@ -59,7 +59,7 @@ public class ChartService : IChartService
             }
 
             ChartConfiguration savedConfig = config.Id == 0
-                ? await _repository.CreateAsync(config)
+                ? await _repository.CreateAsync(config).ConfigureAwait(false)
                 : await _repository.UpdateAsync(config).ConfigureAwait(false);
 
             _logger.LogInformation("Chart configuration {Name} saved with ID {Id}", savedConfig.Name, savedConfig.Id);
@@ -139,7 +139,7 @@ public class ChartService : IChartService
             var duplicatedConfig = originalConfig.Clone();
             duplicatedConfig.Name = newName;
 
-            if (await _repository.ExistsByNameAsync(newName, duplicatedConfig.CsvFile))
+            if (await _repository.ExistsByNameAsync(newName, duplicatedConfig.CsvFile).ConfigureAwait(false))
                 throw new InvalidOperationException($"A configuration with the name '{newName}' already exists");
 
             var savedConfig = await _repository.CreateAsync(duplicatedConfig).ConfigureAwait(false);

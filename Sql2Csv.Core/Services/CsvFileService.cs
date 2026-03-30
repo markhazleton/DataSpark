@@ -75,7 +75,7 @@ public class CsvFileService
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var reader = new StreamReader(stream, encoding ?? Encoding.UTF8);
             using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = delimiter.ToString() });
-            if (await csv.ReadAsync())
+            if (await csv.ReadAsync().ConfigureAwait(false))
             {
                 csv.ReadHeader();
                 result.Data = csv.HeaderRecord?.ToList() ?? new List<string>();
@@ -163,7 +163,7 @@ public class CsvFileService
                         return DataFrame.LoadCsv(stream, separator: delimiter, header: true, dataTypes: Enumerable.Repeat(typeof(string), colCount).ToArray(), encoding: encoding ?? Encoding.UTF8, cultureInfo: CultureInfo.InvariantCulture);
                     }
                 }
-            });
+            }).ConfigureAwait(false);
             result.Data.Add(df); result.Success = true;
         }
         catch (Exception ex)

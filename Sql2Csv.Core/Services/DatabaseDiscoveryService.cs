@@ -39,7 +39,7 @@ public sealed class DatabaseDiscoveryService : IDatabaseDiscoveryService
 
             var databaseFiles = await Task.Run(() =>
                 Directory.GetFiles(directoryPath, "*.db", SearchOption.TopDirectoryOnly),
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             var databases = new List<DatabaseConfiguration>();
 

@@ -23,7 +23,7 @@ public class ChartValidationService : IChartValidationService
             result.Warnings.AddRange(basic.Warnings);
             if (!string.IsNullOrWhiteSpace(dataSource))
             {
-                if (!await _dataService.ValidateDataSourceAsync(dataSource))
+                if (!await _dataService.ValidateDataSourceAsync(dataSource).ConfigureAwait(false))
                 { result.Errors.Add($"CSV '{dataSource}' not found or empty."); return result; }
                 var columns = await _dataService.GetColumnsAsync(dataSource).ConfigureAwait(false);
                 foreach (var s in config.Series) result.Errors.AddRange(await ValidateSeriesAsync(s, columns).ConfigureAwait(false));
@@ -31,7 +31,7 @@ public class ChartValidationService : IChartValidationService
                 if (config.YAxis != null) result.Errors.AddRange(await ValidateAxisAsync(config.YAxis, columns).ConfigureAwait(false));
                 if (config.Y2Axis != null) result.Errors.AddRange(await ValidateAxisAsync(config.Y2Axis, columns).ConfigureAwait(false));
                 result.Errors.AddRange(await ValidateFiltersAsync(config.Filters, columns).ConfigureAwait(false));
-                if (!await IsChartTypeCompatibleAsync(config.ChartType, columns))
+                if (!await IsChartTypeCompatibleAsync(config.ChartType, columns).ConfigureAwait(false))
                     result.Warnings.Add($"Chart type '{config.ChartType}' may not be optimal for the data.");
             }
             ValidateChartSpecificRules(config, result);

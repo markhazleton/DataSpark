@@ -215,7 +215,7 @@ public sealed class ExportService : IExportService
             }
 
             // Write data rows
-            while (await reader.ReadAsync(cancellationToken))
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 for (var i = 0; i < reader.FieldCount; i++)
                 {

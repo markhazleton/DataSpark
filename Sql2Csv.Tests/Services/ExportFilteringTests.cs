@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -28,6 +29,6 @@ public class ExportFilteringTests
 
         // Assert
         // Only Users and Products should be attempted
-        Assert.IsTrue(results.All(r => r.TableName is "Users" or "Products"));
+        results.Should().OnlyContain(r => r.TableName == "Users" || r.TableName == "Products");
     }
 }

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -109,18 +110,18 @@ public class UnifiedDataControllerTests
         var result = await _controller.Analyze(fileId, fileType, dataSourceName);
 
         // Assert
-        Assert.IsNotNull(result, "Controller should return a result");
+        result.Should().NotBeNull("Controller should return a result");
         var viewResult = result as ViewResult;
-        Assert.IsNotNull(viewResult, $"Expected ViewResult but got {result.GetType().Name}");
-        Assert.AreEqual("UnifiedAnalysis", viewResult.ViewName);
+        viewResult.Should().NotBeNull($"Expected ViewResult but got {result.GetType().Name}");
+        viewResult!.ViewName.Should().Be("UnifiedAnalysis");
 
         var model = viewResult.Model as UnifiedDataSourceAnalysisViewModel;
-        Assert.IsNotNull(model);
-        Assert.AreEqual(fileId, model.FileId);
-        Assert.AreEqual(fileType, model.FileType);
-        Assert.AreEqual(dataSourceName, model.DataSourceName);
-        Assert.IsTrue(model.CanViewData);
-        Assert.IsTrue(model.CanExport);
+        model.Should().NotBeNull();
+        model!.FileId.Should().Be(fileId);
+        model.FileType.Should().Be(fileType);
+        model.DataSourceName.Should().Be(dataSourceName);
+        model.CanViewData.Should().BeTrue();
+        model.CanExport.Should().BeTrue();
         }
         finally
         {
@@ -191,14 +192,14 @@ public class UnifiedDataControllerTests
 
         // Assert
         var viewResult = result as ViewResult;
-        Assert.IsNotNull(viewResult);
-        Assert.AreEqual("UnifiedAnalysis", viewResult.ViewName);
+        viewResult.Should().NotBeNull();
+        viewResult!.ViewName.Should().Be("UnifiedAnalysis");
 
         var model = viewResult.Model as UnifiedDataSourceAnalysisViewModel;
-        Assert.IsNotNull(model);
-        Assert.AreEqual(fileId, model.FileId);
-        Assert.AreEqual(fileType, model.FileType);
-        Assert.AreEqual("test", model.DataSourceName); // Should be filename without extension
+        model.Should().NotBeNull();
+        model!.FileId.Should().Be(fileId);
+        model.FileType.Should().Be(fileType);
+        model.DataSourceName.Should().Be("test"); // Should be filename without extension
         }
         finally
         {
@@ -227,14 +228,14 @@ public class UnifiedDataControllerTests
 
         // Assert
         var viewResult = result as ViewResult;
-        Assert.IsNotNull(viewResult);
-        Assert.AreEqual("UnifiedDataView", viewResult.ViewName);
+        viewResult.Should().NotBeNull();
+        viewResult!.ViewName.Should().Be("UnifiedDataView");
 
         var model = viewResult.Model as UnifiedDataViewViewModel;
-        Assert.IsNotNull(model);
-        Assert.AreEqual(fileId, model.FileId);
-        Assert.AreEqual(fileType, model.FileType);
-        Assert.AreEqual(dataSourceName, model.DataSourceName);
+        model.Should().NotBeNull();
+        model!.FileId.Should().Be(fileId);
+        model.FileType.Should().Be(fileType);
+        model.DataSourceName.Should().Be(dataSourceName);
     }
 
     [TestMethod]
@@ -273,7 +274,7 @@ public class UnifiedDataControllerTests
 
         // Assert
         var jsonResult = result as JsonResult;
-        Assert.IsNotNull(jsonResult);
+        jsonResult.Should().NotBeNull();
         
         // In a real test, you'd verify the JSON structure
         // For now, just verify it's a JsonResult
@@ -324,15 +325,15 @@ public class UnifiedDataControllerTests
 
         // Assert
         var viewResult = result as ViewResult;
-        Assert.IsNotNull(viewResult);
-        Assert.AreEqual("ExportResults", viewResult.ViewName);
+        viewResult.Should().NotBeNull();
+        viewResult!.ViewName.Should().Be("ExportResults");
 
         var model = viewResult.Model as ExportResultsViewModel;
-        Assert.IsNotNull(model);
-        Assert.AreEqual(fileId, model.FileId);
-        Assert.AreEqual(fileType, model.FileType);
-        Assert.AreEqual(2, model.Results.Count);
-        Assert.IsTrue(model.AllSuccessful);
+        model.Should().NotBeNull();
+        model!.FileId.Should().Be(fileId);
+        model.FileType.Should().Be(fileType);
+        model.Results.Count.Should().Be(2);
+        model.AllSuccessful.Should().BeTrue();
     }
 
     [TestMethod]
@@ -342,13 +343,13 @@ public class UnifiedDataControllerTests
         // or make the method internal and use InternalsVisibleTo attribute
 
         // For now, just verify the controller can be instantiated
-        Assert.IsNotNull(_controller);
+        _controller.Should().NotBeNull();
     }
 
     [TestMethod]
     public void GenerateDisplayName_WithCsvFile_ShouldUseFileName()
     {
         // Similar to above - testing through public interface
-        Assert.IsNotNull(_controller);
+        _controller.Should().NotBeNull();
     }
 }

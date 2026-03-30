@@ -55,6 +55,7 @@ public class UnivariateController : BaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult Analyze(string fileName, string columnName)
     {
         if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(columnName))

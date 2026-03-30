@@ -91,7 +91,7 @@ public sealed class SchemaService : ISchemaService
 
             using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
-            while (await reader.ReadAsync(cancellationToken))
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 var tableName = reader.GetString(0);
                 tableNames.Add(tableName);
@@ -123,7 +123,7 @@ public sealed class SchemaService : ISchemaService
             using var command = new SqliteCommand($"PRAGMA table_info([{tableName}])", connection);
             using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
-            while (await reader.ReadAsync(cancellationToken))
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 var isPrimaryKey = reader.GetBoolean(reader.GetOrdinal("pk"));
                 var notNull = reader.GetBoolean(reader.GetOrdinal("notnull"));
@@ -159,7 +159,7 @@ public sealed class SchemaService : ISchemaService
         try
         {
             format = (format ?? "text").Trim().ToLowerInvariant();
-            var tables = (await GetTablesAsync(connectionString, cancellationToken)).ToList();
+            var tables = (await GetTablesAsync(connectionString, cancellationToken).ConfigureAwait(false)).ToList();
 
             string result = format switch
             {

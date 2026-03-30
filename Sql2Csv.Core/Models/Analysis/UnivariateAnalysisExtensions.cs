@@ -13,7 +13,7 @@ public static class UnivariateAnalysisExtensions
         Parallel.ForEach(dataFrame.Columns, column =>
         {
             try { columnInformationList.Add(GetColumnAnalysis(config, column)); }
-            catch (Exception ex) { Console.WriteLine($"Error analyzing column {column.Name}: {ex.Message}"); }
+            catch (Exception) { /* Non-fatal: individual column analysis failures do not bubble up. */ }
         });
         return [.. columnInformationList];
     }
