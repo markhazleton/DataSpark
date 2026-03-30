@@ -38,7 +38,7 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
         {
             if (dataSource.Type == DataSourceType.Database)
             {
-                await AnalyzeDatabaseTableAsync(dataSource, result, cancellationToken);
+                await AnalyzeDatabaseTableAsync(dataSource, result, cancellationToken).ConfigureAwait(false);
             }
             else
             {
@@ -69,7 +69,7 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
         {
             if (dataSource.Type == DataSourceType.Database)
             {
-                await GetDatabaseDataAsync(dataSource, result, skip, take, cancellationToken);
+                await GetDatabaseDataAsync(dataSource, result, skip, take, cancellationToken).ConfigureAwait(false);
             }
             else
             {
@@ -93,7 +93,7 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
         }
 
         // Get table columns
-        var columns = await _schemaService.GetTableColumnsAsync(dataSource.ConnectionString, dataSource.TableName, cancellationToken);
+        var columns = await _schemaService.GetTableColumnsAsync(dataSource.ConnectionString, dataSource.TableName, cancellationToken).ConfigureAwait(false);
         
         var columnList = columns.ToList();
         result.ColumnCount = columnList.Count;
@@ -111,10 +111,10 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
         try
         {
             await using var connection = new SqliteConnection(dataSource.ConnectionString);
-            await connection.OpenAsync(cancellationToken);
-            await using (var countCmd = new SqliteCommand($"SELECT COUNT(*) FROM [" + dataSource.TableName + "]", connection))
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using (var countCmd = new SqliteCommand($"SELECT COUNT(*) FROM [{dataSource.TableName}]", connection))
             {
-                var scalar = await countCmd.ExecuteScalarAsync(cancellationToken);
+                var scalar = await countCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
                 result.RowCount = Convert.ToInt64(scalar);
                 result.Capabilities |= UnifiedAnalysisCapabilities.RowCount;
             }
@@ -124,9 +124,9 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
             {
                 try
                 {
-                    var sql = $"SELECT MIN([{numericCol.ColumnName}]), MAX([{numericCol.ColumnName}]), AVG([{numericCol.ColumnName}]) FROM [" + dataSource.TableName + "]";
+                    var sql = $"SELECT MIN([{numericCol.ColumnName}]), MAX([{numericCol.ColumnName}]), AVG([{numericCol.ColumnName}]) FROM [{dataSource.TableName}]";
                     await using var statsCmd = new SqliteCommand(sql, connection);
-                    await using var reader = await statsCmd.ExecuteReaderAsync(cancellationToken);
+                    await using var reader = await statsCmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                     if (await reader.ReadAsync(cancellationToken))
                     {
                         numericCol.MinValue = reader.IsDBNull(0) ? null : reader.GetValue(0)?.ToString();
@@ -165,21 +165,21 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
         try
         {
             await using var connection = new SqliteConnection(dataSource.ConnectionString);
-            await connection.OpenAsync(cancellationToken);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Total rows (cache could be added)
-            await using (var countCmd = new SqliteCommand($"SELECT COUNT(*) FROM [" + dataSource.TableName + "]", connection))
+            await using (var countCmd = new SqliteCommand($"SELECT COUNT(*) FROM [{dataSource.TableName}]", connection))
             {
-                var scalar = await countCmd.ExecuteScalarAsync(cancellationToken);
+                var scalar = await countCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
                 result.TotalRows = Convert.ToInt64(scalar);
             }
 
-            var sql = $"SELECT * FROM [" + dataSource.TableName + "] LIMIT @take OFFSET @skip";
+            var sql = $"SELECT * FROM [{dataSource.TableName}] LIMIT @take OFFSET @skip";
             await using var cmd = new SqliteCommand(sql, connection);
             cmd.Parameters.AddWithValue("@take", take);
             cmd.Parameters.AddWithValue("@skip", skip);
 
-            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             var rows = new List<Dictionary<string, object?>>();
             while (await reader.ReadAsync(cancellationToken))
             {

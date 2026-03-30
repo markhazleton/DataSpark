@@ -137,6 +137,7 @@ public class UnifiedDataController : Controller
     /// API endpoint for DataTables server-side processing - handles database data
     /// </summary>
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<JsonResult> GetDataTableData([FromBody] UnifiedDataTableRequest request)
     {
         try
@@ -189,6 +190,7 @@ public class UnifiedDataController : Controller
     /// Unified export endpoint
     /// </summary>
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Export(string fileId, DataSourceType fileType, List<string> selectedDataSources)
     {
         try

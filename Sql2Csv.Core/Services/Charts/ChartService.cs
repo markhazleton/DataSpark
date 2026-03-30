@@ -27,7 +27,7 @@ public class ChartService : IChartService
     {
         try
         {
-            return await _repository.GetByIdAsync(id);
+            return await _repository.GetByIdAsync(id).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -42,7 +42,7 @@ public class ChartService : IChartService
         {
             _logger.LogInformation("Saving chart configuration: {Name} (DataSource: {DataSource})", config.Name, config.CsvFile);
 
-            var validationResult = await _validationService.ValidateConfigurationAsync(config);
+            var validationResult = await _validationService.ValidateConfigurationAsync(config).ConfigureAwait(false);
             if (!validationResult.IsValid)
             {
                 var errorMessage = $"Configuration validation failed: {string.Join(", ", validationResult.Errors)}";
@@ -50,7 +50,7 @@ public class ChartService : IChartService
                 throw new InvalidOperationException(errorMessage);
             }
 
-            var existingConfig = await _repository.GetByNameAsync(config.Name, config.CsvFile);
+            var existingConfig = await _repository.GetByNameAsync(config.Name, config.CsvFile).ConfigureAwait(false);
             if (existingConfig != null && existingConfig.Id != config.Id)
             {
                 var errorMessage = $"A chart named '{config.Name}' already exists for this data source.";
@@ -60,7 +60,7 @@ public class ChartService : IChartService
 
             ChartConfiguration savedConfig = config.Id == 0
                 ? await _repository.CreateAsync(config)
-                : await _repository.UpdateAsync(config);
+                : await _repository.UpdateAsync(config).ConfigureAwait(false);
 
             _logger.LogInformation("Chart configuration {Name} saved with ID {Id}", savedConfig.Name, savedConfig.Id);
             return savedConfig;
@@ -80,7 +80,7 @@ public class ChartService : IChartService
     {
         try
         {
-            var result = await _repository.DeleteAsync(id);
+            var result = await _repository.DeleteAsync(id).ConfigureAwait(false);
             if (result) _logger.LogInformation("Deleted chart configuration {Id}", id);
             return result;
         }
@@ -95,7 +95,7 @@ public class ChartService : IChartService
     {
         try
         {
-            return await _repository.GetSummariesAsync(dataSource);
+            return await _repository.GetSummariesAsync(dataSource).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -108,7 +108,7 @@ public class ChartService : IChartService
     {
         try
         {
-            return await _repository.GetByNameAsync(name, dataSource);
+            return await _repository.GetByNameAsync(name, dataSource).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -121,7 +121,7 @@ public class ChartService : IChartService
     {
         try
         {
-            return await _repository.ExistsByNameAsync(name, dataSource, excludeId);
+            return await _repository.ExistsByNameAsync(name, dataSource, excludeId).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -134,7 +134,7 @@ public class ChartService : IChartService
     {
         try
         {
-            var originalConfig = await _repository.GetByIdAsync(id) ?? throw new ArgumentException($"Configuration with ID {id} not found");
+            var originalConfig = await _repository.GetByIdAsync(id).ConfigureAwait(false) ?? throw new ArgumentException($"Configuration with ID {id} not found");
 
             var duplicatedConfig = originalConfig.Clone();
             duplicatedConfig.Name = newName;
@@ -142,7 +142,7 @@ public class ChartService : IChartService
             if (await _repository.ExistsByNameAsync(newName, duplicatedConfig.CsvFile))
                 throw new InvalidOperationException($"A configuration with the name '{newName}' already exists");
 
-            var savedConfig = await _repository.CreateAsync(duplicatedConfig);
+            var savedConfig = await _repository.CreateAsync(duplicatedConfig).ConfigureAwait(false);
             _logger.LogInformation("Duplicated chart configuration {OriginalId} as {NewName}", id, newName);
             return savedConfig;
         }
@@ -157,7 +157,7 @@ public class ChartService : IChartService
     {
         try
         {
-            return await _repository.GetByIdsAsync(ids);
+            return await _repository.GetByIdsAsync(ids).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -170,7 +170,7 @@ public class ChartService : IChartService
     {
         try
         {
-            var deleted = await _repository.DeleteByIdsAsync(ids);
+            var deleted = await _repository.DeleteByIdsAsync(ids).ConfigureAwait(false);
             _logger.LogInformation("Deleted {Count} chart configurations", deleted);
             return deleted;
         }

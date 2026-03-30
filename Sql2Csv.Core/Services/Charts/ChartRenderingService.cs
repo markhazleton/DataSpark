@@ -22,9 +22,9 @@ public class ChartRenderingService : IChartRenderingService
     {
         try
         {
-            var chartJson = await GenerateChartJsonAsync(config, data);
-            var chartHtml = await GenerateChartHtmlAsync(config, data);
-            var chartScript = await GenerateChartScriptAsync(config, data);
+            var chartJson = await GenerateChartJsonAsync(config, data).ConfigureAwait(false);
+            var chartHtml = await GenerateChartHtmlAsync(config, data).ConfigureAwait(false);
+            var chartScript = await GenerateChartScriptAsync(config, data).ConfigureAwait(false);
 
             return ChartRenderResult.CreateSuccess(chartHtml, chartJson, chartScript);
         }
@@ -68,7 +68,7 @@ public class ChartRenderingService : IChartRenderingService
         try
         {
             var chartId = $"chart_{Guid.NewGuid():N}";
-            var chartJson = await GenerateChartJsonAsync(config, data);
+            var chartJson = await GenerateChartJsonAsync(config, data).ConfigureAwait(false);
 
             var html = new StringBuilder();
             html.AppendLine("<div class=\"chart-container\" style=\"position: relative;\">");
@@ -96,7 +96,7 @@ public class ChartRenderingService : IChartRenderingService
     {
         try
         {
-            var chartJson = await GenerateChartJsonAsync(config, data);
+            var chartJson = await GenerateChartJsonAsync(config, data).ConfigureAwait(false);
             var script = new StringBuilder();
             script.AppendLine("function createChart(canvasId) {");
             script.AppendLine("  var ctx = document.getElementById(canvasId).getContext('2d');");

@@ -46,7 +46,7 @@ public sealed class ApplicationService
     /// <param name="outputPath">The output path for CSV files.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     public async Task ExportDatabasesAsync(string databasePath, string outputPath, CancellationToken cancellationToken = default)
-        => await ExportDatabasesAsync(databasePath, outputPath, null, null, cancellationToken);
+        => await ExportDatabasesAsync(databasePath, outputPath, null, null, cancellationToken).ConfigureAwait(false);
 
     /// <summary>
     /// Exports all databases with optional delimiter/header overrides.
@@ -63,7 +63,7 @@ public sealed class ApplicationService
 
         try
         {
-            var databases = await _discoveryService.DiscoverDatabasesAsync(databasePath, cancellationToken);
+            var databases = await _discoveryService.DiscoverDatabasesAsync(databasePath, cancellationToken).ConfigureAwait(false);
 
             if (!databases.Any())
             {
@@ -80,7 +80,7 @@ public sealed class ApplicationService
                 var databaseOutputPath = Path.Combine(outputPath, database.Name);
                 _logger.LogInformation("Exporting database: {DatabaseName}", database.Name);
 
-                var results = await _exportService.ExportDatabaseToCsvAsync(database, databaseOutputPath, delimiter, includeHeaders, cancellationToken);
+                var results = await _exportService.ExportDatabaseToCsvAsync(database, databaseOutputPath, delimiter, includeHeaders, cancellationToken).ConfigureAwait(false);
                 totalResults.AddRange(results);
             }
 
@@ -110,7 +110,7 @@ public sealed class ApplicationService
 
         try
         {
-            var databases = await _discoveryService.DiscoverDatabasesAsync(databasePath, cancellationToken);
+            var databases = await _discoveryService.DiscoverDatabasesAsync(databasePath, cancellationToken).ConfigureAwait(false);
 
             if (!databases.Any())
             {
@@ -127,7 +127,7 @@ public sealed class ApplicationService
                 var databaseOutputPath = Path.Combine(outputPath, database.Name);
                 _logger.LogInformation("Exporting database (filtered): {DatabaseName}", database.Name);
 
-                var results = await _exportService.ExportDatabaseToCsvAsync(database, databaseOutputPath, tablesFilter, delimiter, includeHeaders, cancellationToken);
+                var results = await _exportService.ExportDatabaseToCsvAsync(database, databaseOutputPath, tablesFilter, delimiter, includeHeaders, cancellationToken).ConfigureAwait(false);
                 totalResults.AddRange(results);
             }
 
@@ -154,7 +154,7 @@ public sealed class ApplicationService
 
         try
         {
-            var databases = await _discoveryService.DiscoverDatabasesAsync(databasePath, cancellationToken);
+            var databases = await _discoveryService.DiscoverDatabasesAsync(databasePath, cancellationToken).ConfigureAwait(false);
 
             if (!databases.Any())
             {
@@ -168,8 +168,8 @@ public sealed class ApplicationService
 
                 _logger.LogInformation("Generating schema report for database: {DatabaseName}", database.Name);
 
-                var report = await _schemaService.GenerateSchemaReportAsync(database.ConnectionString, format, cancellationToken);
-                await _schemaReportSink.WriteReportAsync(database.Name, format, report, cancellationToken);
+                var report = await _schemaService.GenerateSchemaReportAsync(database.ConnectionString, format, cancellationToken).ConfigureAwait(false);
+                await _schemaReportSink.WriteReportAsync(database.Name, format, report, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -197,7 +197,7 @@ public sealed class ApplicationService
 
         try
         {
-            var databases = await _discoveryService.DiscoverDatabasesAsync(databasePath, cancellationToken);
+            var databases = await _discoveryService.DiscoverDatabasesAsync(databasePath, cancellationToken).ConfigureAwait(false);
 
             if (!databases.Any())
             {
@@ -213,7 +213,7 @@ public sealed class ApplicationService
                 _logger.LogInformation("Generating code for database: {DatabaseName}", database.Name);
 
                 // NOTE: Table filtering for code generation deferred to future wave; generate for all tables.
-                await _codeGenerationService.GenerateDtoClassesAsync(database.ConnectionString, databaseOutputPath, namespaceName, cancellationToken);
+                await _codeGenerationService.GenerateDtoClassesAsync(database.ConnectionString, databaseOutputPath, namespaceName, cancellationToken).ConfigureAwait(false);
             }
 
             _logger.LogInformation("Code generation completed successfully");

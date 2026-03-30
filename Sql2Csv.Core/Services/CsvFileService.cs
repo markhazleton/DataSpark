@@ -101,7 +101,7 @@ public class CsvFileService
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var reader = new StreamReader(stream, encoding ?? Encoding.UTF8);
             using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = delimiter.ToString() });
-            await foreach (var record in csv.GetRecordsAsync<dynamic>()) { result.Data.Add(record); }
+            await foreach (var record in csv.GetRecordsAsync<dynamic>().ConfigureAwait(false)) { result.Data.Add(record); }
             result.Success = true;
         }
         catch (Exception ex)
@@ -123,7 +123,7 @@ public class CsvFileService
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var reader = new StreamReader(stream, encoding ?? Encoding.UTF8);
             using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = delimiter.ToString() });
-            await foreach (var record in csv.GetRecordsAsync<T>()) { result.Data.Add(record); }
+            await foreach (var record in csv.GetRecordsAsync<T>().ConfigureAwait(false)) { result.Data.Add(record); }
             result.Success = true;
         }
         catch (Exception ex)
@@ -176,7 +176,7 @@ public class CsvFileService
 
     public async Task<CsvVisualizationResult> ReadCsvForVisualizationAsync(string fileName, bool sanitizeForExcel = false)
     {
-        var recordsResult = await ReadCsvRecordsAsync<dynamic>(fileName);
+        var recordsResult = await ReadCsvRecordsAsync<dynamic>(fileName).ConfigureAwait(false);
         if (!recordsResult.Success || !recordsResult.Data.Any())
             return new CsvVisualizationResult { Headers = new List<string>(), Columns = new Dictionary<string, List<string>>(), Records = new List<dynamic>() };
         var records = recordsResult.Data;

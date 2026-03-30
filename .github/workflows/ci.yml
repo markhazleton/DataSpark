@@ -18,7 +18,7 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     env:
-      MIN_COVERAGE: "0" # Absolute minimum allowed coverage percent
+      MIN_COVERAGE: "80" # Absolute minimum allowed coverage percent
       MAX_COVERAGE_DROP: "2" # Maximum allowed % drop vs main before failing PR
     steps:
       - name: Checkout

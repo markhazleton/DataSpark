@@ -58,7 +58,7 @@ public class FileSystemChartConfigurationRepository : IChartConfigurationReposit
         {
             var path = GetFilePath(id);
             if (!File.Exists(path)) return null;
-            var json = await File.ReadAllTextAsync(path);
+            var json = await File.ReadAllTextAsync(path).ConfigureAwait(false);
             return JsonSerializer.Deserialize<ChartConfiguration>(json, JsonOptions());
         }
         catch (Exception ex)
@@ -70,13 +70,13 @@ public class FileSystemChartConfigurationRepository : IChartConfigurationReposit
 
     public async Task<ChartConfiguration?> GetByNameAsync(string name, string dataSource)
     {
-        var all = await GetAllAsync();
+        var all = await GetAllAsync().ConfigureAwait(false);
         return all.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && c.CsvFile.Equals(dataSource, StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task<List<ChartConfiguration>> GetByDataSourceAsync(string dataSource)
     {
-        var all = await GetAllAsync();
+        var all = await GetAllAsync().ConfigureAwait(false);
         return all.Where(c => c.CsvFile.Equals(dataSource, StringComparison.OrdinalIgnoreCase)).OrderBy(c => c.Name).ToList();
     }
 
@@ -90,7 +90,7 @@ public class FileSystemChartConfigurationRepository : IChartConfigurationReposit
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(file);
+                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                     var cfg = JsonSerializer.Deserialize<ChartConfiguration>(json, JsonOptions());
                     if (cfg != null) result.Add(cfg);
                 }
@@ -126,7 +126,7 @@ public class FileSystemChartConfigurationRepository : IChartConfigurationReposit
         }
         var path = GetFilePath(config.Id);
         var json = JsonSerializer.Serialize(config, JsonOptions());
-        await File.WriteAllTextAsync(path, json);
+        await File.WriteAllTextAsync(path, json).ConfigureAwait(false);
         _fileCache[config.Id] = path;
         _logger.LogInformation("Created chart {Id} '{Name}'", config.Id, config.Name);
         return config;
@@ -138,7 +138,7 @@ public class FileSystemChartConfigurationRepository : IChartConfigurationReposit
         config.ModifiedDate = DateTime.UtcNow;
         var path = GetFilePath(config.Id);
         var json = JsonSerializer.Serialize(config, JsonOptions());
-        await File.WriteAllTextAsync(path, json);
+        await File.WriteAllTextAsync(path, json).ConfigureAwait(false);
         _logger.LogInformation("Updated chart {Id} '{Name}'", config.Id, config.Name);
         return config;
     }
@@ -165,7 +165,7 @@ public class FileSystemChartConfigurationRepository : IChartConfigurationReposit
 
     public async Task<bool> ExistsByNameAsync(string name, string dataSource, int? excludeId = null)
     {
-        var all = await GetAllAsync();
+        var all = await GetAllAsync().ConfigureAwait(false);
         return all.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && c.CsvFile.Equals(dataSource, StringComparison.OrdinalIgnoreCase) && (excludeId == null || c.Id != excludeId));
     }
 
@@ -174,7 +174,7 @@ public class FileSystemChartConfigurationRepository : IChartConfigurationReposit
         var result = new List<ChartConfiguration>();
         foreach (var id in ids)
         {
-            var cfg = await GetByIdAsync(id);
+            var cfg = await GetByIdAsync(id).ConfigureAwait(false);
             if (cfg != null) result.Add(cfg);
         }
         return result;
@@ -185,14 +185,14 @@ public class FileSystemChartConfigurationRepository : IChartConfigurationReposit
         var count = 0;
         foreach (var id in ids)
         {
-            if (await DeleteAsync(id)) count++;
+            if (await DeleteAsync(id).ConfigureAwait(false)) count++;
         }
         return count;
     }
 
     public async Task<List<ChartConfigurationSummary>> GetSummariesAsync(string? dataSource = null)
     {
-        var all = await GetAllAsync();
+        var all = await GetAllAsync().ConfigureAwait(false);
         var query = all.AsEnumerable();
         if (!string.IsNullOrWhiteSpace(dataSource))
             query = query.Where(c => c.CsvFile.Equals(dataSource, StringComparison.OrdinalIgnoreCase));
