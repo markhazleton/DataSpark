@@ -167,11 +167,12 @@
         function loadChart(columnId, columnName) {
             const container = document.getElementById('chart-container-' + columnId);
             container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Loading chart...</p></div>';
-            
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
             fetch('@Url.Action("Analyze")', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
                 },
                 body: 'fileName=@Model.FileName&columnName=' + encodeURIComponent(columnName)
             })

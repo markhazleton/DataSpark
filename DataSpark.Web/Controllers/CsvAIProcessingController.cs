@@ -38,6 +38,7 @@ public class CsvAIProcessingController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> AnalyzeFile(string fileName, string customPrompt = "")
     {
         try
@@ -90,6 +91,7 @@ public class CsvAIProcessingController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> UploadAndRegisterFile(string fileName)
     {
     // NOTE: The corresponding UI form has been removed per requirement to eliminate upload capability
@@ -136,6 +138,7 @@ public class CsvAIProcessingController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> AnalyzeUploadedFiles(List<string> selectedFileIds, string customPrompt = "")
     {
         try
@@ -169,6 +172,7 @@ public class CsvAIProcessingController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> AnalyzeAllFiles(string customPrompt = "")
     {
         try
@@ -196,6 +200,7 @@ public class CsvAIProcessingController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveFile(string fileId)
     {
         try
@@ -215,6 +220,7 @@ public class CsvAIProcessingController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ClearAllFiles()
     {
         try
@@ -234,6 +240,7 @@ public class CsvAIProcessingController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> RunDiagnostics()
     {
         try

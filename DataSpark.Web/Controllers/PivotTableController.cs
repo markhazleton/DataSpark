@@ -94,6 +94,7 @@ public class PivotTableController : BaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult LoadCsvData([FromBody] LoadCsvDataRequest request)
     {
         var response = ProcessLoadCsvDataRequest(request);
@@ -101,6 +102,7 @@ public class PivotTableController : BaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult SaveConfiguration([FromBody] SaveConfigurationRequest request)
     {
         try
@@ -151,6 +153,7 @@ public class PivotTableController : BaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult Export(string format, string configuration)
     {
         try

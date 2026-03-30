@@ -1,5 +1,6 @@
 using DataSpark.Web.Services;
 using DataSpark.Web.Services.Chart;
+using Serilog;
 using Sql2Csv.Core.Configuration;
 using Sql2Csv.Core.Interfaces;
 using Sql2Csv.Core.Services;
@@ -10,6 +11,13 @@ using WebCsvFileService = DataSpark.Web.Services.CsvFileService;
 using CoreCsvProcessingService = Sql2Csv.Core.Services.Analysis.CsvProcessingService;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog as the logging provider
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

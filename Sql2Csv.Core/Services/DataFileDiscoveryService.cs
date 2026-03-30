@@ -90,7 +90,7 @@ public class DataFileDiscoveryService : IDataFileDiscoveryService
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Quick check if it might be a delimited file
-                    if (await IsLikelyDelimitedFileAsync(file, cancellationToken))
+                    if (await IsLikelyDelimitedFileAsync(file, cancellationToken).ConfigureAwait(false))
                     {
                         var fileInfo = new FileInfo(file);
                         dataSources.Add(new DataSourceConfiguration

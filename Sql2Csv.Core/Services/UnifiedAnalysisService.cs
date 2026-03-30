@@ -127,7 +127,7 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
                     var sql = $"SELECT MIN([{numericCol.ColumnName}]), MAX([{numericCol.ColumnName}]), AVG([{numericCol.ColumnName}]) FROM [{dataSource.TableName}]";
                     await using var statsCmd = new SqliteCommand(sql, connection);
                     await using var reader = await statsCmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                    if (await reader.ReadAsync(cancellationToken))
+                    if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
                         numericCol.MinValue = reader.IsDBNull(0) ? null : reader.GetValue(0)?.ToString();
                         numericCol.MaxValue = reader.IsDBNull(1) ? null : reader.GetValue(1)?.ToString();
@@ -159,7 +159,7 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
             throw new ArgumentException("Database data source must have ConnectionString and TableName");
         }
 
-        var columns = (await _schemaService.GetTableColumnsAsync(dataSource.ConnectionString, dataSource.TableName, cancellationToken)).ToList();
+        var columns = (await _schemaService.GetTableColumnsAsync(dataSource.ConnectionString, dataSource.TableName, cancellationToken).ConfigureAwait(false)).ToList();
         result.Columns = columns.Select(c => c.Name).ToList();
 
         try
@@ -181,7 +181,7 @@ public class UnifiedAnalysisService : IUnifiedAnalysisService
 
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             var rows = new List<Dictionary<string, object?>>();
-            while (await reader.ReadAsync(cancellationToken))
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                 for (int i = 0; i < reader.FieldCount; i++)

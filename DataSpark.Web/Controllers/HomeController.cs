@@ -24,6 +24,7 @@ public class HomeController : BaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> UploadCSV(IFormFile file)
     {
         // Use the base controller method for file validation

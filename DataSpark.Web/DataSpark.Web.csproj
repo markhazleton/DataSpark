@@ -15,8 +15,7 @@
 		<PackageReference Include="WebSpark.HttpClientUtility" Version="2.5.0" />
 		<PackageReference Include="Microsoft.Data.Analysis" Version="0.23.0" />
 		<PackageReference Include="ScottPlot" Version="5.1.58" />
-		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" /> <!-- TODO: Remove if no
-		explicit Serilog configuration added -->
+		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Sql2Csv.Core\Sql2Csv.Core.csproj" />

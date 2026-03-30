@@ -41,6 +41,18 @@
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @Html.AntiForgeryToken()
+    <script>
+        // Globally attach the antiforgery token to all jQuery AJAX POST requests
+        $(function () {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+            if (token) {
+                $.ajaxSetup({
+                    headers: { 'RequestVerificationToken': token }
+                });
+            }
+        });
+    </script>
     @await RenderSectionAsync("PageScripts", required: false)
 
     @await RenderSectionAsync("Scripts", required: false)

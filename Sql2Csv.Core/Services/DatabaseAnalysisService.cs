@@ -386,7 +386,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             using var command = new SqliteCommand(finalSql, connection);
             using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
-            while (await reader.ReadAsync(cancellationToken))
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 var row = new object?[reader.FieldCount];
                 for (int i = 0; i < reader.FieldCount; i++)
@@ -540,7 +540,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
         using var topValuesCommand = new SqliteCommand(topValuesSql, connection);
         using var topValuesReader = await topValuesCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
-        while (await topValuesReader.ReadAsync(cancellationToken))
+        while (await topValuesReader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             var value = topValuesReader.GetValue(0)?.ToString() ?? "";
             var count = topValuesReader.GetInt64(1);
@@ -602,7 +602,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
         using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         double? minValue = null, maxValue = null, meanValue = null;
-        if (await reader.ReadAsync(cancellationToken))
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             minValue = reader.IsDBNull(0) ? null : reader.GetDouble(0);
             maxValue = reader.IsDBNull(1) ? null : reader.GetDouble(1);
@@ -654,7 +654,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
         int? minLength = null, maxLength = null;
         double? averageLength = null;
 
-        if (await reader.ReadAsync(cancellationToken))
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             minLength = reader.IsDBNull(0) ? null : reader.GetInt32(0);
             maxLength = reader.IsDBNull(1) ? null : reader.GetInt32(1);
@@ -682,7 +682,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
 
         DateTime? minDate = null, maxDate = null;
 
-        if (await reader.ReadAsync(cancellationToken))
+        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             if (!reader.IsDBNull(0))
             {
@@ -713,7 +713,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
         using var command = new SqliteCommand(sql, connection);
         using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
-        while (await reader.ReadAsync(cancellationToken))
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             columns.Add(reader.GetString(1)); // Column name is at index 1
         }
