@@ -43,7 +43,7 @@ public sealed class ExportService : IExportService
         string outputDirectory,
         CancellationToken cancellationToken = default)
     {
-        return await ExportDatabaseToCsvAsync(databaseConfig, outputDirectory, null, null, cancellationToken);
+        return await ExportDatabaseToCsvAsync(databaseConfig, outputDirectory, null, null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -63,7 +63,7 @@ public sealed class ExportService : IExportService
         {
             Directory.CreateDirectory(outputDirectory);
 
-            var tableNames = await _schemaService.GetTableNamesAsync(databaseConfig.ConnectionString, cancellationToken);
+            var tableNames = await _schemaService.GetTableNamesAsync(databaseConfig.ConnectionString, cancellationToken).ConfigureAwait(false);
             var results = new List<ExportResult>();
 
             foreach (var tableName in tableNames)
@@ -71,7 +71,7 @@ public sealed class ExportService : IExportService
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var outputFilePath = Path.Combine(outputDirectory, $"{tableName}_extract.csv");
-                var result = await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, delimiter, includeHeaders, cancellationToken);
+                var result = await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, delimiter, includeHeaders, cancellationToken).ConfigureAwait(false);
                 results.Add(result);
             }
 
@@ -105,7 +105,7 @@ public sealed class ExportService : IExportService
         {
             Directory.CreateDirectory(outputDirectory);
 
-            var allTableNames = await _schemaService.GetTableNamesAsync(databaseConfig.ConnectionString, cancellationToken);
+            var allTableNames = await _schemaService.GetTableNamesAsync(databaseConfig.ConnectionString, cancellationToken).ConfigureAwait(false);
             IEnumerable<string> effectiveTables = allTableNames;
             if (tablesFilter != null)
             {
@@ -130,7 +130,7 @@ public sealed class ExportService : IExportService
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var outputFilePath = Path.Combine(outputDirectory, $"{tableName}_extract.csv");
-                var result = await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, delimiter, includeHeaders, cancellationToken);
+                var result = await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, delimiter, includeHeaders, cancellationToken).ConfigureAwait(false);
                 results.Add(result);
             }
 
@@ -151,7 +151,7 @@ public sealed class ExportService : IExportService
         string outputFilePath,
         CancellationToken cancellationToken = default)
     {
-        return await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, null, null, cancellationToken);
+        return await ExportTableToCsvAsync(databaseConfig, tableName, outputFilePath, null, null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -184,13 +184,13 @@ public sealed class ExportService : IExportService
             }
 
             await using var connection = new SqliteConnection(databaseConfig.ConnectionString);
-            await connection.OpenAsync(cancellationToken);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Use parameterized query to prevent SQL injection
             using var command = new SqliteCommand($"SELECT * FROM [{tableName}]", connection);
             command.CommandTimeout = _options.Database.Timeout;
 
-            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
             await using var fileStream = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write);
             await using var writer = new StreamWriter(fileStream, encoding);
 
@@ -211,7 +211,7 @@ public sealed class ExportService : IExportService
                 {
                     csv.WriteField(reader.GetName(i));
                 }
-                await csv.NextRecordAsync();
+                await csv.NextRecordAsync().ConfigureAwait(false);
             }
 
             // Write data rows
@@ -222,7 +222,7 @@ public sealed class ExportService : IExportService
                     var value = reader.IsDBNull(i) ? string.Empty : reader.GetValue(i)?.ToString() ?? string.Empty;
                     csv.WriteField(value);
                 }
-                await csv.NextRecordAsync();
+                await csv.NextRecordAsync().ConfigureAwait(false);
                 rowCount++;
             }
 
@@ -235,7 +235,7 @@ public sealed class ExportService : IExportService
             
             try
             {
-                fileContent = await File.ReadAllTextAsync(outputFilePath);
+                fileContent = await File.ReadAllTextAsync(outputFilePath).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

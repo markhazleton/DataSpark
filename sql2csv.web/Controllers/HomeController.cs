@@ -37,6 +37,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upload(FileUploadViewModel model)
     {
         // Special validation for existing file selection vs new file upload
@@ -186,6 +187,7 @@ public class HomeController : Controller
     /// AJAX drag & drop upload endpoint returning JSON payload.
     /// </summary>
     [HttpPost]
+    [ValidateAntiForgeryToken]
     [Route("api/upload")] // /api/upload
     public async Task<IActionResult> UploadApi(IFormFile? file, bool persist = false, string? description = null, CancellationToken cancellationToken = default)
     {
@@ -265,6 +267,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteFile(string fileId)
     {
         try
@@ -289,6 +292,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateDescription(string fileId, string? description)
     {
         try
@@ -391,6 +395,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ExportTables(List<string> selectedTables)
     {
         var filePath = TempData["DatabaseFilePath"] as string;
@@ -418,6 +423,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> GenerateCode(List<string> selectedTables, string namespaceName = "Generated.Models")
     {
         var filePath = TempData["DatabaseFilePath"] as string;
@@ -516,6 +522,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> GetUnifiedData([FromForm] DataTablesRequest request)
     {
         var filePath = HttpContext.Session.GetString("CurrentDataFilePath");
@@ -659,6 +666,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> GetTableData(string tableName, [FromForm] DataTablesRequest request)
     {
         var filePath = HttpContext.Session.GetString("CurrentDatabaseFilePath");

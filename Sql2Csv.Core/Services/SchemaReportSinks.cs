@@ -36,7 +36,7 @@ public sealed class FileSchemaReportSink : ISchemaReportSink
         Directory.CreateDirectory(_baseDirectory);
         var ext = format switch { "json" => "json", "markdown" => "md", _ => "txt" };
         var filePath = Path.Combine(_baseDirectory, $"{databaseName}_schema.{ext}");
-        await File.WriteAllTextAsync(filePath, reportContent, cancellationToken);
+        await File.WriteAllTextAsync(filePath, reportContent, cancellationToken).ConfigureAwait(false);
         _logger.LogDebug("Wrote schema report to {Path}", filePath);
     }
 }

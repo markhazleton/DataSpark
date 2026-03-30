@@ -39,7 +39,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             // Quick header validation (first 16 bytes should equal 'SQLite format 3\0')
             byte[] header = new byte[16];
             using var headerStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var read = await headerStream.ReadAsync(header.AsMemory(0, 16), cancellationToken);
+            var read = await headerStream.ReadAsync(header.AsMemory(0, 16), cancellationToken).ConfigureAwait(false);
             var expected = System.Text.Encoding.ASCII.GetBytes("SQLite format 3\0");
             if (read < 16 || !expected.SequenceEqual(header))
             {
@@ -51,7 +51,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(10)); // 10 second timeout for validation
 
-            var tables = await _schemaService.GetTableNamesAsync(connectionString, cts.Token);
+            var tables = await _schemaService.GetTableNamesAsync(connectionString, cts.Token).ConfigureAwait(false);
             var tableCount = tables.Count();
 
             // Force garbage collection to ensure database connections are cleaned up
@@ -92,7 +92,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(30)); // 30 second timeout
 
-            var tablesInfo = await _schemaService.GetTablesAsync(connectionString, cts.Token);
+            var tablesInfo = await _schemaService.GetTablesAsync(connectionString, cts.Token).ConfigureAwait(false);
 
             _logger.LogInformation("Found {TableCount} tables in database", tablesInfo.Count());
 
@@ -127,7 +127,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
                 using var reportCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 reportCts.CancelAfter(TimeSpan.FromSeconds(15)); // 15 second timeout for schema report
 
-                schemaReport = await _schemaService.GenerateSchemaReportAsync(connectionString, format: "text", cancellationToken: reportCts.Token);
+                schemaReport = await _schemaService.GenerateSchemaReportAsync(connectionString, format: "text", cancellationToken: reportCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -177,10 +177,10 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
                     var outputPath = Path.Combine(_tempDirectory, outputFileName);
                     _tempFiles.Add(outputPath);
 
-                    var exportResult = await _exportService.ExportTableToCsvAsync(databaseConfig, tableName, outputPath, cancellationToken);
+                    var exportResult = await _exportService.ExportTableToCsvAsync(databaseConfig, tableName, outputPath, cancellationToken).ConfigureAwait(false);
 
                     // Read the CSV content
-                    var csvContent = await File.ReadAllTextAsync(outputPath, cancellationToken);
+                    var csvContent = await File.ReadAllTextAsync(outputPath, cancellationToken).ConfigureAwait(false);
 
                     stopwatch.Stop();
 
@@ -236,7 +236,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
 
             foreach (var tableName in tableNames)
             {
-                var columns = await _schemaService.GetTableColumnsAsync(connectionString, tableName, cancellationToken);
+                var columns = await _schemaService.GetTableColumnsAsync(connectionString, tableName, cancellationToken).ConfigureAwait(false);
                 var code = GenerateCSharpClass(tableName, columns, namespaceName);
 
                 results.Add(new GeneratedCodeResult
@@ -275,7 +275,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             var databaseName = Path.GetFileNameWithoutExtension(filePath);
 
             // Get table schema first
-            var columns = await _schemaService.GetTableColumnsAsync(connectionString, tableName, cancellationToken);
+            var columns = await _schemaService.GetTableColumnsAsync(connectionString, tableName, cancellationToken).ConfigureAwait(false);
             var columnsList = columns.ToList();
 
             if (!columnsList.Any())
@@ -292,13 +292,13 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             }
 
             // Analyze table statistics
-            var tableStats = await AnalyzeTableStatisticsAsync(connectionString, tableName, columnsList, cancellationToken);
+            var tableStats = await AnalyzeTableStatisticsAsync(connectionString, tableName, columnsList, cancellationToken).ConfigureAwait(false);
 
             // Analyze each column
             var columnAnalyses = new List<ColumnAnalysis>();
             foreach (var column in columnsList)
             {
-                var columnAnalysis = await AnalyzeColumnAsync(connectionString, tableName, column, tableStats.TotalRows, cancellationToken);
+                var columnAnalysis = await AnalyzeColumnAsync(connectionString, tableName, column, tableStats.TotalRows, cancellationToken).ConfigureAwait(false);
                 columnAnalyses.Add(columnAnalysis);
             }
 
@@ -345,14 +345,14 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             var connectionString = $"Data Source={filePath};Mode=ReadOnly;Cache=Shared;";
 
             using var connection = new SqliteConnection(connectionString);
-            await connection.OpenAsync(cancellationToken);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Get total count
             var countSql = $"SELECT COUNT(*) FROM [{tableName}]";
-            var totalRecords = await ExecuteScalarAsync<long>(connection, countSql, cancellationToken);
+            var totalRecords = await ExecuteScalarAsync<long>(connection, countSql, cancellationToken).ConfigureAwait(false);
 
             // Build the main query with search and pagination
-            var columns = await GetTableColumnsAsync(connection, tableName, cancellationToken);
+            var columns = await GetTableColumnsAsync(connection, tableName, cancellationToken).ConfigureAwait(false);
             var columnNames = columns.Select(c => $"[{c}]").ToList();
 
             var selectClause = string.Join(", ", columnNames);
@@ -370,7 +370,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             if (!string.IsNullOrEmpty(whereClause))
             {
                 var filteredCountSql = $"SELECT COUNT(*) FROM [{tableName}] WHERE {whereClause}";
-                filteredRecords = await ExecuteScalarAsync<long>(connection, filteredCountSql, cancellationToken);
+                filteredRecords = await ExecuteScalarAsync<long>(connection, filteredCountSql, cancellationToken).ConfigureAwait(false);
             }
 
             // Add ordering and pagination
@@ -384,7 +384,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             // Execute main query
             var data = new List<object?[]>();
             using var command = new SqliteCommand(finalSql, connection);
-            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
             while (await reader.ReadAsync(cancellationToken))
             {
@@ -482,11 +482,11 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
     private async Task<TableStatistics> AnalyzeTableStatisticsAsync(string connectionString, string tableName, List<ColumnInfo> columns, CancellationToken cancellationToken)
     {
         using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         // Get row count
         var rowCountSql = $"SELECT COUNT(*) FROM [{tableName}]";
-        var totalRows = await ExecuteScalarAsync<long>(connection, rowCountSql, cancellationToken);
+        var totalRows = await ExecuteScalarAsync<long>(connection, rowCountSql, cancellationToken).ConfigureAwait(false);
 
         // Calculate column statistics
         var numericColumns = columns.Count(c => IsNumericType(c.DataType));
@@ -518,14 +518,14 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
     private async Task<ColumnAnalysis> AnalyzeColumnAsync(string connectionString, string tableName, ColumnInfo column, long totalRows, CancellationToken cancellationToken)
     {
         using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync(cancellationToken);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         // Basic statistics
         var nullCountSql = $"SELECT COUNT(*) FROM [{tableName}] WHERE [{column.Name}] IS NULL";
-        var nullCount = await ExecuteScalarAsync<long>(connection, nullCountSql, cancellationToken);
+        var nullCount = await ExecuteScalarAsync<long>(connection, nullCountSql, cancellationToken).ConfigureAwait(false);
 
         var uniqueCountSql = $"SELECT COUNT(DISTINCT [{column.Name}]) FROM [{tableName}] WHERE [{column.Name}] IS NOT NULL";
-        var uniqueCount = await ExecuteScalarAsync<long>(connection, uniqueCountSql, cancellationToken);
+        var uniqueCount = await ExecuteScalarAsync<long>(connection, uniqueCountSql, cancellationToken).ConfigureAwait(false);
 
         // Get top values
         var topValuesSql = $@"
@@ -538,7 +538,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
 
         var topValues = new List<ValueFrequency>();
         using var topValuesCommand = new SqliteCommand(topValuesSql, connection);
-        using var topValuesReader = await topValuesCommand.ExecuteReaderAsync(cancellationToken);
+        using var topValuesReader = await topValuesCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         while (await topValuesReader.ReadAsync(cancellationToken))
         {
@@ -574,15 +574,15 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
         // Add type-specific analysis
         if (IsNumericType(column.DataType))
         {
-            analysis = await AddNumericAnalysisAsync(connection, tableName, column.Name, analysis, cancellationToken);
+            analysis = await AddNumericAnalysisAsync(connection, tableName, column.Name, analysis, cancellationToken).ConfigureAwait(false);
         }
         else if (IsTextType(column.DataType))
         {
-            analysis = await AddTextAnalysisAsync(connection, tableName, column.Name, analysis, cancellationToken);
+            analysis = await AddTextAnalysisAsync(connection, tableName, column.Name, analysis, cancellationToken).ConfigureAwait(false);
         }
         else if (IsDateTimeType(column.DataType))
         {
-            analysis = await AddDateTimeAnalysisAsync(connection, tableName, column.Name, analysis, cancellationToken);
+            analysis = await AddDateTimeAnalysisAsync(connection, tableName, column.Name, analysis, cancellationToken).ConfigureAwait(false);
         }
 
         return analysis;
@@ -599,7 +599,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             WHERE [{columnName}] IS NOT NULL AND [{columnName}] != ''";
 
         using var command = new SqliteCommand(numericStatsSql, connection);
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         double? minValue = null, maxValue = null, meanValue = null;
         if (await reader.ReadAsync(cancellationToken))
@@ -623,7 +623,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
 
         try
         {
-            medianValue = await ExecuteScalarAsync<double?>(connection, medianSql, cancellationToken);
+            medianValue = await ExecuteScalarAsync<double?>(connection, medianSql, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -649,7 +649,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             WHERE [{columnName}] IS NOT NULL";
 
         using var command = new SqliteCommand(textStatsSql, connection);
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         int? minLength = null, maxLength = null;
         double? averageLength = null;
@@ -678,7 +678,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
             WHERE [{columnName}] IS NOT NULL";
 
         using var command = new SqliteCommand(dateStatsSql, connection);
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         DateTime? minDate = null, maxDate = null;
 
@@ -711,7 +711,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
         var sql = $"PRAGMA table_info([{tableName}])";
 
         using var command = new SqliteCommand(sql, connection);
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         while (await reader.ReadAsync(cancellationToken))
         {
@@ -745,7 +745,7 @@ public class DatabaseAnalysisService : IDatabaseAnalysisService
     private static async Task<T> ExecuteScalarAsync<T>(SqliteConnection connection, string sql, CancellationToken cancellationToken)
     {
         using var command = new SqliteCommand(sql, connection);
-        var result = await command.ExecuteScalarAsync(cancellationToken);
+        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
 
         if (result == null || result == DBNull.Value)
             return default(T)!;

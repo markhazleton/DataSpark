@@ -39,16 +39,16 @@ public sealed class SchemaService : ISchemaService
             var tables = new List<TableInfo>();
 
             await using var connection = new SqliteConnection(connectionString);
-            await connection.OpenAsync(cancellationToken);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-            var tableNames = await GetTableNamesAsync(connectionString, cancellationToken);
+            var tableNames = await GetTableNamesAsync(connectionString, cancellationToken).ConfigureAwait(false);
 
             foreach (var tableName in tableNames)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var columns = await GetTableColumnsAsync(connectionString, tableName, cancellationToken);
-                var rowCount = await GetTableRowCountAsync(connection, tableName, cancellationToken);
+                var columns = await GetTableColumnsAsync(connectionString, tableName, cancellationToken).ConfigureAwait(false);
+                var rowCount = await GetTableRowCountAsync(connection, tableName, cancellationToken).ConfigureAwait(false);
 
                 var tableInfo = new TableInfo
                 {
@@ -82,14 +82,14 @@ public sealed class SchemaService : ISchemaService
             var tableNames = new List<string>();
 
             await using var connection = new SqliteConnection(connectionString);
-            await connection.OpenAsync(cancellationToken);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             const string query = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name";
 
             using var command = new SqliteCommand(query, connection);
             command.CommandTimeout = _options.Database.Timeout;
 
-            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
             while (await reader.ReadAsync(cancellationToken))
             {
@@ -118,10 +118,10 @@ public sealed class SchemaService : ISchemaService
             var columns = new List<ColumnInfo>();
 
             await using var connection = new SqliteConnection(connectionString);
-            await connection.OpenAsync(cancellationToken);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             using var command = new SqliteCommand($"PRAGMA table_info([{tableName}])", connection);
-            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
             while (await reader.ReadAsync(cancellationToken))
             {
@@ -181,7 +181,7 @@ public sealed class SchemaService : ISchemaService
     private static async Task<long> GetTableRowCountAsync(SqliteConnection connection, string tableName, CancellationToken cancellationToken)
     {
         using var command = new SqliteCommand($"SELECT COUNT(*) FROM [{tableName}]", connection);
-        var result = await command.ExecuteScalarAsync(cancellationToken);
+        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return Convert.ToInt64(result);
     }
 

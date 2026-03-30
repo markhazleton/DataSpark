@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sql2Csv.Core.Configuration;
 using Sql2Csv.Core.Models;
@@ -50,7 +50,7 @@ public class OpenAIFileAnalysisService
         {
             _logger.LogInformation("Starting CSV file analysis for file: {FilePath}", filePath);
 
-            string fileId = await UploadFileAsync(filePath);
+            string fileId = await UploadFileAsync(filePath).ConfigureAwait(false);
             _logger.LogInformation("File uploaded successfully with ID: {FileId}", fileId);
 
             // If keepFileUploaded is true, register the file
@@ -69,24 +69,24 @@ public class OpenAIFileAnalysisService
                 _logger.LogInformation("File registered for future use: {FileName}", uploadedFile.FileName);
             }
 
-            string threadId = await CreateThreadAsync();
+            string threadId = await CreateThreadAsync().ConfigureAwait(false);
             _logger.LogInformation("Thread created with ID: {ThreadId}", threadId);
 
-            await PostMessageWithFileAsync(threadId, userPrompt, fileId);
+            await PostMessageWithFileAsync(threadId, userPrompt, fileId).ConfigureAwait(false);
             _logger.LogInformation("Message posted to thread");
 
-            string runId = await CreateRunAsync(threadId);
+            string runId = await CreateRunAsync(threadId).ConfigureAwait(false);
             _logger.LogInformation("Run created with ID: {RunId}", runId);
 
-            await WaitForRunCompletionAsync(threadId, runId);
+            await WaitForRunCompletionAsync(threadId, runId).ConfigureAwait(false);
             _logger.LogInformation("Run completed successfully");
 
-            string response = await GetLatestAssistantResponseAsync(threadId);
+            string response = await GetLatestAssistantResponseAsync(threadId).ConfigureAwait(false);
 
             // Only clean up the uploaded file if we're not keeping it
             if (!keepFileUploaded)
             {
-                await DeleteFileAsync(fileId);
+                await DeleteFileAsync(fileId).ConfigureAwait(false);
                 _logger.LogInformation("Uploaded file cleaned up");
             }
 
@@ -102,7 +102,7 @@ public class OpenAIFileAnalysisService
     {
         try
         {
-            var fileBytes = await File.ReadAllBytesAsync(filePath);
+            var fileBytes = await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
             var fileName = Path.GetFileName(filePath);
             // If the file has a .tmp extension, try to get the original name from a temp file pattern or fallback to .csv
             if (Path.GetExtension(fileName).Equals(".tmp", StringComparison.OrdinalIgnoreCase))
@@ -124,16 +124,16 @@ public class OpenAIFileAnalysisService
                 { new StringContent("assistants"), "purpose" }
             };
 
-            var response = await _httpClient.PostAsync($"{BaseUrl}/files", form);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/files", form).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 _logger.LogError("OpenAI file upload failed with status {StatusCode}: {ErrorContent}", response.StatusCode, errorContent);
                 throw new HttpRequestException($"OpenAI API returned {response.StatusCode}: {errorContent}");
             }
 
-            var responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
             var fileId = result.GetProperty("id").GetString();
@@ -145,10 +145,10 @@ public class OpenAIFileAnalysisService
             _logger.LogDebug("File uploaded successfully with ID: {FileId}", fileId);
 
             // Wait for file to be processed
-            await WaitForFileProcessingAsync(fileId);
+            await WaitForFileProcessingAsync(fileId).ConfigureAwait(false);
 
             // Verify file is accessible
-            bool isAccessible = await VerifyFileUploadAsync(fileId);
+            bool isAccessible = await VerifyFileUploadAsync(fileId).ConfigureAwait(false);
             if (!isAccessible)
             {
                 throw new InvalidOperationException($"File {fileId} was uploaded but is not accessible for analysis");
@@ -171,16 +171,16 @@ public class OpenAIFileAnalysisService
     {
         try
         {
-            var response = await _httpClient.PostAsync($"{BaseUrl}/threads", new StringContent("{}", Encoding.UTF8, "application/json"));
+            var response = await _httpClient.PostAsync($"{BaseUrl}/threads", new StringContent("{}", Encoding.UTF8, "application/json")).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 _logger.LogError("OpenAI thread creation failed with status {StatusCode}: {ErrorContent}", response.StatusCode, errorContent);
                 throw new HttpRequestException($"OpenAI API returned {response.StatusCode}: {errorContent}");
             }
 
-            var responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
             var threadId = result.GetProperty("id").GetString();
@@ -237,11 +237,11 @@ Please use the code interpreter tool to read and analyze the CSV file.";
             };
 
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/messages", content);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/messages", content).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 _logger.LogError("OpenAI message posting failed with status {StatusCode}: {ErrorContent}", response.StatusCode, errorContent);
                 throw new HttpRequestException($"OpenAI API returned {response.StatusCode}: {errorContent}");
             }
@@ -266,16 +266,16 @@ Please use the code interpreter tool to read and analyze the CSV file.";
             var payload = new { assistant_id = _options.AssistantId };
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/runs", content);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/runs", content).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 _logger.LogError("OpenAI run creation failed with status {StatusCode}: {ErrorContent}", response.StatusCode, errorContent);
                 throw new HttpRequestException($"OpenAI API returned {response.StatusCode}: {errorContent}");
             }
 
-            var responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
             var runId = result.GetProperty("id").GetString();
@@ -300,21 +300,21 @@ Please use the code interpreter tool to read and analyze the CSV file.";
 
         while (attempt < maxAttempts)
         {
-            await Task.Delay(1000);
+            await Task.Delay(1000).ConfigureAwait(false);
             attempt++;
 
             try
             {
-                var response = await _httpClient.GetAsync($"{BaseUrl}/threads/{threadId}/runs/{runId}");
+                var response = await _httpClient.GetAsync($"{BaseUrl}/threads/{threadId}/runs/{runId}").ConfigureAwait(false);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
+                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     _logger.LogError("OpenAI run status check failed with status {StatusCode}: {ErrorContent}", response.StatusCode, errorContent);
                     throw new HttpRequestException($"OpenAI API returned {response.StatusCode}: {errorContent}");
                 }
 
-                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
                 var status = result.GetProperty("status").GetString();
 
@@ -370,15 +370,15 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/threads/{threadId}/messages");
+            var response = await _httpClient.GetAsync($"{BaseUrl}/threads/{threadId}/messages").ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 _logger.LogError("OpenAI messages retrieval failed with status {StatusCode}: {ErrorContent}", response.StatusCode, errorContent);
                 throw new HttpRequestException($"OpenAI API returned {response.StatusCode}: {errorContent}");
             }
 
-            var responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
             var assistantMessages = new List<(DateTimeOffset createdAt, string text)>();
 
@@ -425,7 +425,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"{BaseUrl}/files/{fileId}");
+            var response = await _httpClient.DeleteAsync($"{BaseUrl}/files/{fileId}").ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
@@ -434,7 +434,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
             else
             {
                 // Log but don't throw - file cleanup is not critical
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 _logger.LogWarning("Failed to delete file {FileId}: {StatusCode} {ErrorContent}", fileId, response.StatusCode, errorContent);
             }
         }
@@ -458,7 +458,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
                 throw new FileNotFoundException($"File not found: {filePath}");
 
             var fileInfo = new FileInfo(filePath);
-            string fileId = await UploadFileAsync(filePath);
+            string fileId = await UploadFileAsync(filePath).ConfigureAwait(false);
 
             var uploadedFile = new UploadedCsvFile
             {
@@ -510,19 +510,19 @@ Please use the code interpreter tool to read and analyze the CSV file.";
 
             _logger.LogInformation("Starting analysis of {Count} uploaded CSV files", fileIds.Count);
 
-            string threadId = await CreateThreadAsync();
+            string threadId = await CreateThreadAsync().ConfigureAwait(false);
             _logger.LogInformation("Thread created with ID: {ThreadId}", threadId);
 
-            await PostMessageWithMultipleFilesAsync(threadId, userPrompt, fileIds);
+            await PostMessageWithMultipleFilesAsync(threadId, userPrompt, fileIds).ConfigureAwait(false);
             _logger.LogInformation("Message posted to thread with {Count} files", fileIds.Count);
 
-            string runId = await CreateRunAsync(threadId);
+            string runId = await CreateRunAsync(threadId).ConfigureAwait(false);
             _logger.LogInformation("Run created with ID: {RunId}", runId);
 
-            await WaitForRunCompletionAsync(threadId, runId);
+            await WaitForRunCompletionAsync(threadId, runId).ConfigureAwait(false);
             _logger.LogInformation("Run completed successfully");
 
-            string response = await GetLatestAssistantResponseAsync(threadId);
+            string response = await GetLatestAssistantResponseAsync(threadId).ConfigureAwait(false);
 
             return response;
         }
@@ -566,7 +566,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
                 throw new ArgumentException($"The following files are not in the uploaded files list: {string.Join(", ", missingFiles)}");
             }
 
-            return await AnalyzeUploadedCsvFilesAsync(fileIds, userPrompt);
+            return await AnalyzeUploadedCsvFilesAsync(fileIds, userPrompt).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -586,7 +586,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
                 throw new InvalidOperationException("No CSV files have been uploaded yet");
 
             var fileIds = _uploadedFiles.Select(f => f.FileId).ToList();
-            return await AnalyzeUploadedCsvFilesAsync(fileIds, userPrompt);
+            return await AnalyzeUploadedCsvFilesAsync(fileIds, userPrompt).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -611,7 +611,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
 
             if (deleteFromOpenAI)
             {
-                await DeleteFileAsync(fileId);
+                await DeleteFileAsync(fileId).ConfigureAwait(false);
             }
 
             _uploadedFiles.Remove(file);
@@ -638,7 +638,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
             if (deleteFromOpenAI)
             {
                 var deleteTasks = _uploadedFiles.Select(f => DeleteFileAsync(f.FileId));
-                await Task.WhenAll(deleteTasks);
+                await Task.WhenAll(deleteTasks).ConfigureAwait(false);
             }
 
             _uploadedFiles.Clear();
@@ -689,11 +689,11 @@ Please use the code interpreter tool to read and analyze all CSV files.";
             };
 
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/messages", content);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/messages", content).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 _logger.LogError("OpenAI message posting failed with status {StatusCode}: {ErrorContent}", response.StatusCode, errorContent);
                 throw new HttpRequestException($"OpenAI API returned {response.StatusCode}: {errorContent}");
             }
@@ -719,7 +719,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/files/{fileId}");
+            var response = await _httpClient.GetAsync($"{BaseUrl}/files/{fileId}").ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -727,7 +727,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
                 return false;
             }
 
-            var responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
             var status = result.GetProperty("status").GetString();
@@ -756,11 +756,11 @@ Please use the code interpreter tool to read and analyze all CSV files.";
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{BaseUrl}/files/{fileId}");
+                var response = await _httpClient.GetAsync($"{BaseUrl}/files/{fileId}").ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
                     var status = result.GetProperty("status").GetString();
 
@@ -781,7 +781,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
                     }
                 }
 
-                await Task.Delay(1000);
+                await Task.Delay(1000).ConfigureAwait(false);
                 attempt++;
             }
             catch (JsonException ex)
@@ -801,7 +801,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/assistants/{_options.AssistantId}");
+            var response = await _httpClient.GetAsync($"{BaseUrl}/assistants/{_options.AssistantId}").ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -809,7 +809,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
                 return false;
             }
 
-            var responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
             if (result.TryGetProperty("tools", out var toolsElement))
@@ -845,13 +845,13 @@ Please use the code interpreter tool to read and analyze all CSV files.";
             _logger.LogInformation("Starting enhanced CSV file analysis for file: {FilePath}", filePath);
 
             // Verify assistant configuration
-            bool assistantConfigured = await VerifyAssistantConfigurationAsync();
+            bool assistantConfigured = await VerifyAssistantConfigurationAsync().ConfigureAwait(false);
             if (!assistantConfigured)
             {
                 throw new InvalidOperationException("Assistant is not properly configured with code_interpreter tool. Please check the assistant configuration in OpenAI.");
             }
 
-            string fileId = await UploadFileAsync(filePath);
+            string fileId = await UploadFileAsync(filePath).ConfigureAwait(false);
             _logger.LogInformation("File uploaded and verified successfully with ID: {FileId}", fileId);
 
             // If keepFileUploaded is true, register the file
@@ -870,24 +870,24 @@ Please use the code interpreter tool to read and analyze all CSV files.";
                 _logger.LogInformation("File registered for future use: {FileName}", uploadedFile.FileName);
             }
 
-            string threadId = await CreateThreadAsync();
+            string threadId = await CreateThreadAsync().ConfigureAwait(false);
             _logger.LogInformation("Thread created with ID: {ThreadId}", threadId);
 
-            await PostMessageWithFileAsync(threadId, userPrompt, fileId);
+            await PostMessageWithFileAsync(threadId, userPrompt, fileId).ConfigureAwait(false);
             _logger.LogInformation("Message posted to thread");
 
-            string runId = await CreateRunAsync(threadId);
+            string runId = await CreateRunAsync(threadId).ConfigureAwait(false);
             _logger.LogInformation("Run created with ID: {RunId}", runId);
 
-            await WaitForRunCompletionAsync(threadId, runId);
+            await WaitForRunCompletionAsync(threadId, runId).ConfigureAwait(false);
             _logger.LogInformation("Run completed successfully");
 
-            string response = await GetLatestAssistantResponseAsync(threadId);
+            string response = await GetLatestAssistantResponseAsync(threadId).ConfigureAwait(false);
 
             // Only clean up the uploaded file if we're not keeping it
             if (!keepFileUploaded)
             {
-                await DeleteFileAsync(fileId);
+                await DeleteFileAsync(fileId).ConfigureAwait(false);
                 _logger.LogInformation("Uploaded file cleaned up");
             }
 
@@ -919,7 +919,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
             // Test 3: Test API connectivity
             try
             {
-                var response = await _httpClient.GetAsync($"{BaseUrl}/models");
+                var response = await _httpClient.GetAsync($"{BaseUrl}/models").ConfigureAwait(false);
                 diagnostics.AppendLine($"✓ API Connectivity: {(response.IsSuccessStatusCode ? "Connected" : $"Failed ({response.StatusCode})")}");
             }
             catch (Exception ex)
@@ -928,7 +928,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
             }
 
             // Test 4: Check assistant configuration
-            bool assistantValid = await VerifyAssistantConfigurationAsync();
+            bool assistantValid = await VerifyAssistantConfigurationAsync().ConfigureAwait(false);
             diagnostics.AppendLine($"✓ Assistant Configuration: {(assistantValid ? "Valid (has code_interpreter)" : "Invalid (missing code_interpreter tool)")}");
 
             // Test 5: List uploaded files

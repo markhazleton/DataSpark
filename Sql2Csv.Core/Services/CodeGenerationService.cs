@@ -49,7 +49,7 @@ public sealed class CodeGenerationService : ICodeGenerationService
         {
             Directory.CreateDirectory(outputDirectory);
 
-            var tables = await _schemaService.GetTablesAsync(connectionString, cancellationToken);
+            var tables = await _schemaService.GetTablesAsync(connectionString, cancellationToken).ConfigureAwait(false);
 
             foreach (var table in tables)
             {
@@ -59,7 +59,7 @@ public sealed class CodeGenerationService : ICodeGenerationService
                 var fileName = $"{ToPascalCase(table.Name)}.cs";
                 var filePath = Path.Combine(outputDirectory, fileName);
 
-                await File.WriteAllTextAsync(filePath, dtoContent, cancellationToken);
+                await File.WriteAllTextAsync(filePath, dtoContent, cancellationToken).ConfigureAwait(false);
                 _logger.LogDebug("Generated DTO class: {FileName}", fileName);
             }
 

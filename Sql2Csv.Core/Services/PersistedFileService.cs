@@ -37,7 +37,7 @@ public class PersistedFileService : IPersistedFileService
 
     public async Task<List<PersistedDatabaseFile>> GetPersistedFilesAsync()
     {
-        await _fileLock.WaitAsync();
+        await _fileLock.WaitAsync().ConfigureAwait(false);
         try
         {
             if (!File.Exists(_metadataFilePath))
@@ -45,7 +45,7 @@ public class PersistedFileService : IPersistedFileService
                 return [];
             }
 
-            var json = await File.ReadAllTextAsync(_metadataFilePath);
+            var json = await File.ReadAllTextAsync(_metadataFilePath).ConfigureAwait(false);
             var files = JsonSerializer.Deserialize<List<PersistedDatabaseFile>>(json, _jsonOptions) ?? [];
 
             // Filter out files that no longer exist on disk
@@ -65,7 +65,7 @@ public class PersistedFileService : IPersistedFileService
             // Update metadata if files were removed
             if (existingFiles.Count != files.Count)
             {
-                await SaveMetadataAsync(existingFiles);
+                await SaveMetadataAsync(existingFiles).ConfigureAwait(false);
             }
 
             return existingFiles.OrderByDescending(f => f.LastAccessedAt).ToList();
@@ -84,13 +84,13 @@ public class PersistedFileService : IPersistedFileService
     public async Task<PersistedDatabaseFile?> GetPersistedFileAsync(string fileId)
     {
         // This method can reuse GetPersistedFilesAsync since it doesn't hold a lock itself
-        var files = await GetPersistedFilesAsync();
+        var files = await GetPersistedFilesAsync().ConfigureAwait(false);
         return files.FirstOrDefault(f => f.Id == fileId);
     }
 
     public async Task<List<PersistedDatabaseFile>> GetAvailableFilesAsync()
     {
-        return await GetPersistedFilesAsync();
+        return await GetPersistedFilesAsync().ConfigureAwait(false);
     }
 
     public async Task<PersistedDatabaseFile> SavePersistedFileAsync(
@@ -99,7 +99,7 @@ public class PersistedFileService : IPersistedFileService
         int tableCount,
         string? description = null)
     {
-        await _fileLock.WaitAsync();
+        await _fileLock.WaitAsync().ConfigureAwait(false);
         try
         {
             var fileId = Guid.NewGuid().ToString();
@@ -108,10 +108,10 @@ public class PersistedFileService : IPersistedFileService
             var persistedFilePath = Path.Combine(_persistedDirectory, persistedFileName);
 
             // Add a small delay to ensure any database connections are fully released
-            await Task.Delay(100);
+            await Task.Delay(100).ConfigureAwait(false);
 
             // Copy temp file to persisted location with retry logic
-            await CopyFileWithRetryAsync(tempFilePath, persistedFilePath);
+            await CopyFileWithRetryAsync(tempFilePath, persistedFilePath).ConfigureAwait(false);
 
             var persistedFile = new PersistedDatabaseFile
             {
@@ -129,13 +129,13 @@ public class PersistedFileService : IPersistedFileService
             var files = new List<PersistedDatabaseFile>();
             if (File.Exists(_metadataFilePath))
             {
-                var json = await File.ReadAllTextAsync(_metadataFilePath);
+                var json = await File.ReadAllTextAsync(_metadataFilePath).ConfigureAwait(false);
                 files = JsonSerializer.Deserialize<List<PersistedDatabaseFile>>(json, _jsonOptions) ?? [];
             }
 
             // Add to metadata
             files.Add(persistedFile);
-            await SaveMetadataAsync(files);
+            await SaveMetadataAsync(files).ConfigureAwait(false);
 
             _logger.LogInformation("Persisted database file {FileName} with ID {FileId}", file.FileName, fileId);
             return persistedFile;
@@ -148,14 +148,14 @@ public class PersistedFileService : IPersistedFileService
 
     public async Task<bool> DeletePersistedFileAsync(string fileId)
     {
-        await _fileLock.WaitAsync();
+        await _fileLock.WaitAsync().ConfigureAwait(false);
         try
         {
             // Read files directly to avoid deadlock
             var files = new List<PersistedDatabaseFile>();
             if (File.Exists(_metadataFilePath))
             {
-                var json = await File.ReadAllTextAsync(_metadataFilePath);
+                var json = await File.ReadAllTextAsync(_metadataFilePath).ConfigureAwait(false);
                 files = JsonSerializer.Deserialize<List<PersistedDatabaseFile>>(json, _jsonOptions) ?? [];
             }
 
@@ -174,7 +174,7 @@ public class PersistedFileService : IPersistedFileService
 
             // Remove from metadata
             files.Remove(fileToDelete);
-            await SaveMetadataAsync(files);
+            await SaveMetadataAsync(files).ConfigureAwait(false);
 
             _logger.LogInformation("Deleted persisted file {FileId}", fileId);
             return true;
@@ -192,14 +192,14 @@ public class PersistedFileService : IPersistedFileService
 
     public async Task<bool> UpdateFileDescriptionAsync(string fileId, string? description)
     {
-        await _fileLock.WaitAsync();
+        await _fileLock.WaitAsync().ConfigureAwait(false);
         try
         {
             // Read files directly to avoid deadlock
             var files = new List<PersistedDatabaseFile>();
             if (File.Exists(_metadataFilePath))
             {
-                var json = await File.ReadAllTextAsync(_metadataFilePath);
+                var json = await File.ReadAllTextAsync(_metadataFilePath).ConfigureAwait(false);
                 files = JsonSerializer.Deserialize<List<PersistedDatabaseFile>>(json, _jsonOptions) ?? [];
             }
 
@@ -215,7 +215,7 @@ public class PersistedFileService : IPersistedFileService
             var index = files.IndexOf(fileToUpdate);
             files[index] = updatedFile;
 
-            await SaveMetadataAsync(files);
+            await SaveMetadataAsync(files).ConfigureAwait(false);
             return true;
         }
         catch (Exception ex)
@@ -231,14 +231,14 @@ public class PersistedFileService : IPersistedFileService
 
     public async Task UpdateLastAccessedAsync(string fileId)
     {
-        await _fileLock.WaitAsync();
+        await _fileLock.WaitAsync().ConfigureAwait(false);
         try
         {
             // Read files directly to avoid deadlock
             var files = new List<PersistedDatabaseFile>();
             if (File.Exists(_metadataFilePath))
             {
-                var json = await File.ReadAllTextAsync(_metadataFilePath);
+                var json = await File.ReadAllTextAsync(_metadataFilePath).ConfigureAwait(false);
                 files = JsonSerializer.Deserialize<List<PersistedDatabaseFile>>(json, _jsonOptions) ?? [];
             }
 
@@ -254,7 +254,7 @@ public class PersistedFileService : IPersistedFileService
             var index = files.IndexOf(fileToUpdate);
             files[index] = updatedFile;
 
-            await SaveMetadataAsync(files);
+            await SaveMetadataAsync(files).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -268,14 +268,14 @@ public class PersistedFileService : IPersistedFileService
 
     public async Task CleanupOldFilesAsync(TimeSpan maxAge)
     {
-        await _fileLock.WaitAsync();
+        await _fileLock.WaitAsync().ConfigureAwait(false);
         try
         {
             // Read files directly to avoid deadlock
             var files = new List<PersistedDatabaseFile>();
             if (File.Exists(_metadataFilePath))
             {
-                var json = await File.ReadAllTextAsync(_metadataFilePath);
+                var json = await File.ReadAllTextAsync(_metadataFilePath).ConfigureAwait(false);
                 files = JsonSerializer.Deserialize<List<PersistedDatabaseFile>>(json, _jsonOptions) ?? [];
             }
 
@@ -306,7 +306,7 @@ public class PersistedFileService : IPersistedFileService
             // Save updated metadata if files were deleted
             if (filesToDelete.Any())
             {
-                await SaveMetadataAsync(files);
+                await SaveMetadataAsync(files).ConfigureAwait(false);
                 _logger.LogInformation("Cleaned up {Count} old persisted files", filesToDelete.Count);
             }
         }
@@ -318,14 +318,14 @@ public class PersistedFileService : IPersistedFileService
 
     public async Task<long> GetTotalStorageSizeAsync()
     {
-        var files = await GetPersistedFilesAsync();
+        var files = await GetPersistedFilesAsync().ConfigureAwait(false);
         return files.Sum(f => f.FileSizeBytes);
     }
 
     private async Task SaveMetadataAsync(List<PersistedDatabaseFile> files)
     {
         var json = JsonSerializer.Serialize(files, _jsonOptions);
-        await File.WriteAllTextAsync(_metadataFilePath, json);
+        await File.WriteAllTextAsync(_metadataFilePath, json).ConfigureAwait(false);
     }
 
     private async Task CopyFileWithRetryAsync(string sourcePath, string destinationPath, int maxRetries = 3)
@@ -340,7 +340,7 @@ public class PersistedFileService : IPersistedFileService
             catch (IOException ex) when (i < maxRetries - 1)
             {
                 _logger.LogWarning(ex, "File copy attempt {Attempt} failed, retrying in {Delay}ms", i + 1, 250 * (i + 1));
-                await Task.Delay(250 * (i + 1)); // Progressive delay: 250ms, 500ms, 750ms
+                await Task.Delay(250 * (i + 1)).ConfigureAwait(false); // Progressive delay: 250ms, 500ms, 750ms
             }
         }
 

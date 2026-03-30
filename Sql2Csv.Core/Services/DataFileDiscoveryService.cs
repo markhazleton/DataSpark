@@ -29,7 +29,7 @@ public class DataFileDiscoveryService : IDataFileDiscoveryService
         try
         {
             // Discover database files
-            var databases = await _databaseDiscoveryService.DiscoverDatabasesAsync(directoryPath, cancellationToken);
+            var databases = await _databaseDiscoveryService.DiscoverDatabasesAsync(directoryPath, cancellationToken).ConfigureAwait(false);
             foreach (var db in databases)
             {
                 // Extract file path from connection string
@@ -135,7 +135,7 @@ public class DataFileDiscoveryService : IDataFileDiscoveryService
             
             for (int i = 0; i < 5; i++)
             {
-                var line = await reader.ReadLineAsync();
+                var line = await reader.ReadLineAsync().ConfigureAwait(false);
                 if (line is null)
                 {
                     break;

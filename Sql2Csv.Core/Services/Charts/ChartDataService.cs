@@ -19,11 +19,11 @@ public class ChartDataService : IChartDataService
         {
             _logger.LogInformation("Processing chart data for source {DataSource} ({ChartType})", dataSource, config.ChartType);
             var result = new ProcessedChartData { ProcessedDate = DateTime.UtcNow, ProcessingNotes = $"Processed for chart type: {config.ChartType}" };
-            var csvResult = await _csvFileService.ReadCsvForVisualizationAsync(dataSource);
+            var csvResult = await _csvFileService.ReadCsvForVisualizationAsync(dataSource).ConfigureAwait(false);
             if (csvResult == null || csvResult.Records.Count == 0)
             { result.Warnings.Add($"No data in '{dataSource}'."); return result; }
             result.TotalRows = csvResult.Records.Count;
-            var columns = await GetColumnsAsync(dataSource);
+            var columns = await GetColumnsAsync(dataSource).ConfigureAwait(false);
             foreach (var column in columns) result.ColumnTypes[column.Column] = DetermineDataType(column);
             var dataDict = ConvertDynamicToDict(csvResult.Records);
             var filteredData = ApplyFilters(dataDict, config.Filters);
@@ -49,10 +49,10 @@ public class ChartDataService : IChartDataService
     {
         try
         {
-            var frameResult = await _csvFileService.ReadCsvAsDataFrameAsync(dataSource);
+            var frameResult = await _csvFileService.ReadCsvAsDataFrameAsync(dataSource).ConfigureAwait(false);
             if (!frameResult.Success || !frameResult.Data.Any())
             {
-                var headers = await _csvFileService.GetCsvHeadersAsync(dataSource);
+                var headers = await _csvFileService.GetCsvHeadersAsync(dataSource).ConfigureAwait(false);
                 return headers.Success && headers.Data != null ? headers.Data.Select(h => new ColumnInfo { Column = h, Type = "String", IsNumeric = false }).ToList() : new();
             }
             var df = frameResult.Data[0];
@@ -77,7 +77,7 @@ public class ChartDataService : IChartDataService
     {
         try
         {
-            var csvResult = await _csvFileService.ReadCsvForVisualizationAsync(dataSource);
+            var csvResult = await _csvFileService.ReadCsvForVisualizationAsync(dataSource).ConfigureAwait(false);
             if (csvResult == null || csvResult.Records.Count == 0) return new();
             var dict = ConvertDynamicToDict(csvResult.Records);
             return dict.Select(r => r.TryGetValue(column, out var v) ? v?.ToString() ?? "" : "")
@@ -88,15 +88,15 @@ public class ChartDataService : IChartDataService
     }
 
     public async Task<bool> ValidateDataSourceAsync(string dataSource)
-    { try { return (await GetColumnsAsync(dataSource)).Count > 0; } catch { return false; } }
+    { try { return (await GetColumnsAsync(dataSource).ConfigureAwait(false)).Count > 0; } catch { return false; } }
 
     public async Task<List<string>> GetAvailableDataSourcesAsync()
-        => await Task.FromResult(_csvFileService.GetCsvFileNames());
+        => await Task.FromResult(_csvFileService.GetCsvFileNames()).ConfigureAwait(false);
 
     public async Task<Dictionary<string, List<string>>> GetMultipleColumnValuesAsync(string dataSource, List<string> columns, int maxValues = 100)
     {
         var dict = new Dictionary<string, List<string>>();
-        foreach (var c in columns) dict[c] = await GetColumnValuesAsync(dataSource, c, maxValues);
+        foreach (var c in columns) dict[c] = await GetColumnValuesAsync(dataSource, c, maxValues).ConfigureAwait(false);
         return dict;
     }
 
@@ -104,8 +104,8 @@ public class ChartDataService : IChartDataService
     {
         try
         {
-            var csv = await _csvFileService.ReadCsvForVisualizationAsync(dataSource);
-            var cols = await GetColumnsAsync(dataSource);
+            var csv = await _csvFileService.ReadCsvForVisualizationAsync(dataSource).ConfigureAwait(false);
+            var cols = await GetColumnsAsync(dataSource).ConfigureAwait(false);
             return new DataSummary { TotalDataPoints = csv?.Records?.Count ?? 0, CategoryCount = cols.Count, SeriesCount = cols.Count(c => c.IsNumeric) };
         }
         catch (Exception ex) { _logger.LogError(ex, "Summary error {DS}", dataSource); return new(); }

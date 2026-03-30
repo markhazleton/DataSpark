@@ -25,12 +25,12 @@ public class ChartValidationService : IChartValidationService
             {
                 if (!await _dataService.ValidateDataSourceAsync(dataSource))
                 { result.Errors.Add($"CSV '{dataSource}' not found or empty."); return result; }
-                var columns = await _dataService.GetColumnsAsync(dataSource);
-                foreach (var s in config.Series) result.Errors.AddRange(await ValidateSeriesAsync(s, columns));
-                if (config.XAxis != null) result.Errors.AddRange(await ValidateAxisAsync(config.XAxis, columns));
-                if (config.YAxis != null) result.Errors.AddRange(await ValidateAxisAsync(config.YAxis, columns));
-                if (config.Y2Axis != null) result.Errors.AddRange(await ValidateAxisAsync(config.Y2Axis, columns));
-                result.Errors.AddRange(await ValidateFiltersAsync(config.Filters, columns));
+                var columns = await _dataService.GetColumnsAsync(dataSource).ConfigureAwait(false);
+                foreach (var s in config.Series) result.Errors.AddRange(await ValidateSeriesAsync(s, columns).ConfigureAwait(false));
+                if (config.XAxis != null) result.Errors.AddRange(await ValidateAxisAsync(config.XAxis, columns).ConfigureAwait(false));
+                if (config.YAxis != null) result.Errors.AddRange(await ValidateAxisAsync(config.YAxis, columns).ConfigureAwait(false));
+                if (config.Y2Axis != null) result.Errors.AddRange(await ValidateAxisAsync(config.Y2Axis, columns).ConfigureAwait(false));
+                result.Errors.AddRange(await ValidateFiltersAsync(config.Filters, columns).ConfigureAwait(false));
                 if (!await IsChartTypeCompatibleAsync(config.ChartType, columns))
                     result.Warnings.Add($"Chart type '{config.ChartType}' may not be optimal for the data.");
             }
