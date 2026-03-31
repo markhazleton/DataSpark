@@ -48,14 +48,14 @@ function Invoke-Step($name, [scriptblock]$action) {
 }
 
 if (-not $SkipBuild) {
-    Invoke-Step 'Restore' { dotnet restore .\sql2csv.sln }
-    Invoke-Step 'Build (Release)' { dotnet build .\sql2csv.sln -c Release --no-restore }
+    Invoke-Step 'Restore' { dotnet restore .\DataSpark.sln }
+    Invoke-Step 'Build (Release)' { dotnet build .\DataSpark.sln -c Release --no-restore }
 }
 
 $testResultsDir = Join-Path $repoRoot 'TestResults'
 if (-not (Test-Path $testResultsDir)) { New-Item -ItemType Directory -Path $testResultsDir | Out-Null }
 
-Invoke-Step 'Test with coverage' { dotnet test .\Sql2Csv.Tests\Sql2Csv.Tests.csproj -c Release --no-build --collect:"XPlat Code Coverage" --results-directory $testResultsDir }
+Invoke-Step 'Test with coverage' { dotnet test .\DataSpark.Tests\DataSpark.Tests.csproj -c Release --no-build --collect:"XPlat Code Coverage" --results-directory $testResultsDir }
 
 Invoke-Step 'Generate coverage badge' {
     $coverageFile = Get-ChildItem -Recurse -Filter coverage.cobertura.xml $testResultsDir | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
@@ -74,17 +74,17 @@ Invoke-Step 'Generate coverage badge' {
 Invoke-Step 'Run benchmarks' {
     Write-Host "Running benchmarks with filter: $Filter" -ForegroundColor DarkCyan
     # Quote the filter to avoid PowerShell wildcard expansion when '*'
-    dotnet run -c Release --project .\Sql2Csv.Benchmarks -- --filter "$Filter" | Out-Null
-    $resultsDirCheck = Join-Path $repoRoot 'Sql2Csv.Benchmarks\BenchmarkDotNet.Artifacts\results'
+    dotnet run -c Release --project .\DataSpark.Benchmarks -- --filter "$Filter" | Out-Null
+    $resultsDirCheck = Join-Path $repoRoot 'DataSpark.Benchmarks\BenchmarkDotNet.Artifacts\results'
     if (-not (Test-Path $resultsDirCheck)) {
         Write-Warning "Benchmark results directory not found after first run. Retrying with explicit '*' literal."
-        dotnet run -c Release --project .\Sql2Csv.Benchmarks -- --filter '*' | Out-Null
+        dotnet run -c Release --project .\DataSpark.Benchmarks -- --filter '*' | Out-Null
     }
 }
 
 Invoke-Step 'Update benchmark baseline' {
     $rootResults = Join-Path $repoRoot 'BenchmarkDotNet.Artifacts\results'
-    $projectResults = Join-Path $repoRoot 'Sql2Csv.Benchmarks\BenchmarkDotNet.Artifacts\results'
+    $projectResults = Join-Path $repoRoot 'DataSpark.Benchmarks\BenchmarkDotNet.Artifacts\results'
     $candidateDirs = @()
     if (Test-Path $rootResults) { $candidateDirs += $rootResults }
     if (Test-Path $projectResults) { $candidateDirs += $projectResults }
@@ -100,7 +100,7 @@ Invoke-Step 'Update benchmark baseline' {
         if ($file) { $latest = $file; break }
     }
     if (-not $latest) { throw "No *-report-github.md file found in: $($candidateDirs -join '; ')" }
-    $baselineDir = Join-Path $repoRoot 'Sql2Csv.Benchmarks\baseline'
+    $baselineDir = Join-Path $repoRoot 'DataSpark.Benchmarks\baseline'
     if (-not (Test-Path $baselineDir)) { New-Item -ItemType Directory -Path $baselineDir | Out-Null }
     Copy-Item $latest.FullName (Join-Path $baselineDir 'BenchmarkBaseline.md') -Force
     Write-Host "Baseline updated from $($latest.FullName)" -ForegroundColor Green
@@ -109,7 +109,7 @@ Invoke-Step 'Update benchmark baseline' {
 Invoke-Step 'Copy coverage XML to web/data' {
     $coverageFile = Get-ChildItem -Recurse -Filter coverage.cobertura.xml $testResultsDir | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
     if (-not $coverageFile) { throw 'coverage.cobertura.xml not found' }
-    $webDataDir = Join-Path $repoRoot 'sql2csv.web\data'
+    $webDataDir = Join-Path $repoRoot 'DataSpark.Web\data'
     if (-not (Test-Path $webDataDir)) { New-Item -ItemType Directory -Path $webDataDir | Out-Null }
     $destPath = Join-Path $webDataDir 'coverage.cobertura.xml'
     Copy-Item $coverageFile.FullName -Destination $destPath -Force
@@ -125,7 +125,7 @@ Invoke-Step 'Copy coverage XML to web/data' {
 
 if ($LaunchWeb) {
     Invoke-Step 'Launch web (Performance page at /Performance)' {
-        dotnet run --project .\sql2csv.web
+        dotnet run --project .\DataSpark.Web
     }
 }
 
