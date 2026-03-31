@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Text.Json;
 using DataSpark.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace DataSpark.Presentation.Commands;
 
@@ -37,85 +38,53 @@ internal static class DiscoverCommand
             var recursive = parseResult.GetValue(recursiveOption);
             var format = (parseResult.GetValue(formatOption) ?? "text").ToLowerInvariant();
 
+            using var scope = services.CreateScope();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<IDatabaseDiscoverySummaryService>>();
+
             if (string.IsNullOrWhiteSpace(path))
             {
-                Console.Error.WriteLine("--path is required.");
+                logger.LogError("--path is required");
                 Environment.ExitCode = 1;
                 return;
             }
 
             if (!Directory.Exists(path))
             {
-                Console.Error.WriteLine($"Path not found: {path}");
+                logger.LogError("Path not found: {Path}", path);
                 Environment.ExitCode = 1;
                 return;
             }
 
-            using var scope = services.CreateScope();
-            var discovery = scope.ServiceProvider.GetRequiredService<IDatabaseDiscoveryService>();
-            var schemaService = scope.ServiceProvider.GetRequiredService<ISchemaService>();
+            var summaryService = scope.ServiceProvider.GetRequiredService<IDatabaseDiscoverySummaryService>();
+            var result = await summaryService.ScanAsync(path, recursive).ConfigureAwait(false);
 
-            var scanPaths = recursive
-                ? new[] { path }.Concat(Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories))
-                : new[] { path };
-
-            var databases = new List<DataSpark.Core.Models.DatabaseConfiguration>();
-            foreach (var scanPath in scanPaths)
+            if (result.Databases.Count == 0)
             {
-                var found = await discovery.DiscoverDatabasesAsync(scanPath).ConfigureAwait(false);
-                databases.AddRange(found);
-            }
-
-            var unique = databases
-                .GroupBy(d => d.ConnectionString, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .ToList();
-
-            if (unique.Count == 0)
-            {
-                Console.Error.WriteLine("No SQLite databases found.");
+                logger.LogWarning("No SQLite databases found");
                 Environment.ExitCode = 2;
                 return;
             }
 
-            var items = new List<object>();
-            foreach (var db in unique)
-            {
-                var dbPath = GetDatabasePath(db.ConnectionString);
-                long sizeBytes = 0;
-                if (!string.IsNullOrWhiteSpace(dbPath) && File.Exists(dbPath))
-                {
-                    sizeBytes = new FileInfo(dbPath).Length;
-                }
-
-                var tables = await schemaService.GetTableNamesAsync(db.ConnectionString).ConfigureAwait(false);
-                items.Add(new
-                {
-                    path = dbPath,
-                    sizeBytes,
-                    tableCount = tables.Count()
-                });
-            }
-
             if (format == "json")
             {
-                Console.WriteLine(JsonSerializer.Serialize(new { databases = items }, new JsonSerializerOptions { WriteIndented = true }));
+                var jsonObj = new { databases = result.Databases.Select(d => new { d.Path, d.SizeBytes, d.TableCount }) };
+                logger.LogInformation("{Output}", JsonSerializer.Serialize(jsonObj, new JsonSerializerOptions { WriteIndented = true }));
             }
             else if (format == "markdown")
             {
-                Console.WriteLine("| Path | Size (bytes) | Tables |");
-                Console.WriteLine("|------|--------------|--------|");
-                foreach (dynamic item in items)
+                logger.LogInformation("| Path | Size (bytes) | Tables |");
+                logger.LogInformation("|------|--------------|--------|");
+                foreach (var db in result.Databases)
                 {
-                    Console.WriteLine($"| {item.path} | {item.sizeBytes} | {item.tableCount} |");
+                    logger.LogInformation("| {Path} | {SizeBytes} | {TableCount} |", db.Path, db.SizeBytes, db.TableCount);
                 }
             }
             else
             {
-                Console.WriteLine($"Found {items.Count} SQLite database(s):");
-                foreach (dynamic item in items)
+                logger.LogInformation("Found {Count} SQLite database(s):", result.Databases.Count);
+                foreach (var db in result.Databases)
                 {
-                    Console.WriteLine($"  {item.path}  ({item.sizeBytes} bytes, {item.tableCount} tables)");
+                    logger.LogInformation("  {Path}  ({SizeBytes} bytes, {TableCount} tables)", db.Path, db.SizeBytes, db.TableCount);
                 }
             }
 
@@ -123,16 +92,5 @@ internal static class DiscoverCommand
         });
 
         return command;
-    }
-
-    private static string GetDatabasePath(string connectionString)
-    {
-        const string prefix = "Data Source=";
-        if (!connectionString.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-        {
-            return connectionString;
-        }
-
-        return connectionString.Substring(prefix.Length).Trim();
     }
 }

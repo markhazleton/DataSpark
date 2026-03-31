@@ -48,6 +48,7 @@ builder.Services.AddScoped<IBivariateSvgService, BivariateSvgService>();
 builder.Services.AddScoped<ISchemaService, SchemaService>();
 builder.Services.AddScoped<ICodeGenerationService, CodeGenerationService>();
 builder.Services.AddScoped<IExportService, DataSpark.Core.Services.ExportService>();
+builder.Services.AddScoped<IExportPackagingService, ExportPackagingService>();
 builder.Services.AddScoped<IDataExportService, DataExportService>();
 builder.Services.AddScoped<IDatabaseAnalysisService, DatabaseAnalysisService>();
 builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection(FileStorageOptions.SectionName));

@@ -1,6 +1,7 @@
 using System.CommandLine;
 using DataSpark.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace DataSpark.Presentation.Commands;
 
@@ -49,9 +50,12 @@ internal static class ExportCommand
             var delimiter = parseResult.GetValue(delimiterOption);
             var noHeaders = parseResult.GetValue(noHeadersOption);
 
+            using var scope = services.CreateScope();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<ApplicationService>>();
+
             if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(output))
             {
-                Console.Error.WriteLine("--path and --output are required.");
+                logger.LogError("--path and --output are required");
                 Environment.ExitCode = 1;
                 return;
             }
@@ -59,12 +63,11 @@ internal static class ExportCommand
             var searchPath = NormalizeToSearchPath(path);
             if (!Directory.Exists(searchPath))
             {
-                Console.Error.WriteLine($"Path not found: {path}");
+                logger.LogError("Path not found: {Path}", path);
                 Environment.ExitCode = 1;
                 return;
             }
 
-            using var scope = services.CreateScope();
             var app = scope.ServiceProvider.GetRequiredService<ApplicationService>();
             var tableList = ParseTables(tables);
             bool? includeHeaders = noHeaders ? false : null;

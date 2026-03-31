@@ -24,6 +24,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISchemaService, SchemaService>();
         services.AddScoped<ICodeGenerationService, CodeGenerationService>();
         services.AddScoped<ISchemaReportSink, LoggingSchemaReportSink>();
+        services.AddScoped<IDatabaseDiscoverySummaryService, DatabaseDiscoverySummaryService>();
+        services.AddScoped<IExportPackagingService, ExportPackagingService>();
         services.AddScoped<ApplicationService>();
 
         // Add new core services

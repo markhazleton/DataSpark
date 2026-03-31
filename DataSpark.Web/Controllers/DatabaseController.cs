@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using DataSpark.Core.Interfaces;
@@ -12,15 +11,18 @@ public class DatabaseController : Controller
 {
     private readonly IDatabaseAnalysisService _databaseAnalysisService;
     private readonly IPersistedFileService _persistedFileService;
+    private readonly IExportPackagingService _exportPackagingService;
     private readonly ILogger<DatabaseController> _logger;
 
     public DatabaseController(
         IDatabaseAnalysisService databaseAnalysisService,
         IPersistedFileService persistedFileService,
+        IExportPackagingService exportPackagingService,
         ILogger<DatabaseController> logger)
     {
         _databaseAnalysisService = databaseAnalysisService;
         _persistedFileService = persistedFileService;
+        _exportPackagingService = exportPackagingService;
         _logger = logger;
     }
 
@@ -211,7 +213,7 @@ public class DatabaseController : Controller
                     return File(bytes, "text/csv", single.FileName);
                 }
 
-                var zipBytes = BuildExportZip(exportResults);
+                var zipBytes = _exportPackagingService.PackageAsZip(exportResults);
                 var safeDbName = Path.GetFileNameWithoutExtension(file.OriginalFileName);
                 return File(zipBytes, "application/zip", $"{safeDbName}-tables.zip");
             }
@@ -308,20 +310,4 @@ public class DatabaseController : Controller
         });
     }
 
-    private static byte[] BuildExportZip(IEnumerable<ExportResult> results)
-    {
-        using var memoryStream = new MemoryStream();
-        using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            foreach (var result in results.Where(r => r.IsSuccess))
-            {
-                var entry = archive.CreateEntry(result.FileName, CompressionLevel.Optimal);
-                using var entryStream = entry.Open();
-                using var writer = new StreamWriter(entryStream, Encoding.UTF8);
-                writer.Write(result.FileContent);
-            }
-        }
-
-        return memoryStream.ToArray();
-    }
 }

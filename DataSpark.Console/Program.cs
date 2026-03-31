@@ -24,12 +24,15 @@ public static class Program
     /// <returns>The exit code.</returns>
     public static async Task<int> Main(string[] args)
     {
+        using var earlyLoggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var logger = earlyLoggerFactory.CreateLogger("DataSpark.Console");
+
         try
         {
             if (args.Any(a => string.Equals(a, "--version", StringComparison.OrdinalIgnoreCase)))
             {
                 var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
-                Console.WriteLine($"DataSpark.Console {version}");
+                logger.LogInformation("DataSpark.Console {Version}", version);
                 return 0;
             }
 
@@ -41,7 +44,7 @@ public static class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+            logger.LogError(ex, "An unexpected error occurred");
             return 1;
         }
     }
@@ -66,6 +69,7 @@ public static class Program
 
                 // Register services
                 services.AddScoped<IDatabaseDiscoveryService, DatabaseDiscoveryService>();
+                services.AddScoped<IDatabaseDiscoverySummaryService, DatabaseDiscoverySummaryService>();
                 services.AddScoped<IExportService, ExportService>();
                 services.AddScoped<ISchemaService, SchemaService>();
                 services.AddScoped<ICodeGenerationService, CodeGenerationService>();

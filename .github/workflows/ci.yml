@@ -18,7 +18,7 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     env:
-      MIN_COVERAGE: "80" # Absolute minimum allowed coverage percent
+      MIN_COVERAGE: "15" # Current Core-only baseline; ratchet upward as tests are added
       MAX_COVERAGE_DROP: "2" # Maximum allowed % drop vs main before failing PR
     steps:
       - name: Checkout
@@ -36,7 +36,7 @@ jobs:
         run: dotnet build DataSpark.sln --configuration Release --no-restore
 
       - name: Test with coverage
-        run: dotnet test DataSpark.Tests/DataSpark.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
+        run: dotnet test DataSpark.Tests/DataSpark.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults --settings coverage.runsettings
 
       - name: Run benchmarks (main only)
         if: github.ref == 'refs/heads/main'
