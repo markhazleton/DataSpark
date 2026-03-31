@@ -5,9 +5,9 @@
 - **PR Number**: #9
 - **Source Branch**: 001-dataspark-consolidation
 - **Target Branch**: main  
-- **Review Date**: 2026-03-31 15:34:15 UTC
-- **Last Updated**: 2026-03-31 15:34:15 UTC
-- **Reviewed Commit**: a979f1ecb42fd9bbe93f838a226bf09be77dc869
+- **Review Date**: 2026-03-31 15:56:12 UTC
+- **Last Updated**: 2026-03-31 15:56:12 UTC
+- **Reviewed Commit**: 686eaaac91f6f470a6f58d3e3ef584131ff0f107
 - **Reviewer**: speckit.pr-review
 - **Constitution Version**: 1.0.0
 
@@ -16,19 +16,19 @@
 - **Author**: @markhazleton
 - **Created**: 2026-03-31T13:34:00Z
 - **Status**: OPEN
-- **Files Changed**: 100
-- **Commits**: 10
-- **Lines**: +6661 -17300
+- **Files Changed**: 236
+- **Commits**: 12
+- **Lines**: +6874 -17307
 
 ## Executive Summary
 
 - ✅ **Constitution Compliance**: FAIL (4/7 principles checked)
 - 🔒 **Security**: 0 issues found
 - 📊 **Code Quality**: 1 recommendation
-- 🧪 **Testing**: FAIL
+- 🧪 **Testing**: PASS
 - 📝 **Documentation**: PASS
 
-**Overall Assessment**: The update commit closed the prior CSRF and controller-layer bivariate logic gaps, but this PR still introduces mandatory-violation regressions in `DataSpark.Core` async I/O discipline and test coverage for new Core functionality.
+**Overall Assessment**: This update significantly improved prior blockers (tests were added for new bivariate services and anti-forgery coverage was strengthened), but mandatory constitution violations remain in the Console presentation layer due to direct `Console.Write*` usage and business logic implemented in a presentation command.
 
 **Approval Recommendation**: ⚠️ REQUEST CHANGES
 
@@ -36,10 +36,8 @@
 
 | ID | Principle | File:Line | Issue | Recommendation |
 |----|-----------|-----------|-------|----------------|
-| C1 | III. Async/Await Discipline (MANDATORY) | DataSpark.Core/Services/Analysis/BivariateAnalysisService.cs:30 | `using var reader = new StreamReader(filePath);` and `csv.GetRecords<dynamic>().ToList()` perform synchronous file I/O in Core where constitution states: "All I/O operations MUST be async." | Refactor to async file/database read flow (for example `ReadAsync`/`GetRecordsAsync`) and propagate `await ...ConfigureAwait(false)` across the method. |
-| C2 | III. Async/Await Discipline (MANDATORY) | DataSpark.Core/Services/Analysis/BivariateSvgService.cs:29 | `GenerateSvgAsync` is Task-returning but uses synchronous I/O (`StreamReader`, `GetRecords<dynamic>().ToList()`), violating Core async MUST requirements. | Convert method to true async implementation, including asynchronous record loading and `ConfigureAwait(false)` for all awaits in Core code. |
-| C3 | II. Testing Standards (MANDATORY) | DataSpark.Core/Services/Analysis/BivariateSvgService.cs:21 | New production Core service has no corresponding test coverage in `DataSpark.Tests` (only `BivariateAnalysisServiceTests` exists). Constitution states all production Core code MUST have corresponding tests. | Add `DataSpark.Tests/Services/BivariateSvgServiceTests.cs` covering success paths, invalid data paths, and cancellation behavior. |
-| C4 | I. Clean Architecture — Core-First (MANDATORY) | DataSpark.Web/Controllers/api/ChartApiController.cs:448 | Controller contains non-trivial data/export transformation logic (`BuildCsvBytes`, `BuildJsonBytes`, `BuildSvgBytes`) instead of delegating to Core service layer. | Move export formatting/render logic into `DataSpark.Core` service abstractions and keep controller limited to request validation and response mapping. |
+| C1 | VII. Structured Logging (MANDATORY) | DataSpark.Console/Program.cs:32 | Production code writes directly to console (`Console.WriteLine`) despite constitution requirement: "(MUST NOT) `Console.Write*` or `Debug.Write*` in production code — use `ILogger` exclusively." Same pattern appears in command modules (e.g., Discover/Export/Generate/Schema commands). | Replace direct console writes with injected `ILogger<T>` in command handlers and program startup/error paths. Keep CLI output behavior by routing user-facing messages through logging abstractions configured for console sink. |
+| C2 | I. Clean Architecture — Core-First (MANDATORY) | DataSpark.Console/Presentation/Commands/DiscoverCommand.cs:58 | Presentation command contains non-trivial business/data-processing logic (recursive filesystem enumeration, database deduplication, metadata aggregation) instead of delegating those responsibilities to Core services. Constitution requires presentation layer to delegate work to Core and avoid business logic in presentation classes. | Move discovery orchestration and aggregation into a Core service/interface (for example `IDatabaseDiscoverySummaryService`) and keep command layer to argument validation plus result formatting. |
 
 ## High Priority Issues
 
@@ -47,25 +45,25 @@ None found.
 
 ## Medium Priority Suggestions
 
-None found.
+| ID | Principle | File:Line | Issue | Recommendation |
+|----|-----------|-----------|-------|----------------|
+| M1 | I. Clean Architecture — Core-First (MANDATORY) | DataSpark.Web/Controllers/DatabaseController.cs:311 | `BuildExportZip` performs export packaging/transformation in controller layer. While isolated, it keeps domain-adjacent transformation logic in presentation code. | Move zip/export packaging into a Core-level export utility/service and let controller only map request/response concerns. |
 
 ## Low Priority Improvements
 
-| ID | Principle | File:Line | Issue | Recommendation |
-|----|-----------|-----------|-------|----------------|
-| L1 | V. Code Quality — Nullable & Compiler Strictness (MANDATORY) | DataSpark.Console/DataSpark.Console.csproj:32 | Duplicate `ProjectReference` entries point to the same Core project (line 32 and line 42). | Remove duplicate reference to keep project file minimal and reduce maintenance noise. |
+None found.
 
 ## Constitution Alignment Details
 
 | Principle | Status | Evidence | Notes |
 |-----------|--------|----------|-------|
-| I. Clean Architecture — Core-First | ❌ Fail | DataSpark.Web/Controllers/api/ChartApiController.cs:448 | Export transformation/render logic lives in controller methods instead of Core services. |
-| II. Testing Standards | ❌ Fail | DataSpark.Core/Services/Analysis/BivariateSvgService.cs:21 | New Core service added without corresponding test file in `DataSpark.Tests`. |
-| III. Async/Await Discipline | ❌ Fail | DataSpark.Core/Services/Analysis/BivariateAnalysisService.cs:30 | New Core services perform sync I/O in Task-returning methods; Core I/O must be async with ConfigureAwait(false). |
-| IV. Security — CSRF & Input Validation | ✅ Pass | DataSpark.Web/Controllers/api/ChartApiController.cs:148; DataSpark.Web/Controllers/api/FilesController.cs:725 | Previously missing anti-forgery attributes now present; upload validation now includes extension and content checks. |
-| V. Code Quality — Nullable & Compiler Strictness | ✅ Pass | DataSpark.Web/DataSpark.Web.csproj:7; DataSpark.Console/DataSpark.Console.csproj:8 | Nullable and warnings-as-errors enabled in touched project files. |
-| VI. Database Access — SQL Safety | ⏭️ N/A | - | No SQL-access changes were observed in the highest-risk modified files reviewed. |
-| VII. Structured Logging | ✅ Pass | DataSpark.Web/Controllers/api/FilesController.cs:686 | Structured `ILogger` templates used; no new `Console.Write*` production logging found in reviewed areas. |
+| I. Clean Architecture — Core-First | ❌ Fail | DataSpark.Console/Presentation/Commands/DiscoverCommand.cs:58 | Discovery command performs orchestration and aggregation logic that should live in Core. |
+| II. Testing Standards | ✅ Pass | DataSpark.Tests/Services/BivariateAnalysisServiceTests.cs:1; DataSpark.Tests/Services/BivariateSvgServiceTests.cs:1 | New bivariate Core services have corresponding test coverage in `DataSpark.Tests`. |
+| III. Async/Await Discipline | ✅ Pass | DataSpark.Core/Services/Analysis/BivariateAnalysisService.cs:21; DataSpark.Core/Services/Analysis/BivariateSvgService.cs:21 | Reviewed newly added Core async APIs use async flows and `ConfigureAwait(false)` where required. |
+| IV. Security — CSRF & Input Validation | ✅ Pass | DataSpark.Web/Controllers/DatabaseController.cs:39; DataSpark.Web/Controllers/CsvAIProcessingController.cs:43 | Reviewed `[HttpPost]` actions include anti-forgery validation and database upload path validates extension plus service-level validation. |
+| V. Code Quality — Nullable & Compiler Strictness | ✅ Pass | DataSpark.Console/DataSpark.Console.csproj:8; DataSpark.Core/DataSpark.Core.csproj:9 | Nullable and warnings-as-errors remain enabled in touched project files. |
+| VI. Database Access — SQL Safety | ⏭️ N/A | - | No new SQL-construction risk pattern was identified in the reviewed high-risk diffs. |
+| VII. Structured Logging | ❌ Fail | DataSpark.Console/Program.cs:32; DataSpark.Console/Presentation/Commands/DiscoverCommand.cs:102 | New/updated production code writes directly to `Console.Write*` instead of `ILogger`. |
 
 ## Security Checklist
 
@@ -76,117 +74,112 @@ None found.
 - [x] No XSS vulnerabilities
 - [x] Dependencies reviewed for vulnerabilities
 
-CSRF protections and upload signature checks that were previously blocking are now in place for the reviewed API paths.
+Notes: Security review focused on changed auth/upload/controller paths in the sampled high-risk set. No blocking security defects were identified in that scope.
 
 ## Code Quality Assessment
 
 ### Strengths
-- Prior CSRF blockers in `ChartApiController` and `FilesController` were addressed with explicit `[ValidateAntiForgeryToken]` attributes.
-- Bivariate controller logic was extracted into dedicated Core services, improving architectural direction.
+- Added dedicated tests for newly introduced bivariate Core services.
+- Web POST endpoints reviewed now include anti-forgery attributes consistently.
+- Core service extraction direction is improved versus prior revisions.
 
 ### Areas for Improvement
-- Complete the extraction by moving chart export transformation logic out of API controller helpers into Core services.
-- Remove duplicate project references in `DataSpark.Console.csproj`.
+- Enforce structured logging policy in Console project by removing direct `Console.Write*` usage.
+- Continue moving orchestration/packaging logic from presentation layer into Core service abstractions.
 
 ## Testing Coverage
 
-**Status**: INADEQUATE
+**Status**: ADEQUATE
 
-`BivariateAnalysisService` has direct unit tests, but new production service `BivariateSvgService` lacks corresponding tests. This violates constitution principle II mandatory coverage requirement for Core production code.
+The PR includes test updates/additions in `DataSpark.Tests`, including `BivariateAnalysisServiceTests` and `BivariateSvgServiceTests`, aligning with mandatory Core test coverage expectations for these new services.
 
 ## Documentation Status
 
 **Status**: ADEQUATE
 
-PR summary and spec artifacts remain updated; no documentation regression found for the reviewed changes.
+Spec artifacts and project documentation were updated alongside implementation changes.
 
 ## Changed Files Summary
 
 | File | Changes | Type | Constitution Issues |
 |------|---------|------|---------------------|
-| DataSpark.Core/Services/Analysis/BivariateAnalysisService.cs | +129 -0 | Added | C1 |
-| DataSpark.Core/Services/Analysis/BivariateSvgService.cs | +123 -0 | Added | C2, C3 |
-| DataSpark.Web/Controllers/api/ChartApiController.cs | +115 -9 | Modified | C4 |
-| DataSpark.Web/Controllers/api/FilesController.cs | +218 -98 | Modified | None (previous blockers fixed) |
-| DataSpark.Web/Services/CsvFileService.cs | +194 -9 | Modified | None (upload validation strengthened) |
-| DataSpark.Console/DataSpark.Console.csproj | +5 -3 | Renamed/Modified | L1 |
+| DataSpark.Console/Program.cs | +16 -8 | Renamed/Modified | C1 |
+| DataSpark.Console/Presentation/Commands/DiscoverCommand.cs | +138 -0 | Added | C1, C2 |
+| DataSpark.Console/Presentation/Commands/ExportCommand.cs | +103 -0 | Added | C1 |
+| DataSpark.Web/Controllers/DatabaseController.cs | +327 -0 | Added | M1 |
+| DataSpark.Tests/Services/BivariateSvgServiceTests.cs | +92 -0 | Added | None |
 
 ## Detailed Findings by File
 
-### DataSpark.Core/Services/Analysis/BivariateAnalysisService.cs
+### DataSpark.Console/Program.cs
 
-**Lines 30-32**: Synchronous file and CSV loading in a Core Task-returning API.
+**Lines 32 and 44**: Direct console output in production entrypoint.
 ```csharp
-using var reader = new StreamReader(filePath);
-using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture));
-var records = csv.GetRecords<dynamic>().ToList();
+Console.WriteLine($"DataSpark.Console {version}");
+...
+Console.WriteLine($"An unexpected error occurred: {ex.Message}");
 ```
 
-- **Principle Violated**: III. Async/Await Discipline (MANDATORY)
+- **Principle Violated**: VII. Structured Logging (MANDATORY)
 - **Severity**: CRITICAL
-- **Recommendation**: Implement asynchronous loading and use `await ...ConfigureAwait(false)` in Core.
+- **Recommendation**: Use `ILogger<Program>` (or equivalent host-initialized logger) for startup/version/error messages.
 
-### DataSpark.Core/Services/Analysis/BivariateSvgService.cs
+### DataSpark.Console/Presentation/Commands/DiscoverCommand.cs
 
-**Lines 29-32**: Same synchronous I/O pattern in Core.
+**Lines 58-72 and 81-97**: Presentation layer performs recursive discovery orchestration and data aggregation.
 ```csharp
-using var reader = new StreamReader(filePath);
-using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture));
-var records = csv.GetRecords<dynamic>().ToList();
-```
+var scanPaths = recursive
+    ? new[] { path }.Concat(Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories))
+    : new[] { path };
 
-- **Principle Violated**: III. Async/Await Discipline (MANDATORY)
-- **Severity**: CRITICAL
-- **Recommendation**: Convert to true async I/O and apply ConfigureAwait(false).
-
-**Line 21 (and file scope)**: New Core service has no direct test coverage.
-```csharp
-public Task<string> GenerateSvgAsync(string filePath, string column1, string column2, CancellationToken cancellationToken = default)
-```
-
-- **Principle Violated**: II. Testing Standards (MANDATORY)
-- **Severity**: CRITICAL
-- **Recommendation**: Add `BivariateSvgServiceTests` with success/failure/cancellation scenarios.
-
-### DataSpark.Web/Controllers/api/ChartApiController.cs
-
-**Lines 448-473**: Export formatting logic remains in controller.
-```csharp
-private static byte[] BuildCsvBytes(ProcessedChartData data)
-private static byte[] BuildJsonBytes(ChartConfiguration config, ProcessedChartData data)
-private static byte[] BuildSvgBytes(ChartConfiguration config, ProcessedChartData data, int width, int height)
+var unique = databases
+    .GroupBy(d => d.ConnectionString, StringComparer.OrdinalIgnoreCase)
+    .Select(g => g.First())
+    .ToList();
 ```
 
 - **Principle Violated**: I. Clean Architecture — Core-First (MANDATORY)
 - **Severity**: CRITICAL
-- **Recommendation**: Move export generation into Core service abstraction and inject into controller.
+- **Recommendation**: Encapsulate this orchestration in Core service(s); command should delegate and only render results.
+
+### DataSpark.Web/Controllers/DatabaseController.cs
+
+**Lines 311-325**: Export zip packaging logic remains in controller helper.
+```csharp
+private static byte[] BuildExportZip(IEnumerable<ExportResult> results)
+{
+    using var memoryStream = new MemoryStream();
+    using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
+```
+
+- **Principle**: I. Clean Architecture — Core-First (MANDATORY)
+- **Severity**: MEDIUM
+- **Recommendation**: Move export packaging into Core service boundary.
 
 ## Next Steps
 
 ### Immediate Actions (Required)
 
-- [ ] Refactor `BivariateAnalysisService` to asynchronous Core I/O with `ConfigureAwait(false)` (C1)
-- [ ] Refactor `BivariateSvgService` to asynchronous Core I/O with `ConfigureAwait(false)` (C2)
-- [ ] Add direct unit tests for `BivariateSvgService` in `DataSpark.Tests` (C3)
-- [ ] Move chart export build logic from `ChartApiController` into Core service(s) (C4)
+- [ ] Replace `Console.Write*` usage in Console production code with `ILogger` calls (C1)
+- [ ] Move discovery orchestration logic out of `DiscoverCommand` into Core service(s) (C2)
 
 ### Recommended Improvements
 
-- [ ] Remove duplicate Core project reference in `DataSpark.Console.csproj` (L1)
+- [ ] Move controller-side zip packaging into Core export service/helper abstraction (M1)
 
 ### Future Considerations (Optional)
 
-- [ ] Add architecture tests to prevent presentation-layer methods from containing transformation-heavy helper logic.
-- [ ] Add Roslyn/analyzer guardrails for synchronous I/O usage in `DataSpark.Core`.
+- [ ] Add architecture-focused tests or analyzers to prevent business logic creeping into presentation layer.
+- [ ] Add linting rule/check for `Console.Write*` usage in production projects.
 
 ## Approval Decision
 
 **Recommendation**: ⚠️ REQUEST CHANGES
 
 **Reasoning**:
-Mandatory constitution violations remain in Core async discipline and Core test coverage for newly added production code, and presentation-layer export logic still breaches Core-first architecture constraints.
+The PR demonstrates meaningful progress and fixes from earlier iterations, but it still violates mandatory constitution rules for structured logging and presentation-layer business logic separation.
 
-**Estimated Rework Time**: 4-8 hours
+**Estimated Rework Time**: 3-6 hours
 
 ---
 
@@ -197,6 +190,14 @@ Mandatory constitution violations remain in Core async discipline and Core test 
 ---
 
 ## Previous Review History
+
+### Review 3: 2026-03-31 15:34:15 UTC
+
+**Commit**: a979f1ecb42fd9bbe93f838a226bf09be77dc869
+
+Summary:
+- Prior review reported async and test gaps around new bivariate services and remaining controller-layer architecture concerns.
+- Subsequent commits added `BivariateSvgServiceTests` and converted bivariate services to async I/O patterns.
 
 ### Review 2: 2026-03-31 14:17:18 UTC
 
@@ -212,4 +213,4 @@ Summary:
 
 Summary:
 - Initial constitution review identified broad CSRF, architecture, async, and logging concerns.
-- Subsequent commits progressively resolved logging and partial async/CSRF findings, with latest review capturing remaining blockers.
+- Subsequent commits progressively resolved logging and partial async/CSRF findings, with later reviews capturing remaining blockers.
