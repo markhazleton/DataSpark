@@ -43,6 +43,7 @@ builder.Services.AddScoped<DataSpark.Web.Services.CsvProcessingService>();
 // Core CSV processing & export services
 builder.Services.AddScoped<ICsvFileReader, WebCsvFileReaderAdapter>();
 builder.Services.AddScoped<ICsvProcessingService, CoreCsvProcessingService>();
+builder.Services.AddScoped<IBivariateSvgService, BivariateSvgService>();
 builder.Services.AddScoped<ISchemaService, SchemaService>();
 builder.Services.AddScoped<ICodeGenerationService, CodeGenerationService>();
 builder.Services.AddScoped<IExportService, DataSpark.Core.Services.ExportService>();
@@ -88,11 +89,8 @@ if (builder.Environment.IsDevelopment())
     var openAiConfig = builder.Configuration.GetSection("OpenAI");
     if (string.IsNullOrEmpty(openAiConfig["ApiKey"]) || string.IsNullOrEmpty(openAiConfig["AssistantId"]))
     {
-        Console.WriteLine(
-            "OpenAI configuration is missing; AI features will be disabled until configured.\n" +
-            "Configure with:\n" +
-            "dotnet user-secrets set \"OpenAI:ApiKey\" \"your-api-key\"\n" +
-            "dotnet user-secrets set \"OpenAI:AssistantId\" \"your-assistant-id\"");
+        Log.Warning(
+            "OpenAI configuration is missing; AI features will be disabled until configured. Configure with: dotnet user-secrets set \"OpenAI:ApiKey\" \"your-api-key\" and dotnet user-secrets set \"OpenAI:AssistantId\" \"your-assistant-id\"");
     }
 }
 

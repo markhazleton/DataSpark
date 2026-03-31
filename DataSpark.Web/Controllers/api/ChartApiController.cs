@@ -410,6 +410,7 @@ public class ChartApiController : ControllerBase
     /// PNG/JPEG are exported client-side from canvas.
     /// </summary>
     [HttpPost("export")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Export([FromBody] DataSpark.Web.Models.Chart.ChartExportRequest request)
     {
         try

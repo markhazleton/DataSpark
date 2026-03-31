@@ -5,6 +5,7 @@
 <div class="container py-4">
     <h2 class="mb-4">Bivariate Analysis</h2>
     <form id="bivariateForm">
+        @Html.AntiForgeryToken()
         <div class="mb-3">
             <label for="fileSelect" class="form-label">Select CSV File</label>
             <select id="fileSelect" class="form-select" name="fileName" required>
@@ -113,11 +114,16 @@
         formData.append('fileName', fileName);
         formData.append('column1', col1);
         formData.append('column2', col2);
-        const resp = await fetch('/api/files/bivariate', { method: 'POST', body: formData });
+        const antiForgeryToken = document.querySelector('#bivariateForm input[name="__RequestVerificationToken"]')?.value ?? '';
+        const requestHeaders = antiForgeryToken
+            ? { 'RequestVerificationToken': antiForgeryToken }
+            : {};
+
+        const resp = await fetch('/api/files/bivariate', { method: 'POST', body: formData, headers: requestHeaders });
         const data = await resp.json();
         renderResult(data);
 
-        const svgResp = await fetch('/api/files/bivariate-svg', { method: 'POST', body: formData });
+        const svgResp = await fetch('/api/files/bivariate-svg', { method: 'POST', body: formData, headers: requestHeaders });
         const svgArea = document.getElementById('svgArea');
         if (svgResp.ok)
         {

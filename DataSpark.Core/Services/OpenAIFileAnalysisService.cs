@@ -78,14 +78,14 @@ public class OpenAIFileAnalysisService
     /// <summary>
     /// Analyze a CSV file. If keepFileUploaded is true, the file will be added to the uploaded files list.
     /// </summary>
-    public async Task<string> AnalyzeCsvFileAsync(string filePath, string userPrompt, bool keepFileUploaded = false)
+    public async Task<string> AnalyzeCsvFileAsync(string filePath, string userPrompt, bool keepFileUploaded = false, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
         {
             _logger.LogInformation("Starting CSV file analysis for file: {FilePath}", filePath);
 
-            string fileId = await UploadFileAsync(filePath).ConfigureAwait(false);
+            string fileId = await UploadFileAsync(filePath, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("File uploaded successfully with ID: {FileId}", fileId);
 
             // If keepFileUploaded is true, register the file
@@ -104,24 +104,24 @@ public class OpenAIFileAnalysisService
                 _logger.LogInformation("File registered for future use: {FileName}", uploadedFile.FileName);
             }
 
-            string threadId = await CreateThreadAsync().ConfigureAwait(false);
+            string threadId = await CreateThreadAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Thread created with ID: {ThreadId}", threadId);
 
-            await PostMessageWithFileAsync(threadId, userPrompt, fileId).ConfigureAwait(false);
+            await PostMessageWithFileAsync(threadId, userPrompt, fileId, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Message posted to thread");
 
-            string runId = await CreateRunAsync(threadId).ConfigureAwait(false);
+            string runId = await CreateRunAsync(threadId, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Run created with ID: {RunId}", runId);
 
-            await WaitForRunCompletionAsync(threadId, runId).ConfigureAwait(false);
+            await WaitForRunCompletionAsync(threadId, runId, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Run completed successfully");
 
-            string response = await GetLatestAssistantResponseAsync(threadId).ConfigureAwait(false);
+            string response = await GetLatestAssistantResponseAsync(threadId, cancellationToken).ConfigureAwait(false);
 
             // Only clean up the uploaded file if we're not keeping it
             if (!keepFileUploaded)
             {
-                await DeleteFileAsync(fileId).ConfigureAwait(false);
+                await DeleteFileAsync(fileId, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Uploaded file cleaned up");
             }
 
@@ -133,12 +133,12 @@ public class OpenAIFileAnalysisService
             throw;
         }
     }
-    private async Task<string> UploadFileAsync(string filePath)
+    private async Task<string> UploadFileAsync(string filePath, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
         {
-            var fileBytes = await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
+            var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
             var fileName = Path.GetFileName(filePath);
             // If the file has a .tmp extension, try to get the original name from a temp file pattern or fallback to .csv
             if (Path.GetExtension(fileName).Equals(".tmp", StringComparison.OrdinalIgnoreCase))
@@ -160,7 +160,7 @@ public class OpenAIFileAnalysisService
                 { new StringContent("assistants"), "purpose" }
             };
 
-            var response = await _httpClient.PostAsync($"{BaseUrl}/files", form).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/files", form, cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -181,10 +181,10 @@ public class OpenAIFileAnalysisService
             _logger.LogDebug("File uploaded successfully with ID: {FileId}", fileId);
 
             // Wait for file to be processed
-            await WaitForFileProcessingAsync(fileId).ConfigureAwait(false);
+            await WaitForFileProcessingAsync(fileId, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             // Verify file is accessible
-            bool isAccessible = await VerifyFileUploadAsync(fileId).ConfigureAwait(false);
+            bool isAccessible = await VerifyFileUploadAsync(fileId, cancellationToken).ConfigureAwait(false);
             if (!isAccessible)
             {
                 throw new InvalidOperationException($"File {fileId} was uploaded but is not accessible for analysis");
@@ -203,12 +203,12 @@ public class OpenAIFileAnalysisService
             throw new InvalidOperationException($"Error uploading file to OpenAI: {ex.Message}", ex);
         }
     }
-    private async Task<string> CreateThreadAsync()
+    private async Task<string> CreateThreadAsync(CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
         {
-            var response = await _httpClient.PostAsync($"{BaseUrl}/threads", new StringContent("{}", Encoding.UTF8, "application/json")).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/threads", new StringContent("{}", Encoding.UTF8, "application/json"), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -240,7 +240,7 @@ public class OpenAIFileAnalysisService
             throw new InvalidOperationException($"Error creating thread: {ex.Message}", ex);
         }
     }
-    private async Task PostMessageWithFileAsync(string threadId, string userPrompt, string fileId)
+    private async Task PostMessageWithFileAsync(string threadId, string userPrompt, string fileId, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
@@ -275,7 +275,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
             };
 
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/messages", content).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/messages", content, cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -297,7 +297,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
             throw new InvalidOperationException($"Error posting message: {ex.Message}", ex);
         }
     }
-    private async Task<string> CreateRunAsync(string threadId)
+    private async Task<string> CreateRunAsync(string threadId, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
@@ -305,7 +305,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
             var payload = new { assistant_id = _options.AssistantId };
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/runs", content).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/runs", content, cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -332,7 +332,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
             throw new InvalidOperationException("Invalid response format from OpenAI API", ex);
         }
     }
-    private async Task WaitForRunCompletionAsync(string threadId, string runId)
+    private async Task WaitForRunCompletionAsync(string threadId, string runId, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         var maxAttempts = 120; // 2 minutes maximum wait time with 1-second intervals
@@ -340,12 +340,12 @@ Please use the code interpreter tool to read and analyze the CSV file.";
 
         while (attempt < maxAttempts)
         {
-            await Task.Delay(1000).ConfigureAwait(false);
+            await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             attempt++;
 
             try
             {
-                var response = await _httpClient.GetAsync($"{BaseUrl}/threads/{threadId}/runs/{runId}").ConfigureAwait(false);
+                var response = await _httpClient.GetAsync($"{BaseUrl}/threads/{threadId}/runs/{runId}", cancellationToken).ConfigureAwait(false);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -406,12 +406,12 @@ Please use the code interpreter tool to read and analyze the CSV file.";
         _logger.LogError("Run {RunId} did not complete within the maximum wait time", runId);
         throw new TimeoutException($"OpenAI run did not complete within {maxAttempts} seconds");
     }
-    private async Task<string> GetLatestAssistantResponseAsync(string threadId)
+    private async Task<string> GetLatestAssistantResponseAsync(string threadId, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/threads/{threadId}/messages").ConfigureAwait(false);
+            var response = await _httpClient.GetAsync($"{BaseUrl}/threads/{threadId}/messages", cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -462,12 +462,12 @@ Please use the code interpreter tool to read and analyze the CSV file.";
         }
     }
 
-    private async Task DeleteFileAsync(string fileId)
+    private async Task DeleteFileAsync(string fileId, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
         {
-            var response = await _httpClient.DeleteAsync($"{BaseUrl}/files/{fileId}").ConfigureAwait(false);
+            var response = await _httpClient.DeleteAsync($"{BaseUrl}/files/{fileId}", cancellationToken).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
@@ -490,7 +490,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     /// <summary>
     /// Upload a CSV file to OpenAI and add it to the list of available files
     /// </summary>
-    public async Task<UploadedCsvFile> UploadAndRegisterCsvFileAsync(string filePath)
+    public async Task<UploadedCsvFile> UploadAndRegisterCsvFileAsync(string filePath, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
@@ -501,7 +501,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
                 throw new FileNotFoundException($"File not found: {filePath}");
 
             var fileInfo = new FileInfo(filePath);
-            string fileId = await UploadFileAsync(filePath).ConfigureAwait(false);
+            string fileId = await UploadFileAsync(filePath, cancellationToken).ConfigureAwait(false);
 
             var uploadedFile = new UploadedCsvFile
             {
@@ -535,7 +535,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     /// <summary>
     /// Analyze multiple CSV files that have been previously uploaded
     /// </summary>
-    public async Task<string> AnalyzeUploadedCsvFilesAsync(List<string> fileIds, string userPrompt)
+    public async Task<string> AnalyzeUploadedCsvFilesAsync(List<string> fileIds, string userPrompt, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
@@ -554,19 +554,19 @@ Please use the code interpreter tool to read and analyze the CSV file.";
 
             _logger.LogInformation("Starting analysis of {Count} uploaded CSV files", fileIds.Count);
 
-            string threadId = await CreateThreadAsync().ConfigureAwait(false);
+            string threadId = await CreateThreadAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Thread created with ID: {ThreadId}", threadId);
 
-            await PostMessageWithMultipleFilesAsync(threadId, userPrompt, fileIds).ConfigureAwait(false);
+            await PostMessageWithMultipleFilesAsync(threadId, userPrompt, fileIds, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Message posted to thread with {Count} files", fileIds.Count);
 
-            string runId = await CreateRunAsync(threadId).ConfigureAwait(false);
+            string runId = await CreateRunAsync(threadId, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Run created with ID: {RunId}", runId);
 
-            await WaitForRunCompletionAsync(threadId, runId).ConfigureAwait(false);
+            await WaitForRunCompletionAsync(threadId, runId, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Run completed successfully");
 
-            string response = await GetLatestAssistantResponseAsync(threadId).ConfigureAwait(false);
+            string response = await GetLatestAssistantResponseAsync(threadId, cancellationToken).ConfigureAwait(false);
 
             return response;
         }
@@ -580,7 +580,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     /// <summary>
     /// Analyze specific uploaded CSV files by their names
     /// </summary>
-    public async Task<string> AnalyzeUploadedCsvFilesByNameAsync(List<string> fileNames, string userPrompt)
+    public async Task<string> AnalyzeUploadedCsvFilesByNameAsync(List<string> fileNames, string userPrompt, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -610,7 +610,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
                 throw new ArgumentException($"The following files are not in the uploaded files list: {string.Join(", ", missingFiles)}");
             }
 
-            return await AnalyzeUploadedCsvFilesAsync(fileIds, userPrompt).ConfigureAwait(false);
+            return await AnalyzeUploadedCsvFilesAsync(fileIds, userPrompt, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -622,7 +622,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     /// <summary>
     /// Analyze all uploaded CSV files
     /// </summary>
-    public async Task<string> AnalyzeAllUploadedCsvFilesAsync(string userPrompt)
+    public async Task<string> AnalyzeAllUploadedCsvFilesAsync(string userPrompt, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -630,7 +630,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
                 throw new InvalidOperationException("No CSV files have been uploaded yet");
 
             var fileIds = _uploadedFiles.Select(f => f.FileId).ToList();
-            return await AnalyzeUploadedCsvFilesAsync(fileIds, userPrompt).ConfigureAwait(false);
+            return await AnalyzeUploadedCsvFilesAsync(fileIds, userPrompt, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -642,7 +642,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     /// <summary>
     /// Remove a file from the uploaded files list and optionally delete it from OpenAI
     /// </summary>
-    public async Task<bool> RemoveUploadedFileAsync(string fileId, bool deleteFromOpenAI = true)
+    public async Task<bool> RemoveUploadedFileAsync(string fileId, bool deleteFromOpenAI = true, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -655,7 +655,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
 
             if (deleteFromOpenAI)
             {
-                await DeleteFileAsync(fileId).ConfigureAwait(false);
+                await DeleteFileAsync(fileId, cancellationToken).ConfigureAwait(false);
             }
 
             _uploadedFiles.Remove(file);
@@ -673,7 +673,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     /// <summary>
     /// Clear all uploaded files and optionally delete them from OpenAI
     /// </summary>
-    public async Task ClearAllUploadedFilesAsync(bool deleteFromOpenAI = true)
+    public async Task ClearAllUploadedFilesAsync(bool deleteFromOpenAI = true, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -681,7 +681,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
 
             if (deleteFromOpenAI)
             {
-                var deleteTasks = _uploadedFiles.Select(f => DeleteFileAsync(f.FileId));
+                var deleteTasks = _uploadedFiles.Select(f => DeleteFileAsync(f.FileId, cancellationToken));
                 await Task.WhenAll(deleteTasks).ConfigureAwait(false);
             }
 
@@ -695,7 +695,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
         }
     }
 
-    private async Task PostMessageWithMultipleFilesAsync(string threadId, string userPrompt, List<string> fileIds)
+    private async Task PostMessageWithMultipleFilesAsync(string threadId, string userPrompt, List<string> fileIds, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
@@ -734,7 +734,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
             };
 
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/messages", content).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync($"{BaseUrl}/threads/{threadId}/messages", content, cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -760,12 +760,12 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     /// <summary>
     /// Verify that a file was uploaded successfully and is accessible
     /// </summary>
-    private async Task<bool> VerifyFileUploadAsync(string fileId)
+    private async Task<bool> VerifyFileUploadAsync(string fileId, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/files/{fileId}").ConfigureAwait(false);
+            var response = await _httpClient.GetAsync($"{BaseUrl}/files/{fileId}", cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -793,7 +793,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     /// <summary>
     /// Wait for file to be processed by OpenAI
     /// </summary>
-    private async Task WaitForFileProcessingAsync(string fileId, int maxWaitSeconds = 30)
+    private async Task WaitForFileProcessingAsync(string fileId, int maxWaitSeconds = 30, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         var attempt = 0;
@@ -803,7 +803,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{BaseUrl}/files/{fileId}").ConfigureAwait(false);
+                var response = await _httpClient.GetAsync($"{BaseUrl}/files/{fileId}", cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -828,7 +828,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
                     }
                 }
 
-                await Task.Delay(1000).ConfigureAwait(false);
+                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 attempt++;
             }
             catch (JsonException ex)
@@ -844,7 +844,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     /// <summary>
     /// Verify that the assistant has the code_interpreter tool enabled
     /// </summary>
-    private async Task<bool> VerifyAssistantConfigurationAsync()
+    private async Task<bool> VerifyAssistantConfigurationAsync(CancellationToken cancellationToken = default)
     {
         if (!_isConfigured)
         {
@@ -853,7 +853,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
 
         try
         {
-            var response = await _httpClient.GetAsync($"{BaseUrl}/assistants/{_options.AssistantId}").ConfigureAwait(false);
+            var response = await _httpClient.GetAsync($"{BaseUrl}/assistants/{_options.AssistantId}", cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -890,7 +890,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     /// <summary>
     /// Enhanced CSV file analysis with better error handling and verification
     /// </summary>
-    public async Task<string> AnalyzeCsvFileWithVerificationAsync(string filePath, string userPrompt, bool keepFileUploaded = false)
+    public async Task<string> AnalyzeCsvFileWithVerificationAsync(string filePath, string userPrompt, bool keepFileUploaded = false, CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
         try
@@ -898,13 +898,13 @@ Please use the code interpreter tool to read and analyze all CSV files.";
             _logger.LogInformation("Starting enhanced CSV file analysis for file: {FilePath}", filePath);
 
             // Verify assistant configuration
-            bool assistantConfigured = await VerifyAssistantConfigurationAsync().ConfigureAwait(false);
+            bool assistantConfigured = await VerifyAssistantConfigurationAsync(cancellationToken).ConfigureAwait(false);
             if (!assistantConfigured)
             {
                 throw new InvalidOperationException("Assistant is not properly configured with code_interpreter tool. Please check the assistant configuration in OpenAI.");
             }
 
-            string fileId = await UploadFileAsync(filePath).ConfigureAwait(false);
+            string fileId = await UploadFileAsync(filePath, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("File uploaded and verified successfully with ID: {FileId}", fileId);
 
             // If keepFileUploaded is true, register the file
@@ -923,24 +923,24 @@ Please use the code interpreter tool to read and analyze all CSV files.";
                 _logger.LogInformation("File registered for future use: {FileName}", uploadedFile.FileName);
             }
 
-            string threadId = await CreateThreadAsync().ConfigureAwait(false);
+            string threadId = await CreateThreadAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Thread created with ID: {ThreadId}", threadId);
 
-            await PostMessageWithFileAsync(threadId, userPrompt, fileId).ConfigureAwait(false);
+            await PostMessageWithFileAsync(threadId, userPrompt, fileId, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Message posted to thread");
 
-            string runId = await CreateRunAsync(threadId).ConfigureAwait(false);
+            string runId = await CreateRunAsync(threadId, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Run created with ID: {RunId}", runId);
 
-            await WaitForRunCompletionAsync(threadId, runId).ConfigureAwait(false);
+            await WaitForRunCompletionAsync(threadId, runId, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Run completed successfully");
 
-            string response = await GetLatestAssistantResponseAsync(threadId).ConfigureAwait(false);
+            string response = await GetLatestAssistantResponseAsync(threadId, cancellationToken).ConfigureAwait(false);
 
             // Only clean up the uploaded file if we're not keeping it
             if (!keepFileUploaded)
             {
-                await DeleteFileAsync(fileId).ConfigureAwait(false);
+                await DeleteFileAsync(fileId, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Uploaded file cleaned up");
             }
 
@@ -956,7 +956,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     /// <summary>
     /// Diagnostic method to test the OpenAI configuration and file processing
     /// </summary>
-    public async Task<string> DiagnoseConfigurationAsync()
+    public async Task<string> DiagnoseConfigurationAsync(CancellationToken cancellationToken = default)
     {
         var diagnostics = new StringBuilder();
         diagnostics.AppendLine("=== OpenAI Service Diagnostics ===");
@@ -972,7 +972,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
             // Test 3: Test API connectivity
             try
             {
-                var response = await _httpClient.GetAsync($"{BaseUrl}/models").ConfigureAwait(false);
+                var response = await _httpClient.GetAsync($"{BaseUrl}/models", cancellationToken).ConfigureAwait(false);
                 diagnostics.AppendLine($"✓ API Connectivity: {(response.IsSuccessStatusCode ? "Connected" : $"Failed ({response.StatusCode})")}");
             }
             catch (Exception ex)
@@ -981,7 +981,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
             }
 
             // Test 4: Check assistant configuration
-            bool assistantValid = await VerifyAssistantConfigurationAsync().ConfigureAwait(false);
+            bool assistantValid = await VerifyAssistantConfigurationAsync(cancellationToken).ConfigureAwait(false);
             diagnostics.AppendLine($"✓ Assistant Configuration: {(assistantValid ? "Valid (has code_interpreter)" : "Invalid (missing code_interpreter tool)")}");
 
             // Test 5: List uploaded files

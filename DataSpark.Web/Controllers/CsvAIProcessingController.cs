@@ -77,7 +77,7 @@ public class CsvAIProcessingController : Controller
                 : customPrompt;
 
             // Use the enhanced analysis method with verification
-            string analysis = await _aiService.AnalyzeCsvFileWithVerificationAsync(filePath, prompt, false);
+            string analysis = await _aiService.AnalyzeCsvFileWithVerificationAsync(filePath, prompt, false, HttpContext.RequestAborted);
 
             ViewBag.Analysis = analysis;
             return View("Index");
@@ -124,7 +124,7 @@ public class CsvAIProcessingController : Controller
             }
 
             // Upload and register the file for future use
-            var uploadedFile = await _aiService.UploadAndRegisterCsvFileAsync(filePath);
+            var uploadedFile = await _aiService.UploadAndRegisterCsvFileAsync(filePath, HttpContext.RequestAborted);
             ViewBag.Analysis = $"File '{uploadedFile.FileName}' uploaded and registered successfully for future analysis. File ID: {uploadedFile.FileId}";
             ViewBag.UploadedFiles = _aiService.GetUploadedFiles();
             return View("Index");
@@ -166,7 +166,7 @@ public class CsvAIProcessingController : Controller
                 ? "Analyze and summarize these CSV files. Compare their contents and provide insights."
                 : customPrompt;
 
-            string analysis = await _aiService.AnalyzeUploadedCsvFilesAsync(selectedFileIds, prompt);
+            string analysis = await _aiService.AnalyzeUploadedCsvFilesAsync(selectedFileIds, prompt, HttpContext.RequestAborted);
             ViewBag.Analysis = analysis;
             return View("Index");
         }
@@ -194,7 +194,7 @@ public class CsvAIProcessingController : Controller
                 ? "Analyze and summarize all uploaded CSV files. Compare their contents and provide comprehensive insights."
                 : customPrompt;
 
-            string analysis = await _aiService.AnalyzeAllUploadedCsvFilesAsync(prompt);
+            string analysis = await _aiService.AnalyzeAllUploadedCsvFilesAsync(prompt, HttpContext.RequestAborted);
             ViewBag.Analysis = analysis;
             return View("Index");
         }
@@ -214,7 +214,7 @@ public class CsvAIProcessingController : Controller
     {
         try
         {
-            bool removed = await _aiService.RemoveUploadedFileAsync(fileId, true);
+            bool removed = await _aiService.RemoveUploadedFileAsync(fileId, true, HttpContext.RequestAborted);
             ViewBag.Analysis = removed ? "File removed successfully." : "File not found.";
         }
         catch (Exception ex)
@@ -234,7 +234,7 @@ public class CsvAIProcessingController : Controller
     {
         try
         {
-            await _aiService.ClearAllUploadedFilesAsync(true);
+            await _aiService.ClearAllUploadedFilesAsync(true, HttpContext.RequestAborted);
             ViewBag.Analysis = "All files cleared successfully.";
         }
         catch (Exception ex)
@@ -254,7 +254,7 @@ public class CsvAIProcessingController : Controller
     {
         try
         {
-            string diagnostics = await _aiService.DiagnoseConfigurationAsync();
+            string diagnostics = await _aiService.DiagnoseConfigurationAsync(HttpContext.RequestAborted);
             ViewBag.Analysis = diagnostics;
         }
         catch (Exception ex)

@@ -5,6 +5,9 @@
 }
 
 <div class="container-fluid">
+    <form id="chartExportAntiForgeryForm" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -344,6 +347,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('#chartExportAntiForgeryForm input[name="__RequestVerificationToken"]')?.value ?? '',
                 },
                 body: JSON.stringify({
                     chartId: chartId,
