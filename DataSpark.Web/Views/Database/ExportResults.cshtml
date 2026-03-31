@@ -1,0 +1,42 @@
+@model DataSpark.Web.Models.Database.DatabaseExportResultsViewModel
+@{
+    ViewData["Title"] = "Export Results";
+}
+
+<h2>Export Results</h2>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+@if (Model.Results.Count == 0)
+{
+    <div class="alert alert-warning">No export results found.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Table</th>
+                <th>Rows</th>
+                <th>Success</th>
+                <th>Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in Model.Results)
+            {
+                <tr>
+                    <td>@result.TableName</td>
+                    <td>@result.RowCount</td>
+                    <td>@result.IsSuccess</td>
+                    <td>@result.ErrorMessage</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<a class="btn btn-outline-secondary" asp-action="Analyze" asp-route-fileId="@Model.File?.Id">Back</a>

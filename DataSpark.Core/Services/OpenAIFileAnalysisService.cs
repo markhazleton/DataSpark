@@ -15,6 +15,8 @@ public class OpenAIFileAnalysisService
     private readonly ILogger<OpenAIFileAnalysisService> _logger;
     private const string BaseUrl = "https://api.openai.com/v1";
     private readonly List<UploadedCsvFile> _uploadedFiles = new();
+    private readonly bool _isConfigured;
+    private readonly string _configurationError;
 
     public OpenAIFileAnalysisService(HttpClient httpClient, IOptions<OpenAIOptions> options, ILogger<OpenAIFileAnalysisService> logger)
     {
@@ -25,27 +27,60 @@ public class OpenAIFileAnalysisService
         // Configure HTTP client timeout
         _httpClient.Timeout = _options.HttpTimeout;
 
-        // Validate configuration
-        if (string.IsNullOrEmpty(_options.ApiKey))
-            throw new InvalidOperationException("OpenAI ApiKey is not configured.");
+        // Validate configuration without failing app startup.
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            _configurationError = "OpenAI ApiKey is not configured.";
+            _isConfigured = false;
+            return;
+        }
 
-        if (string.IsNullOrEmpty(_options.AssistantId))
-            throw new InvalidOperationException("OpenAI AssistantId is not configured.");
+        if (string.IsNullOrWhiteSpace(_options.AssistantId))
+        {
+            _configurationError = "OpenAI AssistantId is not configured.";
+            _isConfigured = false;
+            return;
+        }
 
-        if (!_options.ApiKey.StartsWith("sk-"))
-            throw new InvalidOperationException("OpenAI ApiKey must start with 'sk-'. Please check your configuration.");
+        if (!_options.ApiKey.StartsWith("sk-", StringComparison.Ordinal))
+        {
+            _configurationError = "OpenAI ApiKey must start with 'sk-'.";
+            _isConfigured = false;
+            return;
+        }
 
-        if (!_options.AssistantId.StartsWith("asst_"))
-            throw new InvalidOperationException("OpenAI AssistantId must start with 'asst_'. Please check your configuration.");
+        if (!_options.AssistantId.StartsWith("asst_", StringComparison.Ordinal))
+        {
+            _configurationError = "OpenAI AssistantId must start with 'asst_'.";
+            _isConfigured = false;
+            return;
+        }
 
+        _isConfigured = true;
+        _configurationError = string.Empty;
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
         _httpClient.DefaultRequestHeaders.Add("OpenAI-Beta", "assistants=v2");
+    }
+
+    public bool IsConfigured => _isConfigured;
+
+    public string ConfigurationError => _configurationError;
+
+    private void EnsureConfigured()
+    {
+        if (_isConfigured)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException($"AI services are unavailable: {_configurationError}");
     }
     /// <summary>
     /// Analyze a CSV file. If keepFileUploaded is true, the file will be added to the uploaded files list.
     /// </summary>
     public async Task<string> AnalyzeCsvFileAsync(string filePath, string userPrompt, bool keepFileUploaded = false)
     {
+        EnsureConfigured();
         try
         {
             _logger.LogInformation("Starting CSV file analysis for file: {FilePath}", filePath);
@@ -100,6 +135,7 @@ public class OpenAIFileAnalysisService
     }
     private async Task<string> UploadFileAsync(string filePath)
     {
+        EnsureConfigured();
         try
         {
             var fileBytes = await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
@@ -169,6 +205,7 @@ public class OpenAIFileAnalysisService
     }
     private async Task<string> CreateThreadAsync()
     {
+        EnsureConfigured();
         try
         {
             var response = await _httpClient.PostAsync($"{BaseUrl}/threads", new StringContent("{}", Encoding.UTF8, "application/json")).ConfigureAwait(false);
@@ -205,6 +242,7 @@ public class OpenAIFileAnalysisService
     }
     private async Task PostMessageWithFileAsync(string threadId, string userPrompt, string fileId)
     {
+        EnsureConfigured();
         try
         {
             // Enhance the prompt to be more explicit about CSV analysis
@@ -261,6 +299,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     }
     private async Task<string> CreateRunAsync(string threadId)
     {
+        EnsureConfigured();
         try
         {
             var payload = new { assistant_id = _options.AssistantId };
@@ -295,6 +334,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     }
     private async Task WaitForRunCompletionAsync(string threadId, string runId)
     {
+        EnsureConfigured();
         var maxAttempts = 120; // 2 minutes maximum wait time with 1-second intervals
         var attempt = 0;
 
@@ -368,6 +408,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     }
     private async Task<string> GetLatestAssistantResponseAsync(string threadId)
     {
+        EnsureConfigured();
         try
         {
             var response = await _httpClient.GetAsync($"{BaseUrl}/threads/{threadId}/messages").ConfigureAwait(false);
@@ -423,6 +464,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
 
     private async Task DeleteFileAsync(string fileId)
     {
+        EnsureConfigured();
         try
         {
             var response = await _httpClient.DeleteAsync($"{BaseUrl}/files/{fileId}").ConfigureAwait(false);
@@ -450,6 +492,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     /// </summary>
     public async Task<UploadedCsvFile> UploadAndRegisterCsvFileAsync(string filePath)
     {
+        EnsureConfigured();
         try
         {
             _logger.LogInformation("Uploading and registering CSV file: {FilePath}", filePath);
@@ -494,6 +537,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
     /// </summary>
     public async Task<string> AnalyzeUploadedCsvFilesAsync(List<string> fileIds, string userPrompt)
     {
+        EnsureConfigured();
         try
         {
             if (fileIds == null || !fileIds.Any())
@@ -653,6 +697,7 @@ Please use the code interpreter tool to read and analyze the CSV file.";
 
     private async Task PostMessageWithMultipleFilesAsync(string threadId, string userPrompt, List<string> fileIds)
     {
+        EnsureConfigured();
         try
         {
             var attachments = fileIds.Select(fileId => new
@@ -717,6 +762,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     /// </summary>
     private async Task<bool> VerifyFileUploadAsync(string fileId)
     {
+        EnsureConfigured();
         try
         {
             var response = await _httpClient.GetAsync($"{BaseUrl}/files/{fileId}").ConfigureAwait(false);
@@ -749,6 +795,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     /// </summary>
     private async Task WaitForFileProcessingAsync(string fileId, int maxWaitSeconds = 30)
     {
+        EnsureConfigured();
         var attempt = 0;
         var maxAttempts = maxWaitSeconds;
 
@@ -799,6 +846,11 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     /// </summary>
     private async Task<bool> VerifyAssistantConfigurationAsync()
     {
+        if (!_isConfigured)
+        {
+            return false;
+        }
+
         try
         {
             var response = await _httpClient.GetAsync($"{BaseUrl}/assistants/{_options.AssistantId}").ConfigureAwait(false);
@@ -840,6 +892,7 @@ Please use the code interpreter tool to read and analyze all CSV files.";
     /// </summary>
     public async Task<string> AnalyzeCsvFileWithVerificationAsync(string filePath, string userPrompt, bool keepFileUploaded = false)
     {
+        EnsureConfigured();
         try
         {
             _logger.LogInformation("Starting enhanced CSV file analysis for file: {FilePath}", filePath);

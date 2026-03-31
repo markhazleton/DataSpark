@@ -153,18 +153,18 @@
 
 ### Implementation for User Story 4
 
-- [ ] T056 [P] [US4] Verify `SchemaInfo`, `TableInfo`, `ColumnInfo` models exist or create in `DataSpark.Core/Models/` per data-model.md
-- [ ] T057 [P] [US4] Verify `ExportResult` model exists or create in `DataSpark.Core/Models/ExportResult.cs` per data-model.md
-- [ ] T058 [US4] Create `DatabaseController` in `DataSpark.Web/Controllers/DatabaseController.cs` with actions: Upload, Analyze, AnalyzeTable, ExportTables, GenerateCode, ManageFiles, GetTableData per research.md R8
-- [ ] T059 [P] [US4] Create `DataSpark.Web/Views/Database/Index.cshtml` — SQLite upload + file management view (adapted from DataSpark.Web to Bootstrap 5)
-- [ ] T060 [P] [US4] Create `DataSpark.Web/Views/Database/Analyze.cshtml` — schema analysis results view showing tables, columns, types, row counts (FR-022)
-- [ ] T061 [P] [US4] Create `DataSpark.Web/Views/Database/AnalyzeTable.cshtml` — single table detail view with column stats and data preview
-- [ ] T062 [P] [US4] Create `DataSpark.Web/Views/Database/ExportResults.cshtml` — export confirmation view
-- [ ] T063 [P] [US4] Create `DataSpark.Web/Views/Database/CodeResults.cshtml` — generated C# DTO code display view
-- [ ] T064 [US4] Verify single table CSV export via existing Core `IExportService` with configurable delimiter and header inclusion (FR-023)
-- [ ] T065 [US4] Implement "Export All Tables" as a single ZIP download (one CSV per table) via `DatabaseController.ExportTables()` — zip filename: `<databaseName>-tables.zip` (FR-023)
-- [ ] T066 [US4] Verify C# DTO generation via existing Core `ICodeGenerationService` with PascalCase naming, correct type mappings (INTEGER→long, TEXT→string, REAL→double, BLOB→byte[]), and nullable annotations (FR-024)
-- [ ] T067 [US4] Add "Database" link to the main navigation in `DataSpark.Web/Views/Shared/_Layout.cshtml`
+- [X] T056 [P] [US4] Verify `SchemaInfo`, `TableInfo`, `ColumnInfo` models exist or create in `DataSpark.Core/Models/` per data-model.md
+- [X] T057 [P] [US4] Verify `ExportResult` model exists or create in `DataSpark.Core/Models/ExportResult.cs` per data-model.md
+- [X] T058 [US4] Create `DatabaseController` in `DataSpark.Web/Controllers/DatabaseController.cs` with actions: Upload, Analyze, AnalyzeTable, ExportTables, GenerateCode, ManageFiles, GetTableData per research.md R8
+- [X] T059 [P] [US4] Create `DataSpark.Web/Views/Database/Index.cshtml` — SQLite upload + file management view (adapted from DataSpark.Web to Bootstrap 5)
+- [X] T060 [P] [US4] Create `DataSpark.Web/Views/Database/Analyze.cshtml` — schema analysis results view showing tables, columns, types, row counts (FR-022)
+- [X] T061 [P] [US4] Create `DataSpark.Web/Views/Database/AnalyzeTable.cshtml` — single table detail view with column stats and data preview
+- [X] T062 [P] [US4] Create `DataSpark.Web/Views/Database/ExportResults.cshtml` — export confirmation view
+- [X] T063 [P] [US4] Create `DataSpark.Web/Views/Database/CodeResults.cshtml` — generated C# DTO code display view
+- [X] T064 [US4] Verify single table CSV export via existing Core `IExportService` with configurable delimiter and header inclusion (FR-023)
+- [X] T065 [US4] Implement "Export All Tables" as a single ZIP download (one CSV per table) via `DatabaseController.ExportTables()` — zip filename: `<databaseName>-tables.zip` (FR-023)
+- [X] T066 [US4] Verify C# DTO generation via existing Core `ICodeGenerationService` with PascalCase naming, correct type mappings (INTEGER→long, TEXT→string, REAL→double, BLOB→byte[]), and nullable annotations (FR-024)
+- [X] T067 [US4] Add "Database" link to the main navigation in `DataSpark.Web/Views/Shared/_Layout.cshtml`
 
 **Checkpoint**: Full SQLite database workflow works in the web UI — upload, schema browse, table export, DTO generation. All DataSpark.Web features absorbed into DataSpark.Web.
 
@@ -180,11 +180,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T068 [US5] Verify OpenAI integration in `DataSpark.Core/Services/OpenAIService.cs` (or equivalent) uses Assistants API v2 for file-based analysis (FR-027)
-- [ ] T069 [US5] Verify file registration, listing, and removal with OpenAI API in the AI processing controller (FR-028)
-- [ ] T070 [US5] Verify multi-file comparison analysis — select 2+ files and get cross-dataset AI response (FR-029)
-- [ ] T071 [US5] Verify diagnostics endpoint validates OpenAI configuration (API key, assistant ID, connectivity) in `DataSpark.Web/Controllers/CsvAIProcessingController.cs` (FR-030)
-- [ ] T072 [US5] Verify graceful degradation when AI services unavailable — all non-AI features remain fully functional, AI page shows clear error message (FR-031)
+- [X] T068 [US5] Verify OpenAI integration in `DataSpark.Core/Services/OpenAIService.cs` (or equivalent) uses Assistants API v2 for file-based analysis (FR-027)
+- [X] T069 [US5] Verify file registration, listing, and removal with OpenAI API in the AI processing controller (FR-028)
+- [X] T070 [US5] Verify multi-file comparison analysis — select 2+ files and get cross-dataset AI response (FR-029)
+- [X] T071 [US5] Verify diagnostics endpoint validates OpenAI configuration (API key, assistant ID, connectivity) in `DataSpark.Web/Controllers/CsvAIProcessingController.cs` (FR-030)
+- [X] T072 [US5] Verify graceful degradation when AI services unavailable — all non-AI features remain fully functional, AI page shows clear error message (FR-031)
 
 **Checkpoint**: AI analysis pipeline works end-to-end — upload file, analyze with custom prompt, view response. Graceful failure when OpenAI unavailable.
 
@@ -200,11 +200,11 @@
 
 ### Implementation for User Story 6
 
-- [ ] T073 [P] [US6] Verify `AnalysisResult` model exists or create in `DataSpark.Core/Models/AnalysisResult.cs` per data-model.md with fields for EDA, Univariate, Bivariate, AI result types
-- [ ] T074 [US6] Verify univariate analysis in `DataSpark.Core/Services/UnivariateService.cs` (or equivalent) generates server-side SVG box plots for numeric columns and bar charts for categorical columns using ScottPlot (FR-025)
-- [ ] T075 [US6] Verify bivariate analysis computes Pearson correlation coefficient for numeric pairs and generates scatter plots with trend lines (FR-026)
-- [ ] T076 [US6] Verify bivariate analysis for mixed types (categorical + numeric) shows grouped statistics (mean/median per category) with grouped bar or box plot (FR-026)
-- [ ] T077 [US6] Verify univariate/bivariate views in `DataSpark.Web/Views/Univariate/` render SVG visualizations and statistics tables correctly
+- [X] T073 [P] [US6] Verify `AnalysisResult` model exists or create in `DataSpark.Core/Models/AnalysisResult.cs` per data-model.md with fields for EDA, Univariate, Bivariate, AI result types
+- [X] T074 [US6] Verify univariate analysis in `DataSpark.Core/Services/UnivariateService.cs` (or equivalent) generates server-side SVG box plots for numeric columns and bar charts for categorical columns using ScottPlot (FR-025)
+- [X] T075 [US6] Verify bivariate analysis computes Pearson correlation coefficient for numeric pairs and generates scatter plots with trend lines (FR-026)
+- [X] T076 [US6] Verify bivariate analysis for mixed types (categorical + numeric) shows grouped statistics (mean/median per category) with grouped bar or box plot (FR-026)
+- [X] T077 [US6] Verify univariate/bivariate views in `DataSpark.Web/Views/Univariate/` render SVG visualizations and statistics tables correctly
 
 **Checkpoint**: Univariate and bivariate analysis fully functional with SVG visualizations for all column type combinations.
 
@@ -220,12 +220,12 @@
 
 ### Implementation for User Story 7
 
-- [ ] T078 [US7] Refactor `DataSpark.Console/Program.cs` to use System.CommandLine 2.x with root command and 4 subcommands: discover, export, schema, generate per contracts/cli.md
-- [ ] T079 [US7] Implement `discover` command in `DataSpark.Console/Presentation/Commands/DiscoverCommand.cs` with --path, --recursive, --format (text/json/markdown) options and exit codes per contracts/cli.md
-- [ ] T080 [US7] Implement `export` command in `DataSpark.Console/Presentation/Commands/ExportCommand.cs` with --path, --output, --tables, --delimiter, --no-headers options per contracts/cli.md (FR-034)
-- [ ] T081 [US7] Implement `schema` command in `DataSpark.Console/Presentation/Commands/SchemaCommand.cs` with --path, --format (text/json/markdown), --table options per contracts/cli.md (FR-033)
-- [ ] T082 [US7] Implement `generate` command in `DataSpark.Console/Presentation/Commands/GenerateCommand.cs` with --path, --output, --namespace, --table options per contracts/cli.md
-- [ ] T083 [US7] Add --help and --version global options to root CLI command (FR-032)
+- [X] T078 [US7] Refactor `DataSpark.Console/Program.cs` to use System.CommandLine 2.x with root command and 4 subcommands: discover, export, schema, generate per contracts/cli.md
+- [X] T079 [US7] Implement `discover` command in `DataSpark.Console/Presentation/Commands/DiscoverCommand.cs` with --path, --recursive, --format (text/json/markdown) options and exit codes per contracts/cli.md
+- [X] T080 [US7] Implement `export` command in `DataSpark.Console/Presentation/Commands/ExportCommand.cs` with --path, --output, --tables, --delimiter, --no-headers options per contracts/cli.md (FR-034)
+- [X] T081 [US7] Implement `schema` command in `DataSpark.Console/Presentation/Commands/SchemaCommand.cs` with --path, --format (text/json/markdown), --table options per contracts/cli.md (FR-033)
+- [X] T082 [US7] Implement `generate` command in `DataSpark.Console/Presentation/Commands/GenerateCommand.cs` with --path, --output, --namespace, --table options per contracts/cli.md
+- [X] T083 [US7] Add --help and --version global options to root CLI command (FR-032)
 
 **Checkpoint**: All 4 CLI commands work with correct options, output formats, and exit codes per contracts/cli.md.
 
@@ -241,10 +241,10 @@
 
 ### Implementation for User Story 8
 
-- [ ] T084 [US8] Add DataTables SearchPanes CSS and JS CDN references to `DataSpark.Web/Views/Shared/_Layout.cshtml` or relevant data grid views
-- [ ] T085 [US8] Configure SearchPanes in DataTables initialization JavaScript in data grid views — enable multi-column filter panels per research.md R5
+- [X] T084 [US8] Add DataTables SearchPanes CSS and JS CDN references to `DataSpark.Web/Views/Shared/_Layout.cshtml` or relevant data grid views
+- [X] T085 [US8] Configure SearchPanes in DataTables initialization JavaScript in data grid views — enable multi-column filter panels per research.md R5
 - [ ] T086 [US8] Verify server-side pagination handles 50,000+ rows with < 2 second page load time
-- [ ] T087 [US8] Verify CSV export of filtered data respects active SearchPane and column filters
+- [X] T087 [US8] Verify CSV export of filtered data respects active SearchPane and column filters
 
 **Checkpoint**: Data grids have SearchPanes with multi-column filtering, server-side pagination, and filtered export.
 
@@ -260,8 +260,8 @@
 
 ### Implementation for User Story 9
 
-- [ ] T088 [US9] Update navigation bar in `DataSpark.Web/Views/Shared/_Layout.cshtml` with DataSpark logo/brand name and WebSpark suite identity (FR-038)
-- [ ] T089 [US9] Update footer in `DataSpark.Web/Views/Shared/_Layout.cshtml` with "Part of the WebSpark suite" branding (FR-038)
+- [X] T088 [US9] Update navigation bar in `DataSpark.Web/Views/Shared/_Layout.cshtml` with DataSpark logo/brand name and WebSpark suite identity (FR-038)
+- [X] T089 [US9] Update footer in `DataSpark.Web/Views/Shared/_Layout.cshtml` with "Part of the WebSpark suite" branding (FR-038)
 - [ ] T090 [US9] Verify Bootswatch theme switcher (via WebSpark.Bootswatch) persists user preference across sessions (FR-039)
 - [ ] T091 [US9] Verify all pages are fully responsive across desktop, tablet, and mobile viewports (FR-040)
 

@@ -44,8 +44,13 @@ builder.Services.AddScoped<DataSpark.Web.Services.CsvProcessingService>();
 builder.Services.AddScoped<ICsvFileReader, WebCsvFileReaderAdapter>();
 builder.Services.AddScoped<ICsvProcessingService, CoreCsvProcessingService>();
 builder.Services.AddScoped<ISchemaService, SchemaService>();
+builder.Services.AddScoped<ICodeGenerationService, CodeGenerationService>();
 builder.Services.AddScoped<IExportService, DataSpark.Core.Services.ExportService>();
 builder.Services.AddScoped<IDataExportService, DataExportService>();
+builder.Services.AddScoped<IDatabaseAnalysisService, DatabaseAnalysisService>();
+builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection(FileStorageOptions.SectionName));
+builder.Services.AddScoped<IFileStorageOptions, FileStorageOptionsWrapper>();
+builder.Services.AddScoped<IPersistedFileService, PersistedFileService>();
 
 // Register chart storage provider & repository (core implementation)
 builder.Services.AddScoped<IChartStoragePathProvider, WebChartStoragePathProvider>();
@@ -83,8 +88,9 @@ if (builder.Environment.IsDevelopment())
     var openAiConfig = builder.Configuration.GetSection("OpenAI");
     if (string.IsNullOrEmpty(openAiConfig["ApiKey"]) || string.IsNullOrEmpty(openAiConfig["AssistantId"]))
     {
-        throw new InvalidOperationException(
-            "OpenAI configuration is missing. Please set the configuration using User Secrets:\n" +
+        Console.WriteLine(
+            "OpenAI configuration is missing; AI features will be disabled until configured.\n" +
+            "Configure with:\n" +
             "dotnet user-secrets set \"OpenAI:ApiKey\" \"your-api-key\"\n" +
             "dotnet user-secrets set \"OpenAI:AssistantId\" \"your-assistant-id\"");
     }

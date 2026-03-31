@@ -1,0 +1,90 @@
+@model DataSpark.Web.Models.Database.DatabaseAnalyzeViewModel
+@{
+    ViewData["Title"] = "Database Analysis";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+@if (Model.Analysis == null || Model.File == null)
+{
+    <div class="alert alert-warning">Analysis unavailable.</div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>@Model.Analysis.DatabaseName</h2>
+        <a class="btn btn-outline-secondary" asp-action="Index">Back</a>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div><strong>Path:</strong> @Model.Analysis.FilePath</div>
+            <div><strong>Tables:</strong> @Model.Analysis.Tables.Count</div>
+            <div><strong>Analysis Duration:</strong> @Model.Analysis.AnalysisDuration.TotalMilliseconds.ToString("F0") ms</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Tables</div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Rows</th>
+                        <th>Columns</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var table in Model.Analysis.Tables)
+                    {
+                        <tr>
+                            <td>@table.Name</td>
+                            <td>@table.RowCount</td>
+                            <td>@table.ColumnCount</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="AnalyzeTable" asp-route-fileId="@Model.File.Id" asp-route-tableName="@table.Name">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Export</div>
+                <div class="card-body">
+                    <form asp-action="ExportTables" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="fileId" value="@Model.File.Id" />
+                        <input type="hidden" name="exportAll" value="true" />
+                        <button type="submit" class="btn btn-success">Export All Tables (ZIP)</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Generate DTO Code</div>
+                <div class="card-body">
+                    <form asp-action="GenerateCode" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="fileId" value="@Model.File.Id" />
+                        <div class="mb-2">
+                            <label class="form-label">Namespace</label>
+                            <input class="form-control" name="namespaceName" value="DataSpark.Generated" />
+                        </div>
+                        <button type="submit" class="btn btn-primary">Generate DTOs</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}

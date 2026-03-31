@@ -8,6 +8,7 @@ using DataSpark.Core.Interfaces;
 using DataSpark.Core.Services;
 using DataSpark.Presentation.Commands;
 using System.CommandLine;
+using System.Reflection;
 
 namespace DataSpark;
 
@@ -25,6 +26,13 @@ public static class Program
     {
         try
         {
+            if (args.Any(a => string.Equals(a, "--version", StringComparison.OrdinalIgnoreCase)))
+            {
+                var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
+                Console.WriteLine($"DataSpark.Console {version}");
+                return 0;
+            }
+
             var host = CreateHostBuilder(args).Build();
 
             var rootCommand = CommandFactory.CreateRootCommand(host.Services);

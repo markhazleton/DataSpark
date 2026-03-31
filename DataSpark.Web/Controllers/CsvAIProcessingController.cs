@@ -23,6 +23,9 @@ public class CsvAIProcessingController : Controller
         ViewBag.AvailableFiles = availableFiles;
         ViewBag.SelectedFile = fileName;
         ViewBag.UploadedFiles = _aiService.GetUploadedFiles();
+        ViewBag.AIUnavailableMessage = _aiService.IsConfigured
+            ? string.Empty
+            : _aiService.ConfigurationError;
 
         if (string.IsNullOrEmpty(fileName) && availableFiles.Any())
         {
@@ -150,6 +153,12 @@ public class CsvAIProcessingController : Controller
             if (selectedFileIds == null || !selectedFileIds.Any())
             {
                 ViewBag.Analysis = "No files selected for analysis.";
+                return View("Index");
+            }
+
+            if (selectedFileIds.Count < 2)
+            {
+                ViewBag.Analysis = "Select at least 2 files for comparison analysis.";
                 return View("Index");
             }
 
