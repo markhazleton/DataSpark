@@ -29,13 +29,13 @@ Rebrand and consolidate the sql2csv repository (including sql2csv.web, DataSpark
 | **II. Testing Standards** | ✅ PASS | Tests rename to DataSpark.Tests. MSTest/FluentAssertions/Moq retained. Test naming convention unchanged. Coverage target 85% (exceeds constitution minimum of 80%). |
 | **III. Async/Await Discipline** | ✅ PASS | All existing Core services already async with ConfigureAwait(false) and CancellationToken. No changes to async patterns needed — only namespace renaming. |
 | **IV. Security — CSRF & Input Validation** | ✅ PASS | FR-045–FR-049 align with constitution requirements. FR-050 adds API key auth (new, does not conflict). All POST actions require CSRF tokens per constitution. |
-| **V. Code Quality — Nullable & Compiler Strictness** | ⚠️ ACTION NEEDED | Constitution requires `TreatWarningsAsErrors` in ALL .csproj files. Currently missing from sql2csv.web and sql2csv.console. Must add to all renamed projects during consolidation. |
-| **VI. Database Access — SQL Safety** | ✅ PASS | Parameterized queries throughout. Constitution notes 2 concatenation violations in UnifiedAnalysisService — fix during consolidation. |
+| **V. Code Quality — Nullable & Compiler Strictness** | ⚠️ ACTION NEEDED | Constitution requires `TreatWarningsAsErrors` in ALL .csproj files. Currently missing from `Sql2Csv.Tests` only (per research.md R7). Must add when renaming to `DataSpark.Tests.csproj`. |
+| **VI. Database Access — SQL Safety** | ✅ PASS | Parameterized queries throughout. Critical SQL injection found in `DatabaseAnalysisService.cs` line ~729 (LIKE clause using string concat) — fix tracked in corrective action #2 and T020. |
 | **VII. Structured Logging** | ✅ PASS | Serilog configured in web. All Core services use ILogger<T> with structured templates. DataSpark.Console should also use Serilog (currently uses Microsoft.Extensions.Logging — acceptable per constitution since console is not web). |
 
 **Gate Result**: ✅ PASS with 2 corrective actions:
-1. Add `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` to all renamed .csproj files
-2. Fix SQL concatenation in UnifiedAnalysisService to use bracket-escaping
+1. Add `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` to `DataSpark.Tests.csproj` (the only project missing it, per research.md R7)
+2. Fix SQL injection in `DataSpark.Core/Services/DatabaseAnalysisService.cs` line ~729 — replace LIKE clause string concatenation with parameterized query (per research.md R2)
 
 ## Project Structure
 

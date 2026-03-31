@@ -227,13 +227,13 @@ A first-time user sees a curated set of sample datasets (8+ CSV files covering d
 **Data Ingestion & Management**
 - **FR-001**: System MUST accept CSV file uploads via drag-and-drop and file picker, with configurable maximum file size (default 50 MB).
 - **FR-002**: System MUST accept SQLite database (.db) file uploads with validation of SQLite file header integrity.
-- **FR-003**: System MUST auto-detect CSV delimiters (comma, tab, pipe, semicolon) by sampling the first rows of the file.
+- **FR-003**: System MUST auto-detect CSV delimiters (comma, tab, pipe, semicolon) by sampling the first 10 rows of the file.
 - **FR-004**: System MUST infer column data types (numeric, categorical, datetime, boolean) from CSV data.
 - **FR-005**: System MUST persist uploaded files across browser sessions with configurable retention (default 30 days) and storage limits (default 1 GB).
 - **FR-006**: System MUST ship with at least 8 sample CSV datasets covering diverse domains (census, political, transportation, demographic, geographic, market, sports, and time series data). Sample datasets MUST be read-only — always available, not deletable or overwritable by the user.
 
 **Exploratory Data Analysis**
-- **FR-007**: System MUST generate a complete EDA report for any uploaded CSV, including: row count, column count, data types, missing value counts, and per-column descriptive statistics.
+- **FR-007**: System MUST generate a complete EDA report for any uploaded CSV, including: row count, column count, data types, missing value counts, per-column descriptive statistics, and an overall data quality score (computed as the percentage of non-null, non-empty values across all columns).
 - **FR-008**: System MUST compute for numeric columns: mean, median, mode, standard deviation, variance, min, max, Q1, Q3, IQR, skewness, and kurtosis.
 - **FR-009**: System MUST compute for categorical columns: unique count, mode, and top-N value frequency distribution with counts and percentages.
 - **FR-010**: System MUST provide a paginated, sortable, searchable data preview grid with server-side pagination supporting datasets of 100,000+ rows.
@@ -242,7 +242,7 @@ A first-time user sees a curated set of sample datasets (8+ CSV files covering d
 - **FR-011**: System MUST support at least 14 chart types: Column, Bar, Line, Area, Pie, Doughnut, Scatter, Bubble, Radar, Stacked Column, Stacked Bar, Spline, Step Line, and Combination (dual-axis).
 - **FR-012**: System MUST provide a visual chart configuration UI with real-time preview that updates within 2 seconds of configuration changes.
 - **FR-013**: System MUST support chart data filtering (include/exclude values, range filters) applied before rendering.
-- **FR-014**: System MUST support chart export in at least 4 formats: PNG, SVG, CSV (data), and JSON (configuration).
+- **FR-014**: System MUST support chart export in at least 5 formats: PNG, JPEG, SVG, CSV (data), and JSON (configuration).
 - **FR-015**: System MUST persist chart configurations for reuse, including duplication and deletion.
 
 **Pivot Tables**

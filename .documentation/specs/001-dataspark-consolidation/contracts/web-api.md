@@ -385,6 +385,28 @@ Export a database table to CSV.
 
 **Response**: `text/csv` file download (Content-Disposition: attachment)
 
+**Errors**: 404 (database not found), 400 (table name missing)
+
+---
+
+### GET /api/Database/export-all
+
+Export all tables from a database as a single ZIP file (one CSV per table).
+
+**Query Parameters**:
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| fileName | string | Required | Database file |
+| delimiter | string | "," | CSV delimiter |
+| includeHeaders | bool | true | Include column headers |
+
+**Response**: `application/zip` file download
+- Content-Disposition: `attachment; filename="<databaseName>-tables.zip"`
+- ZIP contains one CSV file per table, named `<tableName>.csv`
+
+**Errors**: 404 (database not found)
+
 ---
 
 ### GET /api/Database/generate-dto
