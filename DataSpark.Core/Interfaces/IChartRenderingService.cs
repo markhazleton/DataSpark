@@ -12,6 +12,6 @@ public interface IChartRenderingService
     Task<string> GenerateChartJsonAsync(ChartConfiguration config, ProcessedChartData data);
     Task<string> GenerateChartHtmlAsync(ChartConfiguration config, ProcessedChartData data);
     Task<string> GenerateChartScriptAsync(ChartConfiguration config, ProcessedChartData data);
-    Task<byte[]> ExportChartAsync(ChartConfiguration config, ProcessedChartData data, string format);
+    Task<byte[]> ExportChartAsync(ChartConfiguration config, ProcessedChartData data, string format, int? width = null, int? height = null);
     Task<string> GenerateEmbedCodeAsync(ChartConfiguration config, string baseUrl);
 }

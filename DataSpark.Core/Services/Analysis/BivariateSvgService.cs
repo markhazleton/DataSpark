@@ -18,7 +18,7 @@ public sealed class BivariateSvgService : IBivariateSvgService
     }
 
     /// <inheritdoc />
-    public Task<string> GenerateSvgAsync(string filePath, string column1, string column2, CancellationToken cancellationToken = default)
+    public async Task<string> GenerateSvgAsync(string filePath, string column1, string column2, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(column1);
@@ -26,10 +26,7 @@ public sealed class BivariateSvgService : IBivariateSvgService
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var reader = new StreamReader(filePath);
-        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture));
-
-        var records = csv.GetRecords<dynamic>().ToList();
+        var records = await ReadRecordsAsync(filePath, cancellationToken).ConfigureAwait(false);
         if (!records.Any())
         {
             throw new InvalidOperationException("No data found in file.");
@@ -37,8 +34,14 @@ public sealed class BivariateSvgService : IBivariateSvgService
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var col1Data = records.Select(r => ((IDictionary<string, object>)r)[column1]?.ToString()).ToList();
-        var col2Data = records.Select(r => ((IDictionary<string, object>)r)[column2]?.ToString()).ToList();
+        var headers = records[0].Keys;
+        if (!headers.Contains(column1) || !headers.Contains(column2))
+        {
+            throw new InvalidOperationException("One or both columns not found in file.");
+        }
+
+        var col1Data = records.Select(r => r[column1]?.ToString()).ToList();
+        var col2Data = records.Select(r => r[column2]?.ToString()).ToList();
 
         var col1Numeric = col1Data.All(v => double.TryParse(v, out _) || string.IsNullOrEmpty(v));
         var col2Numeric = col2Data.All(v => double.TryParse(v, out _) || string.IsNullOrEmpty(v));
@@ -118,6 +121,44 @@ public sealed class BivariateSvgService : IBivariateSvgService
         }
 
         _logger.LogInformation("Generated bivariate SVG for {Column1} and {Column2}", column1, column2);
-        return Task.FromResult(plot.GetSvgXml(900, 500));
+        return plot.GetSvgXml(900, 500);
+    }
+
+    private static async Task<List<IDictionary<string, object?>>> ReadRecordsAsync(string filePath, CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+        using var reader = new StreamReader(stream);
+        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture));
+
+        var records = new List<IDictionary<string, object?>>();
+        if (!await csv.ReadAsync().ConfigureAwait(false))
+        {
+            return records;
+        }
+
+        csv.ReadHeader();
+        var headers = csv.HeaderRecord ?? Array.Empty<string>();
+
+        while (await csv.ReadAsync().ConfigureAwait(false))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var header in headers)
+            {
+                row[header] = csv.GetField(header);
+            }
+
+            records.Add(row);
+        }
+
+        return records;
     }
 }

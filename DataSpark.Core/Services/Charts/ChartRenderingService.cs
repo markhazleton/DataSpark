@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using DataSpark.Core.Interfaces;
 using DataSpark.Core.Models.Charts;
+using System.Globalization;
+using System.Security;
 using System.Text;
 using System.Text.Json;
 
@@ -112,10 +114,23 @@ public class ChartRenderingService : IChartRenderingService
         }
     }
 
-    public Task<byte[]> ExportChartAsync(ChartConfiguration config, ProcessedChartData data, string format)
+    public Task<byte[]> ExportChartAsync(ChartConfiguration config, ProcessedChartData data, string format, int? width = null, int? height = null)
     {
-        _logger.LogWarning("Chart export not implemented for format: {Format}", format);
-        return Task.FromResult(Array.Empty<byte>());
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentException.ThrowIfNullOrWhiteSpace(format);
+
+        var normalizedFormat = format.Trim().ToUpperInvariant();
+        var bytes = normalizedFormat switch
+        {
+            "CSV" => BuildCsvBytes(data),
+            "JSON" => BuildJsonBytes(config, data),
+            "SVG" => BuildSvgBytes(config, data, width ?? config.Width, height ?? config.Height),
+            _ => throw new ArgumentException($"Unsupported export format: {format}", nameof(format))
+        };
+
+        _logger.LogInformation("Generated chart export for {ChartName} as {Format}", config.Name, normalizedFormat);
+        return Task.FromResult(bytes);
     }
 
     public Task<string> GenerateEmbedCodeAsync(ChartConfiguration config, string baseUrl)
@@ -137,6 +152,73 @@ public class ChartRenderingService : IChartRenderingService
             _logger.LogError(ex, "Error generating embed code");
             throw;
         }
+    }
+
+    private static byte[] BuildCsvBytes(ProcessedChartData data)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Category,Series,Value");
+        foreach (var point in data.DataPoints)
+        {
+            sb.Append('"').Append(point.Category.Replace("\"", "\"\"")).Append('"').Append(',');
+            sb.Append('"').Append(point.SeriesName.Replace("\"", "\"\"")).Append('"').Append(',');
+            sb.AppendLine(point.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
+    private static byte[] BuildJsonBytes(ChartConfiguration config, ProcessedChartData data)
+    {
+        var payload = new
+        {
+            configuration = config,
+            summary = data.GetSummary(),
+            dataPoints = data.DataPoints
+        };
+
+        return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private static byte[] BuildSvgBytes(ChartConfiguration config, ProcessedChartData data, int width, int height)
+    {
+        width = Math.Clamp(width, 300, 2400);
+        height = Math.Clamp(height, 200, 1600);
+
+        var points = data.DataPoints.Take(100).ToList();
+        var maxValue = points.Any() ? points.Max(p => p.Value) : 1d;
+        if (maxValue <= 0)
+        {
+            maxValue = 1d;
+        }
+
+        const int marginLeft = 50;
+        const int marginBottom = 40;
+        const int marginTop = 40;
+        var chartWidth = width - marginLeft - 20;
+        var chartHeight = height - marginTop - marginBottom;
+        var barWidth = points.Any() ? Math.Max(2, chartWidth / Math.Max(points.Count, 1)) : chartWidth;
+
+        var title = SecurityElement.Escape(config.Title ?? config.Name) ?? string.Empty;
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" viewBox=\"0 0 {width} {height}\">");
+        sb.AppendLine("<rect width=\"100%\" height=\"100%\" fill=\"white\"/>");
+        sb.AppendLine($"<text x=\"{width / 2}\" y=\"24\" text-anchor=\"middle\" font-family=\"Arial\" font-size=\"16\" fill=\"#222\">{title}</text>");
+        sb.AppendLine($"<line x1=\"{marginLeft}\" y1=\"{marginTop + chartHeight}\" x2=\"{marginLeft + chartWidth}\" y2=\"{marginTop + chartHeight}\" stroke=\"#777\"/>");
+        sb.AppendLine($"<line x1=\"{marginLeft}\" y1=\"{marginTop}\" x2=\"{marginLeft}\" y2=\"{marginTop + chartHeight}\" stroke=\"#777\"/>");
+
+        for (var i = 0; i < points.Count; i++)
+        {
+            var point = points[i];
+            var barHeight = (int)Math.Round((point.Value / maxValue) * chartHeight);
+            var x = marginLeft + i * barWidth;
+            var y = marginTop + chartHeight - barHeight;
+            sb.AppendLine($"<rect x=\"{x}\" y=\"{y}\" width=\"{Math.Max(1, barWidth - 1)}\" height=\"{Math.Max(0, barHeight)}\" fill=\"#3b82f6\"/>");
+        }
+
+        sb.AppendLine("</svg>");
+        return Encoding.UTF8.GetBytes(sb.ToString());
     }
 
     private object BuildChartData(ChartConfiguration config, ProcessedChartData data)

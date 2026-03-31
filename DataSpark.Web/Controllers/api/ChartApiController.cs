@@ -5,9 +5,6 @@ using DataSpark.Core.Services.Charts;
 using DataSpark.Core.Services;
 using DataSpark.Core.Models;
 using DataSpark.Core.Interfaces;
-using System.Globalization;
-using System.Text;
-using System.Text.Json;
 
 namespace DataSpark.Web.Controllers.Api;
 
@@ -429,80 +426,32 @@ public class ChartApiController : ControllerBase
             var data = await _dataService.ProcessDataAsync(configuration.CsvFile, configuration).ConfigureAwait(false);
             var format = (request.Format ?? "CSV").Trim().ToUpperInvariant();
             var safeName = string.Concat(configuration.Name.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
-
-            return format switch
+            var contentType = format switch
             {
-                "CSV" => File(BuildCsvBytes(data), "text/csv", $"{safeName}.csv"),
-                "JSON" => File(BuildJsonBytes(configuration, data), "application/json", $"{safeName}.json"),
-                "SVG" => File(BuildSvgBytes(configuration, data, request.Width ?? configuration.Width, request.Height ?? configuration.Height), "image/svg+xml", $"{safeName}.svg"),
-                _ => BadRequest(new { error = "Unsupported export format. Use CSV, JSON, or SVG." })
+                "CSV" => "text/csv",
+                "JSON" => "application/json",
+                "SVG" => "image/svg+xml",
+                _ => string.Empty
             };
+
+            if (string.IsNullOrWhiteSpace(contentType))
+            {
+                return BadRequest(new { error = "Unsupported export format. Use CSV, JSON, or SVG." });
+            }
+
+            var content = await _renderingService.ExportChartAsync(
+                configuration,
+                data,
+                format,
+                request.Width ?? configuration.Width,
+                request.Height ?? configuration.Height).ConfigureAwait(false);
+
+            return File(content, contentType, $"{safeName}.{format.ToLowerInvariant()}");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error exporting chart {ChartId} as {Format}", request.ChartId, request.Format);
             return StatusCode(500, new { error = "Error exporting chart." });
         }
-    }
-
-    private static byte[] BuildCsvBytes(ProcessedChartData data)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("Category,Series,Value");
-        foreach (var point in data.DataPoints)
-        {
-            sb.Append('"').Append(point.Category.Replace("\"", "\"\"")).Append('"').Append(',');
-            sb.Append('"').Append(point.SeriesName.Replace("\"", "\"\"")).Append('"').Append(',');
-            sb.AppendLine(point.Value.ToString(CultureInfo.InvariantCulture));
-        }
-
-        return Encoding.UTF8.GetBytes(sb.ToString());
-    }
-
-    private static byte[] BuildJsonBytes(ChartConfiguration config, ProcessedChartData data)
-    {
-        var payload = new
-        {
-            configuration = config,
-            summary = data.GetSummary(),
-            dataPoints = data.DataPoints
-        };
-        return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
-    }
-
-    private static byte[] BuildSvgBytes(ChartConfiguration config, ProcessedChartData data, int width, int height)
-    {
-        width = Math.Clamp(width, 300, 2400);
-        height = Math.Clamp(height, 200, 1600);
-
-        var points = data.DataPoints.Take(100).ToList();
-        var maxValue = points.Any() ? points.Max(p => p.Value) : 1d;
-        if (maxValue <= 0) maxValue = 1d;
-
-        var marginLeft = 50;
-        var marginBottom = 40;
-        var marginTop = 40;
-        var chartWidth = width - marginLeft - 20;
-        var chartHeight = height - marginTop - marginBottom;
-        var barWidth = points.Any() ? Math.Max(2, chartWidth / Math.Max(points.Count, 1)) : chartWidth;
-
-        var sb = new StringBuilder();
-        sb.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" viewBox=\"0 0 {width} {height}\">");
-        sb.AppendLine("<rect width=\"100%\" height=\"100%\" fill=\"white\"/>");
-        sb.AppendLine($"<text x=\"{width / 2}\" y=\"24\" text-anchor=\"middle\" font-family=\"Arial\" font-size=\"16\" fill=\"#222\">{System.Security.SecurityElement.Escape(config.Title ?? config.Name)}</text>");
-        sb.AppendLine($"<line x1=\"{marginLeft}\" y1=\"{marginTop + chartHeight}\" x2=\"{marginLeft + chartWidth}\" y2=\"{marginTop + chartHeight}\" stroke=\"#777\"/>");
-        sb.AppendLine($"<line x1=\"{marginLeft}\" y1=\"{marginTop}\" x2=\"{marginLeft}\" y2=\"{marginTop + chartHeight}\" stroke=\"#777\"/>");
-
-        for (var i = 0; i < points.Count; i++)
-        {
-            var p = points[i];
-            var barHeight = (int)Math.Round((p.Value / maxValue) * chartHeight);
-            var x = marginLeft + i * barWidth;
-            var y = marginTop + chartHeight - barHeight;
-            sb.AppendLine($"<rect x=\"{x}\" y=\"{y}\" width=\"{Math.Max(1, barWidth - 1)}\" height=\"{Math.Max(0, barHeight)}\" fill=\"#3b82f6\"/>");
-        }
-
-        sb.AppendLine("</svg>");
-        return Encoding.UTF8.GetBytes(sb.ToString());
     }
 }

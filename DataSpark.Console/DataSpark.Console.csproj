@@ -37,8 +37,4 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\DataSpark.Core\DataSpark.Core.csproj" />
-  </ItemGroup>
 </Project>
