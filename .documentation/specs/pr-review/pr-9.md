@@ -5,9 +5,9 @@
 - **PR Number**: #9
 - **Source Branch**: 001-dataspark-consolidation
 - **Target Branch**: main  
-- **Review Date**: 2026-03-31 13:54:52 UTC
-- **Last Updated**: 2026-03-31 13:54:52 UTC
-- **Reviewed Commit**: 88d94803f4541ab16d84cef5fa42729b9d13f746
+- **Review Date**: 2026-03-31 14:17:18 UTC
+- **Last Updated**: 2026-03-31 14:17:18 UTC
+- **Reviewed Commit**: 65113080ef7789f9f465141f56628e4da24b6355
 - **Reviewer**: speckit.pr-review
 - **Constitution Version**: 1.0.0
 
@@ -17,18 +17,18 @@
 - **Created**: 2026-03-31T13:34:00Z
 - **Status**: OPEN
 - **Files Changed**: 100
-- **Commits**: 5
-- **Lines**: +5855 -17137
+- **Commits**: 7
+- **Lines**: +6288 -17211
 
 ## Executive Summary
 
-- ✅ **Constitution Compliance**: FAIL (3/7 principles checked)
-- 🔒 **Security**: 2 issues found
-- 📊 **Code Quality**: 2 recommendations
+- ✅ **Constitution Compliance**: FAIL (4/7 principles checked)
+- 🔒 **Security**: 7 issues found
+- 📊 **Code Quality**: 1 recommendation
 - 🧪 **Testing**: PASS
 - 📝 **Documentation**: PASS
 
-**Overall Assessment**: This PR delivers substantial consolidation work and includes meaningful test updates, but it introduces multiple violations of mandatory constitution principles in Web/API layers and Core async contracts. These should be corrected before merge.
+**Overall Assessment**: The update commit resolves several previously reported issues (OpenAI cancellation tokens, startup logging policy, and one anti-forgery endpoint), but mandatory CSRF and layering requirements are still violated in API controllers changed by this PR.
 
 **Approval Recommendation**: ⚠️ REQUEST CHANGES
 
@@ -36,16 +36,18 @@
 
 | ID | Principle | File:Line | Issue | Recommendation |
 |----|-----------|-----------|-------|----------------|
-| C1 | I. Clean Architecture — Core-First (MANDATORY) | DataSpark.Web/Controllers/api/FilesController.cs:761 | Business logic is implemented in presentation code in `BivariateSvg`, including CSV parsing, statistical computation, and plotting. This violates: "No business logic in ViewModels, Views, or Presentation classes". | Move bivariate analysis and SVG generation into Core service interfaces and implementations; keep controller as thin orchestration/delegation only. |
-| C2 | IV. Security — CSRF & Input Validation (MANDATORY) | DataSpark.Web/Controllers/api/ChartApiController.cs:410 | `[HttpPost("export")]` action is added without `[ValidateAntiForgeryToken]`. Constitution requires every `[HttpPost]` action to be protected. | Add `[ValidateAntiForgeryToken]` to the action (or refactor endpoint strategy so constitution requirement is consistently met and enforced). |
-| C3 | IV. Security — CSRF & Input Validation (MANDATORY) | DataSpark.Web/Controllers/api/FilesController.cs:761 | `[HttpPost("bivariate-svg")]` action is added without `[ValidateAntiForgeryToken]`. Constitution requires every `[HttpPost]` action to be protected. | Add `[ValidateAntiForgeryToken]` and ensure corresponding client calls provide anti-forgery tokens. |
+| C1 | IV. Security — CSRF & Input Validation (MANDATORY) | DataSpark.Web/Controllers/api/ChartApiController.cs:147 | `[HttpPost("values/{dataSource}")]` lacks `[ValidateAntiForgeryToken]` despite constitution MUST requirement for every POST action. | Add `[ValidateAntiForgeryToken]` and ensure clients pass request verification token header. |
+| C2 | IV. Security — CSRF & Input Validation (MANDATORY) | DataSpark.Web/Controllers/api/ChartApiController.cs:168 | `[HttpPost("render")]` lacks `[ValidateAntiForgeryToken]`. | Add anti-forgery validation and token propagation from frontend calls. |
+| C3 | IV. Security — CSRF & Input Validation (MANDATORY) | DataSpark.Web/Controllers/api/ChartApiController.cs:207 | `[HttpPost("validate")]` lacks `[ValidateAntiForgeryToken]`. | Add anti-forgery validation and update callers to send token. |
+| C4 | IV. Security — CSRF & Input Validation (MANDATORY) | DataSpark.Web/Controllers/api/FilesController.cs:663 | `[HttpPost("bivariate")]` lacks `[ValidateAntiForgeryToken]`. | Add anti-forgery validation on action and ensure token is passed in JS fetch request. |
+| C5 | IV. Security — CSRF & Input Validation (MANDATORY) | DataSpark.Web/Controllers/api/FilesController.cs:801 | Upload endpoint accepts `IFormFile` without anti-forgery and without content-signature validation (magic bytes), violating two MUST security controls. | Add `[ValidateAntiForgeryToken]` and validate both file extension and magic bytes before persistence. |
+| C6 | I. Clean Architecture — Core-First (MANDATORY) | DataSpark.Web/Controllers/api/FilesController.cs:663 | `BivariateAnalysis` action still performs domain/statistical business logic directly in controller (type detection, correlation/regression, contingency/grouped stats). | Move bivariate analysis computation into Core service interface/implementation; keep controller as delegation and response mapping only. |
 
 ## High Priority Issues
 
 | ID | Principle | File:Line | Issue | Recommendation |
 |----|-----------|-----------|-------|----------------|
-| H1 | III. Async/Await Discipline (MANDATORY) | DataSpark.Core/Services/OpenAIFileAnalysisService.cs:96 | Public async methods (e.g., `AnalyzeCsvFileAsync(string filePath, string userPrompt, bool keepFileUploaded = false)`) do not accept `CancellationToken cancellationToken = default`, violating mandatory async contract requirements. | Add `CancellationToken cancellationToken = default` to all public async methods in this service and flow token into nested async calls. |
-| H2 | VII. Structured Logging (MANDATORY) | DataSpark.Web/Program.cs:89 | Startup code introduces `Console.WriteLine(...)`, violating: "(MUST NOT) Console.Write* or Debug.Write* in production code — use ILogger exclusively". | Replace with structured logging via configured logger (`ILogger`/Serilog), including appropriate level and event context. |
+| H1 | IV. Security — CSRF & Input Validation (MANDATORY) | DataSpark.Web/Controllers/api/ChartApiController.cs:306 | Additional POST endpoints (`configurations`, `configurations/bulk`) remain without anti-forgery checks; this is a repeated pattern in the same controller. | Apply `[ValidateAntiForgeryToken]` consistently to all POST actions in the controller and update client calls accordingly. |
 
 ## Medium Priority Suggestions
 
@@ -59,148 +61,125 @@ None found.
 
 | Principle | Status | Evidence | Notes |
 |-----------|--------|----------|-------|
-| I. Clean Architecture — Core-First | ❌ Fail | DataSpark.Web/Controllers/api/FilesController.cs:761 | Presentation-layer controller contains domain/statistical processing and chart generation logic. |
-| II. Testing Standards | ✅ Pass | DataSpark.Tests/* (12 files changed) | Tests were added/updated across services and integration areas. |
-| III. Async/Await Discipline | ❌ Fail | DataSpark.Core/Services/OpenAIFileAnalysisService.cs:96 | Public async signatures still omit cancellation tokens. |
-| IV. Security — CSRF & Input Validation | ❌ Fail | DataSpark.Web/Controllers/api/ChartApiController.cs:410; DataSpark.Web/Controllers/api/FilesController.cs:761 | Added POST endpoints without anti-forgery attributes. |
-| V. Code Quality — Nullable & Compiler Strictness | ✅ Pass | DataSpark.Console/DataSpark.Console.csproj; DataSpark.Core/DataSpark.Core.csproj | Strictness settings remain enabled in changed project files. |
-| VI. Database Access — SQL Safety | ✅ Pass | DataSpark.Core/Services/DatabaseAnalysisService.cs:737 | `LIKE` clause updated to parameterized `@searchPattern`, improving injection safety. |
-| VII. Structured Logging | ❌ Fail | DataSpark.Web/Program.cs:89 | `Console.WriteLine` used instead of structured logger. |
+| I. Clean Architecture — Core-First | ❌ Fail | DataSpark.Web/Controllers/api/FilesController.cs:663 | Bivariate analysis logic still resides in presentation layer action method. |
+| II. Testing Standards | ✅ Pass | DataSpark.Tests changes + PR validation notes | Tests exist and PR reports passing suite. |
+| III. Async/Await Discipline | ✅ Pass | DataSpark.Core/Services/OpenAIFileAnalysisService.cs | Public async APIs now include `CancellationToken cancellationToken = default`. |
+| IV. Security — CSRF & Input Validation | ❌ Fail | DataSpark.Web/Controllers/api/ChartApiController.cs:147; DataSpark.Web/Controllers/api/FilesController.cs:663 | Multiple POST actions remain unprotected and upload signature validation is missing. |
+| V. Code Quality — Nullable & Compiler Strictness | ✅ Pass | DataSpark.Core/DataSpark.Core.csproj; DataSpark.Console/DataSpark.Console.csproj | Nullable and warnings-as-errors are enabled in reviewed project files. |
+| VI. Database Access — SQL Safety | ✅ Pass | DataSpark.Core/Services/DatabaseAnalysisService.cs | SQL search path remains parameterized for user-provided values. |
+| VII. Structured Logging | ✅ Pass | DataSpark.Web/Program.cs | Startup warning now uses structured logging (`Log.Warning`) instead of console output. |
 
 ## Security Checklist
 
 - [x] No hardcoded secrets or credentials
-- [x] Input validation present where needed
+- [ ] Input validation present where needed
 - [ ] Authentication/authorization checks appropriate
 - [x] No SQL injection vulnerabilities
 - [x] No XSS vulnerabilities
 - [x] Dependencies reviewed for vulnerabilities
 
-CSRF requirements are not met for newly added POST endpoints in API controllers, so authentication/authorization protections are incomplete per constitution Principle IV.
+Input and request forgery protections remain incomplete for several POST endpoints, and upload content-signature validation is not present.
 
 ## Code Quality Assessment
 
 ### Strengths
-- SQL search filtering was improved to parameterized query usage in `DatabaseAnalysisService`.
-- Core and Console project files keep nullable and warnings-as-errors strictness enabled in changed files.
+- Previous H1 async contract issue is resolved: OpenAI service APIs now take cancellation tokens.
+- Previous H2 logging issue is resolved: startup warning follows structured logging policy.
+- Previous C2 issue is resolved for `ChartApiController.Export` with anti-forgery validation present.
 
 ### Areas for Improvement
-- Keep controllers thin by moving newly added analytical/plotting workflows into Core services.
-- Replace console output in startup path with structured logging to maintain policy consistency.
+- Complete the architecture extraction for bivariate analysis (not only SVG generation).
+- Standardize anti-forgery policy across all API POST actions touched by this PR.
 
 ## Testing Coverage
 
 **Status**: ADEQUATE
 
-PR includes updates in 12 files under `DataSpark.Tests`, including service and integration coverage. Test execution evidence is present in PR validation notes (`dotnet test ... 119 passed`).
+PR includes test updates in `DataSpark.Tests` and validation notes report passing tests. No new test failures were identified during this review pass.
 
 ## Documentation Status
 
 **Status**: ADEQUATE
 
-PR includes substantial documentation/spec updates under `.documentation/specs/001-dataspark-consolidation/` and related guidance files.
+Spec and plan artifacts in `.documentation/specs/001-dataspark-consolidation/` remain comprehensive and updated.
 
 ## Changed Files Summary
 
 | File | Changes | Type | Constitution Issues |
 |------|---------|------|---------------------|
-| DataSpark.Web/Controllers/api/FilesController.cs | +270 -8 | Modified | 2 issues (C1, C3) |
-| DataSpark.Web/Controllers/api/ChartApiController.cs | +109 -9 | Modified | 1 issue (C2) |
-| DataSpark.Core/Services/OpenAIFileAnalysisService.cs | +65 -12 | Modified | 1 issue (H1) |
-| DataSpark.Web/Program.cs | +29 -16 | Modified | 1 issue (H2) |
-| DataSpark.Core/Services/DatabaseAnalysisService.cs | +19 -8 | Modified | None |
+| DataSpark.Web/Controllers/api/ChartApiController.cs | Modified | API controller | C1, C2, C3, H1 |
+| DataSpark.Web/Controllers/api/FilesController.cs | Modified | API controller | C4, C5, C6 |
+| DataSpark.Core/Services/OpenAIFileAnalysisService.cs | Modified | Core service | None (prior issue fixed) |
+| DataSpark.Web/Program.cs | Modified | Startup/DI | None (prior issue fixed) |
+| DataSpark.Core/Services/Analysis/BivariateSvgService.cs | Added | Core service | Positive architecture move |
 
 ## Detailed Findings by File
 
+### DataSpark.Web/Controllers/api/ChartApiController.cs
+
+**Lines 147, 168, 207**: POST endpoints without anti-forgery protection.
+```csharp
+[HttpPost("values/{dataSource}")]
+[HttpPost("render")]
+[HttpPost("validate")]
+```
+
+- **Principle Violated**: IV. Security — CSRF & Input Validation (MANDATORY)
+- **Severity**: CRITICAL
+- **Recommendation**: Add `[ValidateAntiForgeryToken]` to each action and ensure token header is sent from JS clients.
+
 ### DataSpark.Web/Controllers/api/FilesController.cs
 
-**Lines ~761+**: Business/domain logic added directly in controller action.
+**Line 663**: Controller still contains substantial domain/statistical analysis logic.
 ```csharp
-[HttpPost("bivariate-svg")]
-public IActionResult BivariateSvg([FromForm] string fileName, [FromForm] string column1, [FromForm] string column2)
-{
-    using var reader = new StreamReader(filePath);
-    using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture));
-    var records = csv.GetRecords<dynamic>().ToList();
-    // statistical computation + plotting logic in controller...
+[HttpPost("bivariate")]
+public IActionResult BivariateAnalysis(...) {
+    // type detection, correlation, regression, grouping logic
 }
 ```
 
 - **Principle Violated**: I. Clean Architecture — Core-First (MANDATORY)
 - **Severity**: CRITICAL
-- **Recommendation**: Move CSV analysis, statistics, and rendering preparation into Core abstractions and call them from the controller.
+- **Recommendation**: Move all bivariate analysis calculations into `DataSpark.Core` service abstraction; keep action thin.
 
-**Lines ~761+**: POST action missing anti-forgery protection.
+**Line 801**: Upload endpoint missing anti-forgery and content signature validation.
 ```csharp
-[HttpPost("bivariate-svg")]
-public IActionResult BivariateSvg(...)
+[HttpPost("upload")]
+public async Task<IActionResult> UploadFile(IFormFile file)
+{
+    var savedFileName = await _csvFileService.SaveUploadedFileAsync(file);
+}
 ```
 
 - **Principle Violated**: IV. Security — CSRF & Input Validation (MANDATORY)
 - **Severity**: CRITICAL
-- **Recommendation**: Add `[ValidateAntiForgeryToken]` and ensure token propagation from clients.
-
-### DataSpark.Web/Controllers/api/ChartApiController.cs
-
-**Lines ~403+**: POST export endpoint missing anti-forgery protection.
-```csharp
-[HttpPost("export")]
-public async Task<IActionResult> Export([FromBody] DataSpark.Web.Models.Chart.ChartExportRequest request)
-```
-
-- **Principle Violated**: IV. Security — CSRF & Input Validation (MANDATORY)
-- **Severity**: CRITICAL
-- **Recommendation**: Add `[ValidateAntiForgeryToken]` or update constitution-guided API design/implementation to consistently enforce POST protection.
-
-### DataSpark.Core/Services/OpenAIFileAnalysisService.cs
-
-**Lines ~96+**: Public async API does not accept cancellation token.
-```csharp
-public async Task<string> AnalyzeCsvFileAsync(string filePath, string userPrompt, bool keepFileUploaded = false)
-```
-
-- **Principle Violated**: III. Async/Await Discipline (MANDATORY)
-- **Severity**: HIGH
-- **Recommendation**: Add `CancellationToken cancellationToken = default` to public async APIs and pass to `ReadAllBytesAsync`, `PostAsync`, and other downstream calls.
-
-### DataSpark.Web/Program.cs
-
-**Lines ~89+**: Console output used in app startup configuration path.
-```csharp
-Console.WriteLine(
-    "OpenAI configuration is missing; AI features will be disabled until configured..."
-);
-```
-
-- **Principle Violated**: VII. Structured Logging (MANDATORY)
-- **Severity**: HIGH
-- **Recommendation**: Replace with structured log entry via logger/Serilog.
+- **Recommendation**: Add anti-forgery validation and verify magic bytes plus extension prior to save.
 
 ## Next Steps
 
 ### Immediate Actions (Required)
 
-- [ ] Move analytical logic out of API controller into Core services (C1)
-- [ ] Add anti-forgery protection to POST API endpoints (C2, C3)
+- [ ] Add `[ValidateAntiForgeryToken]` to all remaining POST actions in `ChartApiController` and `FilesController` (C1, C2, C3, C4, H1)
+- [ ] Add upload content-signature validation in `FilesController.UploadFile` (C5)
+- [ ] Move `BivariateAnalysis` business logic from controller to Core service (C6)
 
 ### Recommended Improvements
 
-- [ ] Add cancellation token support to all public async methods in OpenAI file analysis service (H1)
-- [ ] Replace startup `Console.WriteLine` with structured logging (H2)
+- [ ] Add automated analyzer/test to prevent `[HttpPost]` endpoints without anti-forgery attributes.
+- [ ] Add architecture test to prevent heavy business logic in controller methods.
 
 ### Future Considerations (Optional)
 
-- [ ] Add automated static checks for missing `[ValidateAntiForgeryToken]` on POST actions.
-- [ ] Add architecture tests to assert controllers do not perform heavy domain logic.
+- [ ] Consider a global anti-forgery filter strategy for MVC/API routes where constitution policy applies.
 
 ## Approval Decision
 
 **Recommendation**: ⚠️ REQUEST CHANGES
 
 **Reasoning**:
-The PR introduces multiple violations of mandatory constitution principles (Clean Architecture and CSRF protections), which should be corrected before merge. Non-blocking high-priority improvements are also recommended for async cancellation contracts and structured logging consistency.
+Although the update addressed several previously reported issues, mandatory constitution requirements are still violated in security and layering areas for changed API actions. These are merge-blocking under the current constitution.
 
-**Estimated Rework Time**: 4-8 hours
+**Estimated Rework Time**: 4-10 hours
 
 ---
 
@@ -212,4 +191,15 @@ The PR introduces multiple violations of mandatory constitution principles (Clea
 
 ## Previous Review History
 
-N/A
+### Review 1: 2026-03-31 13:54:52 UTC
+
+**Commit**: 88d94803f4541ab16d84cef5fa42729b9d13f746
+
+Summary of previous review:
+- Critical findings: C1, C2, C3
+- High findings: H1, H2
+- Since then, the following were fixed in the current commit series:
+  - `ChartApiController.Export` anti-forgery validation added
+  - OpenAI service public async API cancellation-token support added
+  - Startup console logging replaced with structured logging
+- Remaining and newly surfaced blocking items are captured in the current review above.
