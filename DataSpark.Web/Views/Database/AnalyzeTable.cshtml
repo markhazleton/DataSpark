@@ -1,0 +1,130 @@
+@model DataSpark.Web.Models.Database.DatabaseTableViewModel
+@{
+    ViewData["Title"] = "Table Analysis";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+@if (Model.Analysis == null || Model.File == null)
+{
+    <div class="alert alert-warning">Table analysis unavailable.</div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>@Model.Analysis.TableName</h2>
+        <a class="btn btn-outline-secondary" asp-action="Analyze" asp-route-fileId="@Model.File.Id">Back to Database</a>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-3"><div class="card"><div class="card-body"><strong>Rows</strong><div>@Model.Analysis.Statistics?.TotalRows</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><strong>Columns</strong><div>@Model.Analysis.Statistics?.TotalColumns</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><strong>Numeric</strong><div>@Model.Analysis.Statistics?.NumericColumns</div></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><strong>Quality</strong><div>@Model.Analysis.Statistics?.DataQualityScore.ToString("F2")</div></div></div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Columns</div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Nulls</th>
+                        <th>Unique</th>
+                        <th>Quality</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var column in Model.Analysis.ColumnAnalyses)
+                    {
+                        <tr>
+                            <td>@column.ColumnName</td>
+                            <td>@column.DataType</td>
+                            <td>@column.NullCount</td>
+                            <td>@column.UniqueCount</td>
+                            <td>@column.DataQualityScore.ToString("F2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">Data Preview</div>
+        <div class="card-body">
+            <table id="tableDataGrid" class="display nowrap" style="width:100%"></table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @if (Model.Analysis != null && Model.File != null)
+    {
+        <script>
+            (function () {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+                const fileId = '@Model.File.Id';
+                const tableName = '@Model.Analysis.TableName';
+                const columnNames = [@Html.Raw(string.Join(",", Model.Analysis.ColumnAnalyses.Select(c => $"\"{c.ColumnName.Replace("\"", "\\\"")}\"")))];
+
+                $('#tableDataGrid').DataTable({
+                    processing: true,
+                    serverSide: true,
+                    searchPanes: {
+                        cascadePanes: true,
+                        viewTotal: true
+                    },
+                    dom: 'PBfrtip',
+                    buttons: [
+                        {
+                            extend: 'csvHtml5',
+                            text: 'Export Filtered CSV',
+                            exportOptions: {
+                                modifier: {
+                                    search: 'applied'
+                                }
+                            }
+                        }
+                    ],
+                    pageLength: 25,
+                    ajax: {
+                        url: '@Url.Action("GetTableData", "Database")',
+                        type: 'POST',
+                        data: function (d) {
+                            return {
+                                fileId: fileId,
+                                tableName: tableName,
+                                Draw: d.draw,
+                                Start: d.start,
+                                Length: d.length,
+                                SearchValue: d.search?.value ?? '',
+                                Order: (d.order ?? []).map(o => ({ Column: o.column, Dir: o.dir })),
+                                Columns: (d.columns ?? []).map(c => ({ Data: c.data, Name: c.name, Searchable: c.searchable, Orderable: c.orderable })),
+                                __RequestVerificationToken: token
+                            };
+                        },
+                        dataSrc: function (json) {
+                            if (json && json.error) {
+                                console.warn('GetTableData returned error:', json.error);
+                                return [];
+                            }
+                            return json?.data ?? [];
+                        }
+                    },
+                    columns: columnNames.map((name, index) => ({
+                        title: name,
+                        data: index,
+                        name: name,
+                        searchPanes: { show: true }
+                    }))
+                });
+            })();
+        </script>
+    }
+}

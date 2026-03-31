@@ -1,0 +1,32 @@
+@model DataSpark.Web.Models.Database.DatabaseCodeResultsViewModel
+@{
+    ViewData["Title"] = "Generated DTO Code";
+}
+
+<h2>Generated DTO Code</h2>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="mb-3"><strong>Namespace:</strong> @Model.NamespaceName</div>
+
+@if (Model.Results.Count == 0)
+{
+    <div class="alert alert-warning">No generated code found.</div>
+}
+else
+{
+    @foreach (var item in Model.Results)
+    {
+        <div class="card mb-3">
+            <div class="card-header">@item.ClassName (@item.TableName)</div>
+            <div class="card-body">
+                <pre class="mb-0"><code>@item.Code</code></pre>
+            </div>
+        </div>
+    }
+}
+
+<a class="btn btn-outline-secondary" asp-action="Analyze" asp-route-fileId="@Model.File?.Id">Back</a>

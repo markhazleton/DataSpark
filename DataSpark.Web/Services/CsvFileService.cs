@@ -1,8 +1,8 @@
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Data.Analysis;
-using Sql2Csv.Core.Services;
-using Sql2Csv.Core.Services.Analysis;
+using DataSpark.Core.Services;
+using DataSpark.Core.Services.Analysis;
 using System.Globalization;
 using System.Text;
 
@@ -13,6 +13,10 @@ namespace DataSpark.Web.Services;
 /// </summary>
 public class CsvFileService
 {
+    private static readonly char[] SupportedDelimiters = [',', '\t', '|', ';'];
+    private static readonly string[] SupportedUploadExtensions = [".csv", ".db", ".sqlite", ".sqlite3"];
+    private const long DefaultMaxUploadBytes = 50L * 1024L * 1024L;
+
     private readonly IWebHostEnvironment _env;
     private readonly IConfiguration _configuration;
     private readonly ILogger<CsvFileService> _logger;
@@ -41,16 +45,47 @@ public class CsvFileService
     public List<string> GetCsvFileNames()
     {
         var filesPath = GetCsvFilesPath();
+        var userFiles = Directory.Exists(filesPath)
+            ? Directory.GetFiles(filesPath, "*.csv")
+                .Select(Path.GetFileName)
+                .Where(f => f != null)
+                .Select(f => f!)
+            : Enumerable.Empty<string>();
+
+        var samplePath = GetSampleDataPath();
+        var sampleFiles = samplePath != null && Directory.Exists(samplePath)
+            ? Directory.GetFiles(samplePath, "*.csv")
+                .Select(Path.GetFileName)
+                .Where(f => f != null)
+                .Select(f => f!)
+            : Enumerable.Empty<string>();
+
+        return userFiles
+            .Concat(sampleFiles)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>
+    /// List supported uploaded data files in the configured directory.
+    /// </summary>
+    public List<string> GetDataFileNames()
+    {
+        var filesPath = GetCsvFilesPath();
         if (!Directory.Exists(filesPath))
         {
-            _logger.LogWarning("CSV files directory does not exist: {Path}", filesPath);
-            return new List<string>();
+            _logger.LogWarning("Data files directory does not exist: {Path}", filesPath);
+            return [];
         }
 
-        return Directory.GetFiles(filesPath, "*.csv")
+        return Directory
+            .EnumerateFiles(filesPath)
+            .Where(path => SupportedUploadExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
             .Select(Path.GetFileName)
             .Where(f => f != null)
             .Select(f => f!)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
@@ -63,11 +98,108 @@ public class CsvFileService
             return null;
 
         var filesPath = GetCsvFilesPath();
-        if (!Directory.Exists(filesPath))
-            return null;
+        if (Directory.Exists(filesPath))
+        {
+            var filePath = Path.Combine(filesPath, fileName);
+            if (File.Exists(filePath))
+            {
+                return filePath;
+            }
+        }
 
-        var filePath = Path.Combine(filesPath, fileName);
-        return File.Exists(filePath) ? filePath : null;
+        var samplePath = GetSampleDataPath();
+        if (samplePath != null && Directory.Exists(samplePath))
+        {
+            var sampleFilePath = Path.Combine(samplePath, fileName);
+            if (File.Exists(sampleFilePath))
+            {
+                return sampleFilePath;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Detects the best delimiter for a CSV file header row.
+    /// </summary>
+    public async Task<char> DetectDelimiterAsync(string fileName)
+    {
+        var filePath = GetFilePath(fileName);
+        if (filePath == null)
+        {
+            return ',';
+        }
+
+        await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, leaveOpen: false);
+        while (true)
+        {
+            var line = await reader.ReadLineAsync().ConfigureAwait(false);
+            if (line == null)
+            {
+                return ',';
+            }
+
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            var best = ',';
+            var bestCount = -1;
+            foreach (var delimiter in SupportedDelimiters)
+            {
+                var count = line.Count(c => c == delimiter);
+                if (count > bestCount)
+                {
+                    best = delimiter;
+                    bestCount = count;
+                }
+            }
+
+            return bestCount > 0 ? best : ',';
+        }
+    }
+
+    /// <summary>
+    /// Validates file upload constraints for supported data files.
+    /// </summary>
+    public async Task<(bool IsValid, string? ErrorMessage)> ValidateUploadAsync(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return (false, "No file was uploaded.");
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        if (!SupportedUploadExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            return (false, "Unsupported file type. Upload .csv, .db, .sqlite, or .sqlite3 files.");
+        }
+
+        var maxBytes = _configuration.GetValue<long?>("Upload:MaxFileSizeBytes") ?? DefaultMaxUploadBytes;
+        if (file.Length > maxBytes)
+        {
+            return (false, $"File size exceeds the maximum allowed size ({Math.Round(maxBytes / 1024d / 1024d, 0)} MB).");
+        }
+
+        if (!string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!await LooksLikeSqliteHeaderAsync(file).ConfigureAwait(false))
+            {
+                return (false, "The uploaded file is not a valid SQLite database.");
+            }
+        }
+        else
+        {
+            if (!await LooksLikeCsvContentAsync(file).ConfigureAwait(false))
+            {
+                return (false, "The uploaded file does not look like a valid CSV payload.");
+            }
+        }
+
+        return (true, null);
     }
 
     /// <summary>
@@ -324,6 +456,13 @@ public class CsvFileService
         if (file == null || file.Length == 0)
             return null;
 
+        var validation = await ValidateUploadAsync(file).ConfigureAwait(false);
+        if (!validation.IsValid)
+        {
+            _logger.LogWarning("Upload validation failed for {FileName}: {Error}", file.FileName, validation.ErrorMessage);
+            return null;
+        }
+
         var filesPath = GetCsvFilesPath();
         if (!Directory.Exists(filesPath))
         {
@@ -376,6 +515,52 @@ public class CsvFileService
         if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return false;
         if (fileName.Contains("..") || fileName.Contains(Path.DirectorySeparatorChar) || fileName.Contains(Path.AltDirectorySeparatorChar)) return false;
         return true;
+    }
+
+    private static async Task<bool> LooksLikeSqliteHeaderAsync(IFormFile file)
+    {
+        await using var stream = file.OpenReadStream();
+        var buffer = new byte[16];
+        var bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length)).ConfigureAwait(false);
+        if (bytesRead < 16)
+        {
+            return false;
+        }
+
+        var header = Encoding.ASCII.GetString(buffer);
+        return string.Equals(header, "SQLite format 3\0", StringComparison.Ordinal);
+    }
+
+    private static async Task<bool> LooksLikeCsvContentAsync(IFormFile file)
+    {
+        await using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream, Encoding.UTF8, true, 2048, leaveOpen: false);
+
+        var firstLine = await reader.ReadLineAsync().ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(firstLine))
+        {
+            return false;
+        }
+
+        if (firstLine.Contains('\0'))
+        {
+            return false;
+        }
+
+        return SupportedDelimiters.Any(firstLine.Contains);
+    }
+
+    private string? GetSampleDataPath()
+    {
+        var configured = _configuration["SampleData:Path"];
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            return Path.Combine(_env.WebRootPath, "sample-data");
+        }
+
+        return Path.IsPathRooted(configured)
+            ? configured
+            : Path.GetFullPath(Path.Combine(_env.ContentRootPath, configured));
     }
 }
 

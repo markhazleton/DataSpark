@@ -1,4 +1,4 @@
-﻿@model Sql2Csv.Core.Models.PivotTableViewModel
+@model DataSpark.Core.Models.PivotTableViewModel
 @{
     ViewData["Title"] = "Interactive Pivot Table";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -113,6 +113,9 @@
                             </button>
                             <button id="exportBtn" class="btn btn-info" disabled>
                                 <i class="fas fa-file-export"></i> Export
+                            </button>
+                            <button id="clearSavedStateBtn" class="btn btn-outline-danger" disabled>
+                                <i class="fas fa-trash"></i> Clear Saved State
                             </button>
                             <a href="@Url.Action("FullPage", "PivotTable")" class="btn btn-outline-secondary"
                                 target="_blank">
@@ -258,6 +261,7 @@
         {
             let pivotData = null;
             let currentConfig = null;
+            const storageKeyPrefix = 'dataspark.pivot.state.';
 
             console.log('Pivot table index page loaded');
             console.log('jQuery version:', $.fn.jquery);
@@ -331,6 +335,20 @@
                 exportData(format);
             });
 
+            $('#clearSavedStateBtn').click(function ()
+            {
+                const selectedFile = $('#csvFileSelect').val();
+                if (!selectedFile)
+                {
+                    showMessage('Select a file before clearing saved state.', 'error');
+                    return;
+                }
+
+                const key = getStorageKey(selectedFile);
+                localStorage.removeItem(key);
+                showMessage('Saved pivot state cleared for this file.', 'success');
+            });
+
             // Load data if current file is available
             @if (!string.IsNullOrEmpty(Model.CurrentFile))
                 {
@@ -355,7 +373,8 @@
                             if (response.success)
                             {
                                 pivotData = response.data;
-                                createPivotTable(response.data);
+                                const restoredConfig = tryRestorePivotState(fileName);
+                                createPivotTable(response.data, restoredConfig);
                                 updateUIState();
                                 showMessage(`Data loaded successfully: ${response.recordCount} records, ${response.columns.length} columns`, 'success');
                             } else
@@ -374,7 +393,7 @@
                     });
                 }
 
-            function createPivotTable(data)
+            function createPivotTable(data, restoredConfig)
             {
                 console.log('Creating pivot table with data:', data);
                 console.log('Data length:', data ? data.length : 'null');
@@ -405,6 +424,7 @@
 
                     // Get all available renderers with fallbacks
                     const renderers = {};
+                    const aggregators = {};
 
                     // Always include basic renderers
                     if ($.pivotUtilities.renderers)
@@ -430,6 +450,29 @@
                         $.extend(renderers, $.pivotUtilities.export_renderers);
                     }
 
+                    // Keep aggregator set aligned to required pivot functions.
+                    if ($.pivotUtilities.aggregators)
+                    {
+                        const candidateKeys = ['Sum', 'Count', 'Average', 'Minimum', 'Maximum'];
+                        candidateKeys.forEach(key =>
+                        {
+                            if ($.pivotUtilities.aggregators[key])
+                            {
+                                aggregators[key] = $.pivotUtilities.aggregators[key];
+                            }
+                        });
+
+                        // Fallback for alternate naming conventions.
+                        if (!aggregators.Minimum && $.pivotUtilities.aggregators.Min)
+                        {
+                            aggregators.Minimum = $.pivotUtilities.aggregators.Min;
+                        }
+                        if (!aggregators.Maximum && $.pivotUtilities.aggregators.Max)
+                        {
+                            aggregators.Maximum = $.pivotUtilities.aggregators.Max;
+                        }
+                    }
+
                     console.log('Available renderers:', Object.keys(renderers));
                     console.log('C3 available:', typeof c3 !== 'undefined');
                     console.log('D3 available:', typeof d3 !== 'undefined');
@@ -437,13 +480,26 @@
                     // Create interactive pivot table with UI controls
                     $('#pivotTableContainer').pivotUI(data, {
                         renderers: renderers,
+                        aggregators: Object.keys(aggregators).length ? aggregators : undefined,
                         hiddenAttributes: [],
                         autoSortUnusedAttrs: true,
                         showUI: true,
+                        rendererName: restoredConfig?.rendererName || 'Table',
+                        aggregatorName: restoredConfig?.aggregatorName || 'Sum',
+                        rows: restoredConfig?.rows || [],
+                        cols: restoredConfig?.cols || [],
+                        vals: restoredConfig?.vals || [],
+                        inclusions: restoredConfig?.inclusions || {},
+                        exclusions: restoredConfig?.exclusions || {},
                         onRefresh: function (config)
                         {
                             currentConfig = config;
                             console.log('Pivot table refreshed with config:', config);
+                            const selectedFile = $('#csvFileSelect').val();
+                            if (selectedFile)
+                            {
+                                persistPivotState(selectedFile, config);
+                            }
                         }
                     });
 
@@ -564,6 +620,52 @@
                 $('#loadDataBtn').prop('disabled', !hasFile);
                 $('#saveConfigBtn').prop('disabled', !hasData);
                 $('#exportBtn').prop('disabled', !hasData);
+                $('#clearSavedStateBtn').prop('disabled', !hasFile);
+            }
+
+            function getStorageKey(fileName)
+            {
+                return `${storageKeyPrefix}${fileName}`;
+            }
+
+            function persistPivotState(fileName, config)
+            {
+                try
+                {
+                    const state = {
+                        aggregatorName: config.aggregatorName,
+                        rendererName: config.rendererName,
+                        rows: config.rows || [],
+                        cols: config.cols || [],
+                        vals: config.vals || [],
+                        inclusions: config.inclusions || {},
+                        exclusions: config.exclusions || {},
+                        savedAt: new Date().toISOString()
+                    };
+                    localStorage.setItem(getStorageKey(fileName), JSON.stringify(state));
+                }
+                catch (err)
+                {
+                    console.warn('Unable to persist pivot state to localStorage.', err);
+                }
+            }
+
+            function tryRestorePivotState(fileName)
+            {
+                try
+                {
+                    const raw = localStorage.getItem(getStorageKey(fileName));
+                    if (!raw)
+                    {
+                        return null;
+                    }
+                    return JSON.parse(raw);
+                }
+                catch (err)
+                {
+                    console.warn('Unable to restore pivot state from localStorage.', err);
+                    return null;
+                }
             }
 
             function showLoading(show)

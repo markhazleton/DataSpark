@@ -1,6 +1,6 @@
 using DataSpark.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Sql2Csv.Core.Services;
+using DataSpark.Core.Services;
 using WebCsvFileService = DataSpark.Web.Services.CsvFileService;
 
 namespace DataSpark.Web.Controllers;
@@ -23,6 +23,9 @@ public class CsvAIProcessingController : Controller
         ViewBag.AvailableFiles = availableFiles;
         ViewBag.SelectedFile = fileName;
         ViewBag.UploadedFiles = _aiService.GetUploadedFiles();
+        ViewBag.AIUnavailableMessage = _aiService.IsConfigured
+            ? string.Empty
+            : _aiService.ConfigurationError;
 
         if (string.IsNullOrEmpty(fileName) && availableFiles.Any())
         {
@@ -74,7 +77,7 @@ public class CsvAIProcessingController : Controller
                 : customPrompt;
 
             // Use the enhanced analysis method with verification
-            string analysis = await _aiService.AnalyzeCsvFileWithVerificationAsync(filePath, prompt, false);
+            string analysis = await _aiService.AnalyzeCsvFileWithVerificationAsync(filePath, prompt, false, HttpContext.RequestAborted);
 
             ViewBag.Analysis = analysis;
             return View("Index");
@@ -121,7 +124,7 @@ public class CsvAIProcessingController : Controller
             }
 
             // Upload and register the file for future use
-            var uploadedFile = await _aiService.UploadAndRegisterCsvFileAsync(filePath);
+            var uploadedFile = await _aiService.UploadAndRegisterCsvFileAsync(filePath, HttpContext.RequestAborted);
             ViewBag.Analysis = $"File '{uploadedFile.FileName}' uploaded and registered successfully for future analysis. File ID: {uploadedFile.FileId}";
             ViewBag.UploadedFiles = _aiService.GetUploadedFiles();
             return View("Index");
@@ -153,11 +156,17 @@ public class CsvAIProcessingController : Controller
                 return View("Index");
             }
 
+            if (selectedFileIds.Count < 2)
+            {
+                ViewBag.Analysis = "Select at least 2 files for comparison analysis.";
+                return View("Index");
+            }
+
             var prompt = string.IsNullOrWhiteSpace(customPrompt)
                 ? "Analyze and summarize these CSV files. Compare their contents and provide insights."
                 : customPrompt;
 
-            string analysis = await _aiService.AnalyzeUploadedCsvFilesAsync(selectedFileIds, prompt);
+            string analysis = await _aiService.AnalyzeUploadedCsvFilesAsync(selectedFileIds, prompt, HttpContext.RequestAborted);
             ViewBag.Analysis = analysis;
             return View("Index");
         }
@@ -185,7 +194,7 @@ public class CsvAIProcessingController : Controller
                 ? "Analyze and summarize all uploaded CSV files. Compare their contents and provide comprehensive insights."
                 : customPrompt;
 
-            string analysis = await _aiService.AnalyzeAllUploadedCsvFilesAsync(prompt);
+            string analysis = await _aiService.AnalyzeAllUploadedCsvFilesAsync(prompt, HttpContext.RequestAborted);
             ViewBag.Analysis = analysis;
             return View("Index");
         }
@@ -205,7 +214,7 @@ public class CsvAIProcessingController : Controller
     {
         try
         {
-            bool removed = await _aiService.RemoveUploadedFileAsync(fileId, true);
+            bool removed = await _aiService.RemoveUploadedFileAsync(fileId, true, HttpContext.RequestAborted);
             ViewBag.Analysis = removed ? "File removed successfully." : "File not found.";
         }
         catch (Exception ex)
@@ -225,7 +234,7 @@ public class CsvAIProcessingController : Controller
     {
         try
         {
-            await _aiService.ClearAllUploadedFilesAsync(true);
+            await _aiService.ClearAllUploadedFilesAsync(true, HttpContext.RequestAborted);
             ViewBag.Analysis = "All files cleared successfully.";
         }
         catch (Exception ex)
@@ -245,7 +254,7 @@ public class CsvAIProcessingController : Controller
     {
         try
         {
-            string diagnostics = await _aiService.DiagnoseConfigurationAsync();
+            string diagnostics = await _aiService.DiagnoseConfigurationAsync(HttpContext.RequestAborted);
             ViewBag.Analysis = diagnostics;
         }
         catch (Exception ex)

@@ -5,6 +5,7 @@
 <div class="container py-4">
     <h2 class="mb-4">Bivariate Analysis</h2>
     <form id="bivariateForm">
+        @Html.AntiForgeryToken()
         <div class="mb-3">
             <label for="fileSelect" class="form-label">Select CSV File</label>
             <select id="fileSelect" class="form-select" name="fileName" required>
@@ -25,6 +26,7 @@
         </div>
         <button id="analyzeBtn" class="btn btn-primary mb-3" type="submit">Run Bivariate Analysis</button>
     </form>
+        <div id="svgArea" class="mt-3"></div>
     <div id="resultArea" class="mt-4"></div>
 </div>
 @section Scripts {
@@ -112,9 +114,25 @@
         formData.append('fileName', fileName);
         formData.append('column1', col1);
         formData.append('column2', col2);
-        const resp = await fetch('/api/files/bivariate', { method: 'POST', body: formData });
+        const antiForgeryToken = document.querySelector('#bivariateForm input[name="__RequestVerificationToken"]')?.value ?? '';
+        const requestHeaders = antiForgeryToken
+            ? { 'RequestVerificationToken': antiForgeryToken }
+            : {};
+
+        const resp = await fetch('/api/files/bivariate', { method: 'POST', body: formData, headers: requestHeaders });
         const data = await resp.json();
         renderResult(data);
+
+        const svgResp = await fetch('/api/files/bivariate-svg', { method: 'POST', body: formData, headers: requestHeaders });
+        const svgArea = document.getElementById('svgArea');
+        if (svgResp.ok)
+        {
+            svgArea.innerHTML = `<h5 class="mt-3">Server SVG Visualization</h5>${await svgResp.text()}`;
+        }
+        else
+        {
+            svgArea.innerHTML = '<div class="alert alert-warning">SVG visualization unavailable for current selection.</div>';
+        }
     }
     document.getElementById('bivariateForm').addEventListener('submit', runAnalysis);
     // Render result

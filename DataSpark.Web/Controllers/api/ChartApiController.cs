@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Sql2Csv.Core.Models.Analysis;
-using Sql2Csv.Core.Models.Charts;
-using Sql2Csv.Core.Services.Charts;
-using Sql2Csv.Core.Services;
-using Sql2Csv.Core.Models;
-using Sql2Csv.Core.Interfaces;
+using DataSpark.Core.Models.Analysis;
+using DataSpark.Core.Models.Charts;
+using DataSpark.Core.Services.Charts;
+using DataSpark.Core.Services;
+using DataSpark.Core.Models;
+using DataSpark.Core.Interfaces;
 
 namespace DataSpark.Web.Controllers.Api;
 
@@ -12,6 +12,7 @@ namespace DataSpark.Web.Controllers.Api;
 /// RESTful API controller for chart operations
 /// </summary>
 [Route("api/[controller]")]
+[Route("api/Chart")]
 [ApiController]
 public class ChartApiController : ControllerBase
 {
@@ -102,17 +103,17 @@ public class ChartApiController : ControllerBase
     /// Get columns for a data source
     /// </summary>
     [HttpGet("columns/{dataSource}")]
-    public async Task<ActionResult<ApiResponse<List<Sql2Csv.Core.Models.Analysis.ColumnInfo>>>> GetColumns(string dataSource)
+    public async Task<ActionResult<ApiResponse<List<DataSpark.Core.Models.Analysis.ColumnInfo>>>> GetColumns(string dataSource)
     {
         try
         {
             var columns = await _dataService.GetColumnsAsync(dataSource);
-            return ApiResponse<List<Sql2Csv.Core.Models.Analysis.ColumnInfo>>.SuccessResult(columns);
+            return ApiResponse<List<DataSpark.Core.Models.Analysis.ColumnInfo>>.SuccessResult(columns);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting columns for {DataSource}", dataSource);
-            return ApiResponse<List<Sql2Csv.Core.Models.Analysis.ColumnInfo>>.ErrorResult("Error retrieving column information");
+            return ApiResponse<List<DataSpark.Core.Models.Analysis.ColumnInfo>>.ErrorResult("Error retrieving column information");
         }
     }
 
@@ -141,6 +142,7 @@ public class ChartApiController : ControllerBase
     /// Get values for multiple columns
     /// </summary>
     [HttpPost("values/{dataSource}")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<Dictionary<string, List<string>>>>> GetMultipleColumnValues(
         string dataSource,
         [FromBody] List<string> columns,
@@ -162,6 +164,7 @@ public class ChartApiController : ControllerBase
     /// Render a chart configuration
     /// </summary>
     [HttpPost("render")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<ChartRenderResult>>> RenderChart([FromBody] ChartConfiguration config)
     {
         try
@@ -201,6 +204,7 @@ public class ChartApiController : ControllerBase
     /// Validate a chart configuration
     /// </summary>
     [HttpPost("validate")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<ValidationResult>>> ValidateConfiguration([FromBody] ValidationRequest request)
     {
         try
@@ -300,6 +304,7 @@ public class ChartApiController : ControllerBase
     /// Save a chart configuration
     /// </summary>
     [HttpPost("configurations")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<ChartConfiguration>>> SaveConfiguration([FromBody] ChartConfiguration config)
     {
         try
@@ -377,6 +382,7 @@ public class ChartApiController : ControllerBase
     /// Bulk operations on configurations
     /// </summary>
     [HttpPost("configurations/bulk")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<object>>> BulkOperation([FromBody] BulkOperationRequest request)
     {
         try
@@ -397,6 +403,55 @@ public class ChartApiController : ControllerBase
         {
             _logger.LogError(ex, "Error performing bulk operation: {Operation}", request.Operation);
             return ApiResponse<object>.ErrorResult("Error performing bulk operation");
+        }
+    }
+
+    /// <summary>
+    /// Export chart content.
+    /// Supports CSV, JSON, and SVG from server-side data.
+    /// PNG/JPEG are exported client-side from canvas.
+    /// </summary>
+    [HttpPost("export")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Export([FromBody] DataSpark.Web.Models.Chart.ChartExportRequest request)
+    {
+        try
+        {
+            var configuration = await _chartService.GetConfigurationAsync(request.ChartId).ConfigureAwait(false);
+            if (configuration == null)
+            {
+                return NotFound(new { error = "Chart configuration not found." });
+            }
+
+            var data = await _dataService.ProcessDataAsync(configuration.CsvFile, configuration).ConfigureAwait(false);
+            var format = (request.Format ?? "CSV").Trim().ToUpperInvariant();
+            var safeName = string.Concat(configuration.Name.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
+            var contentType = format switch
+            {
+                "CSV" => "text/csv",
+                "JSON" => "application/json",
+                "SVG" => "image/svg+xml",
+                _ => string.Empty
+            };
+
+            if (string.IsNullOrWhiteSpace(contentType))
+            {
+                return BadRequest(new { error = "Unsupported export format. Use CSV, JSON, or SVG." });
+            }
+
+            var content = await _renderingService.ExportChartAsync(
+                configuration,
+                data,
+                format,
+                request.Width ?? configuration.Width,
+                request.Height ?? configuration.Height).ConfigureAwait(false);
+
+            return File(content, contentType, $"{safeName}.{format.ToLowerInvariant()}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting chart {ChartId} as {Format}", request.ChartId, request.Format);
+            return StatusCode(500, new { error = "Error exporting chart." });
         }
     }
 }

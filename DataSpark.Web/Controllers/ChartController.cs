@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using DataSpark.Web.Services.Chart;
-using Sql2Csv.Core.Interfaces;
-using Sql2Csv.Core.Models;
-using Sql2Csv.Core.Models.Charts;
-using Sql2Csv.Core.Services;
-using Sql2Csv.Core.Services.Charts;
+using DataSpark.Core.Interfaces;
+using DataSpark.Core.Models;
+using DataSpark.Core.Models.Charts;
+using DataSpark.Core.Services;
+using DataSpark.Core.Services.Charts;
 using DataSpark.Web.Services;
 
 namespace DataSpark.Web.Controllers;
@@ -19,7 +19,7 @@ public class ChartController : BaseController
         IWebHostEnvironment env,
         ILogger<ChartController> logger,
         DataSpark.Web.Services.CsvFileService csvFileService,
-        Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+        DataSpark.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
         IExportService exportService,
         IDataExportService dataExportService,
     IChartService chartService,

@@ -1,20 +1,19 @@
-# Sql2Csv
+# DataSpark
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/download/dotnet/10.0)
-[![Build](https://img.shields.io/github/actions/workflow/status/markhazleton/sql2csv/ci.yml?branch=main)](https://github.com/markhazleton/sql2csv/actions)
-[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/markhazleton/sql2csv/main/coverage-badge.json)](#testing)
+[![Build](https://img.shields.io/github/actions/workflow/status/markhazleton/DataSpark/ci.yml?branch=main)](https://github.com/markhazleton/DataSpark/actions)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/markhazleton/DataSpark/main/coverage-badge.json)](#testing)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A .NET 10 toolkit for working with SQLite databases: discover files, export tables to CSV, inspect schema, and generate C# DTOs. The solution includes a CLI, a web UI, a core library, tests, and benchmarks.
 
 ## Projects
 
-- `sql2csv.console` - CLI for discovery, export, schema reports, and code generation.
-- `Sql2Csv.Core` - Core services and models shared by the CLI and web app.
-- `sql2csv.web` - ASP.NET Core MVC web UI for uploading SQLite files, analyzing tables, exporting CSVs, and generating DTOs.
-- `DataSpark.Web` - Experimental web app for CSV exploration, visualization, and ML experiments.
-- `Sql2Csv.Tests` - MSTest unit and integration tests.
-- `Sql2Csv.Benchmarks` - BenchmarkDotNet performance benchmarks.
+- `DataSpark.Console` - CLI for discovery, export, schema reports, and code generation.
+- `DataSpark.Core` - Core services and models shared by the CLI and web app.
+- `DataSpark.Web` - ASP.NET Core MVC web UI for uploading SQLite files, analyzing tables, exporting CSVs, and generating DTOs.
+- `DataSpark.Tests` - MSTest unit and integration tests.
+- `DataSpark.Benchmarks` - BenchmarkDotNet performance benchmarks.
 
 ## Features
 
@@ -30,30 +29,30 @@ A .NET 10 toolkit for working with SQLite databases: discover files, export tabl
 Prerequisites:
 
 - .NET 10.0 SDK
-- Node.js (only if you want to build `sql2csv.web` frontend assets)
+- Node.js (only if you want to build `DataSpark.Web` frontend assets)
 
 Build everything:
 
 ```bash
-dotnet build sql2csv.sln
+dotnet build DataSpark.sln
 ```
 
 Run the CLI:
 
 ```bash
-dotnet run --project sql2csv.console -- --help
+dotnet run --project DataSpark.Console -- --help
 ```
 
 Run the web UI:
 
 ```bash
-dotnet run --project sql2csv.web
+dotnet run --project DataSpark.Web
 ```
 
 Build web assets (optional, for UI changes):
 
 ```bash
-cd sql2csv.web
+cd DataSpark.Web
 npm install
 npm run build
 ```
@@ -70,37 +69,36 @@ Commands:
 Examples:
 
 ```bash
-dotnet run --project sql2csv.console discover --path "C:\Data\DBs"
-dotnet run --project sql2csv.console export --path "C:\Data\DBs" --output "C:\Exports"
-dotnet run --project sql2csv.console export --path "C:\Data\DBs" --tables Users,Orders
-dotnet run --project sql2csv.console schema --path "C:\Data\DBs" --format json
-dotnet run --project sql2csv.console generate --path "C:\Data\DBs" --output "C:\Gen" --namespace "MyApp.Models"
+dotnet run --project DataSpark.Console discover --path "C:\Data\DBs"
+dotnet run --project DataSpark.Console export --path "C:\Data\DBs" --output "C:\Exports"
+dotnet run --project DataSpark.Console export --path "C:\Data\DBs" --tables Users,Orders
+dotnet run --project DataSpark.Console schema --path "C:\Data\DBs" --format json
+dotnet run --project DataSpark.Console generate --path "C:\Data\DBs" --output "C:\Gen" --namespace "MyApp.Models"
 ```
 
 ## Configuration
 
 Both the CLI and web app use `appsettings.json`. See:
 
-- `sql2csv.console/appsettings.json`
-- `sql2csv.web/appsettings.json`
+- `DataSpark.Console/appsettings.json`
+- `DataSpark.Web/appsettings.json`
 
 ## Testing
 
 ```bash
-dotnet test sql2csv.sln
+dotnet test DataSpark.sln
 ```
 
 ## Repository Layout
 
 ```text
-sql2csv/
-  sql2csv.console/    # CLI app
-  Sql2Csv.Core/       # Core library
-  sql2csv.web/        # Web UI
-  DataSpark.Web/      # Experimental web app
-  Sql2Csv.Tests/      # Tests
-  Sql2Csv.Benchmarks/ # Benchmarks
-  sql2csv.sln
+DataSpark/
+  DataSpark.Console/    # CLI app
+  DataSpark.Core/       # Core library
+  DataSpark.Web/        # Web UI
+  DataSpark.Tests/      # Tests
+  DataSpark.Benchmarks/ # Benchmarks
+  DataSpark.sln
 ```
 
 ## Contributing

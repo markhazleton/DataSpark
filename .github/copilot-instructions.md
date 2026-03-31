@@ -1,14 +1,14 @@
-# GitHub Copilot Instructions for SQL2CSV
+# GitHub Copilot Instructions for DataSpark
 
 ## Project Overview
 
-SQL2CSV is a comprehensive .NET 9 toolkit for SQLite database operations including:
+DataSpark is a comprehensive .NET 9 toolkit for SQLite database operations including:
 
-- **Console Application** (`sql2csv.console/`) - CLI for database discovery, CSV export, schema analysis, and C# DTO generation
-- **Web Application** (`sql2csv.web/`) - Web UI with drag-and-drop upload, interactive analysis, and export capabilities
-- **Core Library** (`Sql2Csv.Core/`) - Reusable business logic services following Clean Architecture
-- **Test Suite** (`Sql2Csv.Tests/`) - Comprehensive unit and integration tests (115+ tests)
-- **Benchmarks** (`Sql2Csv.Benchmarks/`) - Performance testing with BenchmarkDotNet
+- **Console Application** (`DataSpark.Console/`) - CLI for database discovery, CSV export, schema analysis, and C# DTO generation
+- **Web Application** (`DataSpark.Web/`) - Web UI with drag-and-drop upload, interactive analysis, and export capabilities
+- **Core Library** (`DataSpark.Core/`) - Reusable business logic services following Clean Architecture
+- **Test Suite** (`DataSpark.Tests/`) - Comprehensive unit and integration tests (115+ tests)
+- **Benchmarks** (`DataSpark.Benchmarks/`) - Performance testing with BenchmarkDotNet
 
 ## Development Environment & Running the Application
 
@@ -18,7 +18,7 @@ SQL2CSV is a comprehensive .NET 9 toolkit for SQLite database operations includi
 
 ```bash
 # Navigate to the web project directory
-cd sql2csv.web
+cd DataSpark.Web
 
 # Run the application on port 5001
 dotnet run --urls=http://localhost:5001
@@ -28,7 +28,7 @@ dotnet run --urls=http://localhost:5001
 
 ```bash
 # From the solution root directory
-dotnet run --project sql2csv.web --urls=http://localhost:5001
+dotnet run --project DataSpark.Web --urls=http://localhost:5001
 ```
 
 The web application will be available at: `http://localhost:5001`
@@ -43,13 +43,13 @@ dotnet test
 dotnet test --collect:"XPlat Code Coverage"
 
 # Run specific test project
-dotnet test Sql2Csv.Tests
+dotnet test DataSpark.Tests
 ```
 
 ### Running Benchmarks
 
 ```bash
-cd Sql2Csv.Benchmarks
+cd DataSpark.Benchmarks
 dotnet run -c Release
 ```
 
@@ -68,7 +68,7 @@ dotnet run -c Release
 
 ```bash
 # Check existing terminal first
-# If in wrong directory, navigate: cd "c:\GitHub\MarkHazleton\sql2csv\sql2csv.web"
+# If in wrong directory, navigate: cd "c:\GitHub\MarkHazleton\DataSpark\DataSpark.Web"
 # Then run: dotnet run --urls=http://localhost:5001
 ```
 
@@ -76,7 +76,7 @@ dotnet run -c Release
 
 ### Clean Architecture Principles
 
-- **Domain Logic**: Keep business rules in `Sql2Csv.Core/Services/`
+- **Domain Logic**: Keep business rules in `DataSpark.Core/Services/`
 - **Separation of Concerns**: Console and Web projects should only contain presentation logic
 - **Dependency Injection**: Use Microsoft.Extensions.DependencyInjection throughout
 - **Configuration**: Follow the Options pattern with strongly-typed configuration classes
@@ -99,7 +99,7 @@ dotnet run -c Release
 
 ## Project-Specific Guidelines
 
-### Sql2Csv.Core Library
+### DataSpark.Core Library
 
 ```csharp
 // Preferred service interface pattern
@@ -112,9 +112,9 @@ public interface IDatabaseDiscoveryService
 public class DatabaseDiscoveryService : IDatabaseDiscoveryService
 {
     private readonly ILogger<DatabaseDiscoveryService> _logger;
-    private readonly IOptions<Sql2CsvOptions> _options;
+    private readonly IOptions<DataSparkOptions> _options;
 
-    public DatabaseDiscoveryService(ILogger<DatabaseDiscoveryService> logger, IOptions<Sql2CsvOptions> options)
+    public DatabaseDiscoveryService(ILogger<DatabaseDiscoveryService> logger, IOptions<DataSparkOptions> options)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -148,9 +148,9 @@ public class DatabaseDiscoveryService : IDatabaseDiscoveryService
 
 ```csharp
 // Strongly-typed configuration
-public class Sql2CsvOptions
+public class DataSparkOptions
 {
-    public const string SectionName = "Sql2Csv";
+    public const string SectionName = "DataSpark";
 
     public string RootPath { get; set; } = string.Empty;
     public PathOptions Paths { get; set; } = new();
@@ -246,17 +246,17 @@ public async Task<IEnumerable<TableInfo>> GetTablesAsync(string connectionString
 
 ```bash
 # 1. Check existing terminals first
-# 2. If terminal exists, navigate: cd "c:\GitHub\MarkHazleton\sql2csv\sql2csv.web"
+# 2. If terminal exists, navigate: cd "c:\GitHub\MarkHazleton\DataSpark\DataSpark.Web"
 # 3. Then run: dotnet run --urls=http://localhost:5001
 # 4. Use get_terminal_output to monitor running processes
 ```
 
 ### Project Structure Respect
 
-- Keep console-specific code in `sql2csv.console/`
-- Keep web-specific code in `sql2csv.web/`
-- Shared business logic belongs in `Sql2Csv.Core/`
-- All tests go in `Sql2Csv.Tests/` with appropriate subdirectories
+- Keep console-specific code in `DataSpark.Console/`
+- Keep web-specific code in `DataSpark.Web/`
+- Shared business logic belongs in `DataSpark.Core/`
+- All tests go in `DataSpark.Tests/` with appropriate subdirectories
 - Configuration files should be project-specific unless shared
 
 ## Performance & Security
@@ -326,7 +326,7 @@ _logger.LogInformation("Export completed in {ElapsedMs}ms for {RowCount} rows",
 public class ExportServiceTests
 {
     private readonly Mock<ILogger<ExportService>> _mockLogger;
-    private readonly IOptions<Sql2CsvOptions> _options;
+    private readonly IOptions<DataSparkOptions> _options;
     private readonly ExportService _exportService;
     private readonly string _testDatabasePath;
     private readonly string _outputDirectory;
@@ -334,7 +334,7 @@ public class ExportServiceTests
     public ExportServiceTests()
     {
         _mockLogger = new Mock<ILogger<ExportService>>();
-        _options = Options.Create(new Sql2CsvOptions
+        _options = Options.Create(new DataSparkOptions
         {
             Export = new ExportOptions { IncludeHeaders = true, Delimiter = "," }
         });

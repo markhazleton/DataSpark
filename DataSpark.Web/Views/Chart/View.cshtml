@@ -1,10 +1,13 @@
 @using DataSpark.Web.Models.Chart
-@model Sql2Csv.Core.Models.ChartDisplayViewModel
+@model DataSpark.Core.Models.ChartDisplayViewModel
 @{
     ViewData["Title"] = $"Chart - {Model.Configuration.Name}";
 }
 
 <div class="container-fluid">
+    <form id="chartExportAntiForgeryForm" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -33,9 +36,6 @@
                             <li><a class="dropdown-item" href="#" onclick="exportChart('JPEG')">
                                     <i class="fas fa-image"></i> JPEG Image
                                 </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="exportChart('PDF')">
-                                    <i class="fas fa-file-pdf"></i> PDF Document
-                                </a></li>
                             <li><a class="dropdown-item" href="#" onclick="exportChart('SVG')">
                                     <i class="fas fa-vector-square"></i> SVG Vector
                                 </a></li>
@@ -45,8 +45,8 @@
                             <li><a class="dropdown-item" href="#" onclick="exportChart('CSV')">
                                     <i class="fas fa-file-csv"></i> CSV Data
                                 </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="exportChart('Excel')">
-                                    <i class="fas fa-file-excel"></i> Excel Data
+                            <li><a class="dropdown-item" href="#" onclick="exportChart('JSON')">
+                                    <i class="fas fa-file-code"></i> JSON Data
                                 </a></li>
                         </ul>
                     </div>
@@ -322,6 +322,20 @@
             }
 
             const chartId = @Model.Configuration.Id;
+            const normalizedFormat = (format || '').toUpperCase();
+
+            if (normalizedFormat === 'PNG' || normalizedFormat === 'JPEG')
+            {
+                const mimeType = normalizedFormat === 'PNG' ? 'image/png' : 'image/jpeg';
+                const dataUrl = chartInstance.toBase64Image(mimeType, 1.0);
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `@Model.Configuration.Name.${normalizedFormat.toLowerCase()}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                return;
+            }
 
             // Show loading state
             const exportButton = event.target.closest('.btn-group').querySelector('.dropdown-toggle');
@@ -333,13 +347,14 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('#chartExportAntiForgeryForm input[name="__RequestVerificationToken"]')?.value ?? '',
                 },
                 body: JSON.stringify({
                     chartId: chartId,
-                    format: format,
+                    format: normalizedFormat,
                     width: @Model.Configuration.Width,
                     height: @Model.Configuration.Height,
-                    includeData: format === 'CSV' || format === 'Excel'
+                    includeData: normalizedFormat === 'CSV' || normalizedFormat === 'JSON'
                 })
             })
                 .then(response =>
@@ -356,7 +371,7 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `@Model.Configuration.Name.${format.toLowerCase()}`;
+                    a.download = `@Model.Configuration.Name.${normalizedFormat.toLowerCase()}`;
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);

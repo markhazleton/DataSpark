@@ -1,12 +1,12 @@
-using Sql2Csv.Core.Services;
-using Sql2Csv.Core.Interfaces;
-using Sql2Csv.Core.Models;
-using Sql2Csv.Core.Models.Analysis;
+using DataSpark.Core.Services;
+using DataSpark.Core.Interfaces;
+using DataSpark.Core.Models;
+using DataSpark.Core.Models.Analysis;
 using DataSpark.Web.Models;
-using Sql2Csv.Core.Models.Charts;
+using DataSpark.Core.Models.Charts;
 using DataSpark.Web.Services;
 using DataSpark.Web.Services.Chart;
-using Sql2Csv.Core.Services.Charts;
+using DataSpark.Core.Services.Charts;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -17,7 +17,7 @@ public class BaseController : Controller
     protected readonly IWebHostEnvironment _env;
     protected readonly ILogger _logger;
     protected readonly DataSpark.Web.Services.CsvFileService _csvFileService;
-    protected readonly Sql2Csv.Core.Services.Analysis.ICsvProcessingService _csvProcessingService;
+    protected readonly DataSpark.Core.Services.Analysis.ICsvProcessingService _csvProcessingService;
     protected readonly IExportService _exportService;
     protected readonly IDataExportService _dataExportService;
 
@@ -31,7 +31,7 @@ public class BaseController : Controller
     // Constructor for CSV-only controllers (like HomeController)
     public BaseController(IWebHostEnvironment env, ILogger logger,
         DataSpark.Web.Services.CsvFileService csvFileService,
-        Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+        DataSpark.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
         IExportService exportService,
         IDataExportService dataExportService)
     {
@@ -46,7 +46,7 @@ public class BaseController : Controller
     // Constructor for Chart controllers (like ChartController)
     public BaseController(IWebHostEnvironment env, ILogger logger,
         DataSpark.Web.Services.CsvFileService csvFileService,
-        Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+        DataSpark.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
         IExportService exportService,
         IDataExportService dataExportService,
         IChartService chartService, IChartDataService dataService,
@@ -133,14 +133,14 @@ public class BaseController : Controller
     protected IActionResult ReturnToIndexWithError(string errorMessage)
     {
         ViewBag.ErrorMessage = errorMessage;
-        var files = _csvFileService.GetCsvFileNames();
+        var files = _csvFileService.GetDataFileNames();
         return View("Index", files);
     }
 
     // Protected method for getting files list and returning to Index view
     protected IActionResult ReturnToIndexWithFiles(object? model = null)
     {
-        var files = _csvFileService.GetCsvFileNames();
+        var files = _csvFileService.GetDataFileNames();
         return View("Index", model ?? files);
     }
 

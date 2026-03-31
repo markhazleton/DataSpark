@@ -1,5 +1,5 @@
-using Sql2Csv.Core.Interfaces;
-using Sql2Csv.Core.Models.Analysis;
+using DataSpark.Core.Interfaces;
+using DataSpark.Core.Models.Analysis;
 using DataSpark.Web.Models;
 using DataSpark.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +11,7 @@ namespace DataSpark.Web.Controllers;
 public class HomeController : BaseController
 {
     public HomeController(IWebHostEnvironment env, ILogger<HomeController> logger, DataSpark.Web.Services.CsvFileService csvFileService,
-        Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+        DataSpark.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
         IExportService exportService, IDataExportService dataExportService)
         : base(env, logger, csvFileService, csvProcessingService, exportService, dataExportService)
     {
@@ -19,35 +19,39 @@ public class HomeController : BaseController
     public IActionResult Index()
     {
         _logger.LogInformation("Index page accessed.");
-        // Pass available CSV files to the view for dropdowns
-        return ReturnToIndexWithFiles();
+        return View("Index", _csvFileService.GetDataFileNames());
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UploadCSV(IFormFile file)
     {
-        // Use the base controller method for file validation
-        var fileError = HandleFileUploadError(file);
+        var fileError = HandleFileUploadError(file, "Please upload a CSV or SQLite file.");
         if (fileError != null) return fileError;
 
         try
         {
-            // Use the CSV file service to save the file
+            var validation = await _csvFileService.ValidateUploadAsync(file).ConfigureAwait(false);
+            if (!validation.IsValid)
+            {
+                return ReturnToIndexWithError(validation.ErrorMessage ?? "Upload validation failed.");
+            }
+
             var savedFileName = await _csvFileService.SaveUploadedFileAsync(file);
 
-            // Check if file save failed
             var saveError = HandleFileSaveFailure(savedFileName);
             if (saveError != null) return saveError;
 
-            // Read and process the saved file using the service
-            var csvData = _csvFileService.ReadCsvForVisualization(savedFileName!);
+            var extension = Path.GetExtension(savedFileName);
+            if (!string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                ViewBag.Message = "SQLite database uploaded successfully.";
+                return View("Index", _csvFileService.GetDataFileNames());
+            }
 
-            // Check if CSV data is empty
+            var csvData = _csvFileService.ReadCsvForVisualization(savedFileName!);
             var emptyError = HandleEmptyCsvData(csvData.Records);
             if (emptyError != null) return emptyError;
-
-            // Return success response
             return SetupSuccessfulUploadResponse(savedFileName!, csvData.Records);
         }
         catch (Exception ex)
@@ -96,7 +100,8 @@ public class HomeController : BaseController
             return View(badModel);
         }
 
-        var model = await _csvProcessingService.ProcessCsvWithFallbackAsync(fileName);
+        var delimiter = await _csvFileService.DetectDelimiterAsync(fileName).ConfigureAwait(false);
+        var model = await _csvProcessingService.ProcessCsvWithFallbackAsync(fileName, delimiter).ConfigureAwait(false);
         model.AvailableCsvFiles = files;
 
         // If empty or failed processing, still show selector

@@ -1,4 +1,4 @@
-﻿# Chart Services Cleanup (Web Layer)
+# Chart Services Cleanup (Web Layer)
 
 Date: 2025-09-07
 
@@ -13,7 +13,7 @@ Current files (expected after prune):
 
 If any of the deprecated files still appear (ChartService.cs, FileChartConfigurationRepository.cs, InMemoryChartConfigurationRepository.cs, ChartDataService.cs, ChartValidationService.cs) they are safe to delete—they are superseded by Core equivalents.
 
-Moved to Core (Sql2Csv.Core):
+Moved to Core (DataSpark.Core):
 
 - All chart domain models & DTOs (including summaries, AuditEntry)
 - IChartService + implementation

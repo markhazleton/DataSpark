@@ -1,6 +1,6 @@
 using DataSpark.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Sql2Csv.Core.Interfaces;
+using DataSpark.Core.Interfaces;
 using System.Linq;
 
 namespace DataSpark.Web.Controllers
@@ -8,7 +8,7 @@ namespace DataSpark.Web.Controllers
     public class VisualizationController : BaseController
     {
         public VisualizationController(IWebHostEnvironment env, ILogger<VisualizationController> logger, DataSpark.Web.Services.CsvFileService csvFileService,
-            Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+            DataSpark.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
             IExportService exportService, IDataExportService dataExportService)
             : base(env, logger, csvFileService, csvProcessingService, exportService, dataExportService)
         {
