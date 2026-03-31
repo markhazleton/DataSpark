@@ -18,6 +18,7 @@ public class FilesController : Controller
     private readonly IWebHostEnvironment _env;
     private readonly CsvFileService _csvFileService;
     private readonly WebCsvProcessingService _csvProcessingService;
+    private readonly IBivariateAnalysisService _bivariateAnalysisService;
     private readonly IBivariateSvgService _bivariateSvgService;
     private readonly ISampleDataService _sampleDataService;
     private readonly ILogger<FilesController> _logger;
@@ -26,6 +27,7 @@ public class FilesController : Controller
         IWebHostEnvironment env,
         CsvFileService csvFileService,
         WebCsvProcessingService csvProcessingService,
+        IBivariateAnalysisService bivariateAnalysisService,
         IBivariateSvgService bivariateSvgService,
         ISampleDataService sampleDataService,
         ILogger<FilesController> logger)
@@ -33,6 +35,7 @@ public class FilesController : Controller
         _env = env;
         _csvFileService = csvFileService;
         _csvProcessingService = csvProcessingService;
+        _bivariateAnalysisService = bivariateAnalysisService;
         _bivariateSvgService = bivariateSvgService;
         _sampleDataService = sampleDataService;
         _logger = logger;
@@ -289,6 +292,7 @@ public class FilesController : Controller
     }
 
     [HttpPost("train")]
+    [ValidateAntiForgeryToken]
     public IActionResult TrainModel([FromForm] string fileName, [FromForm] string targetColumn)
     {
         if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(targetColumn))
@@ -661,7 +665,8 @@ public class FilesController : Controller
     }
 
     [HttpPost("bivariate")]
-    public IActionResult BivariateAnalysis([FromForm] string fileName, [FromForm] string column1, [FromForm] string column2)
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> BivariateAnalysis([FromForm] string fileName, [FromForm] string column1, [FromForm] string column2, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(column1) || string.IsNullOrWhiteSpace(column2))
             return BadRequest(new { error = "File name and both columns are required.", fileName, column1, column2 });
@@ -670,98 +675,16 @@ public class FilesController : Controller
             return NotFound(new { error = "File not found.", fileName });
         try
         {
-            using var reader = new StreamReader(filePath);
-            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture));
-            var records = csv.GetRecords<dynamic>().ToList();
-            if (!records.Any())
-                return Ok(new { fileName, message = "File is empty." });
-            var headers = ((IDictionary<string, object>)records[0]).Keys.ToList();
-            if (!headers.Contains(column1) || !headers.Contains(column2))
-                return BadRequest(new { error = "One or both columns not found in file.", headers, fileName });
-            var col1Data = records.Select(r => ((IDictionary<string, object>)r)[column1]?.ToString()).ToList();
-            var col2Data = records.Select(r => ((IDictionary<string, object>)r)[column2]?.ToString()).ToList();
-            // Detect types
-            bool col1Numeric = col1Data.All(v => double.TryParse(v, out _) || string.IsNullOrEmpty(v));
-            bool col2Numeric = col2Data.All(v => double.TryParse(v, out _) || string.IsNullOrEmpty(v));
-            bool col1Date = col1Data.All(v => DateTime.TryParse(v, out _) || string.IsNullOrEmpty(v));
-            bool col2Date = col2Data.All(v => DateTime.TryParse(v, out _) || string.IsNullOrEmpty(v));
-            // Prepare result object
-            var result = new Dictionary<string, object?>
-            {
-                ["fileName"] = fileName,
-                ["column1"] = column1,
-                ["column2"] = column2,
-                ["col1Type"] = col1Numeric ? "Numeric" : (col1Date ? "Date" : "Categorical"),
-                ["col2Type"] = col2Numeric ? "Numeric" : (col2Date ? "Date" : "Categorical")
-            };
-            // Numeric-Numeric: scatter, correlation, regression
-            if ((col1Numeric || col1Date) && (col2Numeric || col2Date))
-            {
-                var x = col1Data.Where(v => !string.IsNullOrEmpty(v) && double.TryParse(v, out _)).Select(v => double.Parse(v!)).ToList();
-                var y = col2Data.Where(v => !string.IsNullOrEmpty(v) && double.TryParse(v, out _)).Select(v => double.Parse(v!)).ToList();
-                int n = Math.Min(x.Count, y.Count);
-                if (n > 1)
-                {
-                    x = x.Take(n).ToList();
-                    y = y.Take(n).ToList();
-                    double meanX = x.Average();
-                    double meanY = y.Average();
-                    double sumXY = x.Zip(y, (a, b) => (a - meanX) * (b - meanY)).Sum();
-                    double sumX2 = x.Sum(a => Math.Pow(a - meanX, 2));
-                    double sumY2 = y.Sum(b => Math.Pow(b - meanY, 2));
-                    double corr = (sumX2 == 0 || sumY2 == 0) ? double.NaN : sumXY / Math.Sqrt(sumX2 * sumY2);
-                    // Simple linear regression (y = a + bx)
-                    double b = sumX2 == 0 ? 0 : sumXY / sumX2;
-                    double a = meanY - b * meanX;
-                    result["correlation"] = corr;
-                    result["regression"] = new { intercept = a, slope = b };
-                    result["scatter"] = x.Zip(y, (a1, b1) => new[] { a1, b1 }).ToList();
-                }
-            }
-            // Categorical-Categorical: contingency table
-            else if (!col1Numeric && !col2Numeric)
-            {
-                var table = col1Data.Zip(col2Data, (a, b) => new { a, b })
-                    .GroupBy(x => x.a)
-                    .ToDictionary(
-                        g => g.Key ?? string.Empty,
-                        g => g.GroupBy(x => x.b).ToDictionary(
-                            gg => gg.Key ?? string.Empty,
-                            gg => gg.Count()
-                        )
-                    );
-                result["contingencyTable"] = table;
-            }
-            // Numeric-Categorical: boxplot/group stats
-            else if ((col1Numeric && !col2Numeric) || (!col1Numeric && col2Numeric))
-            {
-                var numeric = col1Numeric ? col1Data : col2Data;
-                var categorical = col1Numeric ? col2Data : col1Data;
-                var groups = categorical.Zip(numeric, (cat, num) => new { cat, num })
-                    .Where(x => !string.IsNullOrEmpty(x.num) && double.TryParse(x.num, out _))
-                    .GroupBy(x => x.cat ?? string.Empty)
-                    .ToDictionary(
-                        g => g.Key,
-                        g =>
-                        {
-                            var nums = g.Select(x => double.Parse(x.num!)).ToList();
-                            return new
-                            {
-                                count = nums.Count,
-                                min = nums.Any() ? nums.Min() : (double?)null,
-                                max = nums.Any() ? nums.Max() : (double?)null,
-                                mean = nums.Any() ? nums.Average() : (double?)null,
-                                std = nums.Count > 1 ? Math.Sqrt(nums.Select(x => Math.Pow(x - nums.Average(), 2)).Average()) : (double?)null,
-                                values = nums
-                            };
-                        }
-                    );
-                result["groupStats"] = groups;
-            }
+            var result = await _bivariateAnalysisService.AnalyzeAsync(filePath, column1, column2, cancellationToken).ConfigureAwait(false);
             return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message, fileName, column1, column2 });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to perform bivariate analysis for {FileName} ({Column1}, {Column2})", fileName, column1, column2);
             return StatusCode(500, new { error = $"Failed to perform bivariate analysis: {ex.Message}", details = ex.ToString(), fileName });
         }
     }
@@ -799,6 +722,7 @@ public class FilesController : Controller
     /// Upload a new CSV file
     /// </summary>
     [HttpPost("upload")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> UploadFile(IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -808,6 +732,12 @@ public class FilesController : Controller
 
         try
         {
+            var validation = await _csvFileService.ValidateUploadAsync(file).ConfigureAwait(false);
+            if (!validation.IsValid)
+            {
+                return BadRequest(new { error = validation.ErrorMessage ?? "Upload validation failed." });
+            }
+
             var savedFileName = await _csvFileService.SaveUploadedFileAsync(file);
             if (savedFileName == null)
             {

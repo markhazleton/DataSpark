@@ -145,6 +145,7 @@ public class ChartApiController : ControllerBase
     /// Get values for multiple columns
     /// </summary>
     [HttpPost("values/{dataSource}")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<Dictionary<string, List<string>>>>> GetMultipleColumnValues(
         string dataSource,
         [FromBody] List<string> columns,
@@ -166,6 +167,7 @@ public class ChartApiController : ControllerBase
     /// Render a chart configuration
     /// </summary>
     [HttpPost("render")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<ChartRenderResult>>> RenderChart([FromBody] ChartConfiguration config)
     {
         try
@@ -205,6 +207,7 @@ public class ChartApiController : ControllerBase
     /// Validate a chart configuration
     /// </summary>
     [HttpPost("validate")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<ValidationResult>>> ValidateConfiguration([FromBody] ValidationRequest request)
     {
         try
@@ -304,6 +307,7 @@ public class ChartApiController : ControllerBase
     /// Save a chart configuration
     /// </summary>
     [HttpPost("configurations")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<ChartConfiguration>>> SaveConfiguration([FromBody] ChartConfiguration config)
     {
         try
@@ -381,6 +385,7 @@ public class ChartApiController : ControllerBase
     /// Bulk operations on configurations
     /// </summary>
     [HttpPost("configurations/bulk")]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<ApiResponse<object>>> BulkOperation([FromBody] BulkOperationRequest request)
     {
         try

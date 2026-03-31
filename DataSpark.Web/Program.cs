@@ -43,6 +43,7 @@ builder.Services.AddScoped<DataSpark.Web.Services.CsvProcessingService>();
 // Core CSV processing & export services
 builder.Services.AddScoped<ICsvFileReader, WebCsvFileReaderAdapter>();
 builder.Services.AddScoped<ICsvProcessingService, CoreCsvProcessingService>();
+builder.Services.AddScoped<IBivariateAnalysisService, BivariateAnalysisService>();
 builder.Services.AddScoped<IBivariateSvgService, BivariateSvgService>();
 builder.Services.AddScoped<ISchemaService, SchemaService>();
 builder.Services.AddScoped<ICodeGenerationService, CodeGenerationService>();

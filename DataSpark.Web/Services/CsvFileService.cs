@@ -191,6 +191,13 @@ public class CsvFileService
                 return (false, "The uploaded file is not a valid SQLite database.");
             }
         }
+        else
+        {
+            if (!await LooksLikeCsvContentAsync(file).ConfigureAwait(false))
+            {
+                return (false, "The uploaded file does not look like a valid CSV payload.");
+            }
+        }
 
         return (true, null);
     }
@@ -522,6 +529,25 @@ public class CsvFileService
 
         var header = Encoding.ASCII.GetString(buffer);
         return string.Equals(header, "SQLite format 3\0", StringComparison.Ordinal);
+    }
+
+    private static async Task<bool> LooksLikeCsvContentAsync(IFormFile file)
+    {
+        await using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream, Encoding.UTF8, true, 2048, leaveOpen: false);
+
+        var firstLine = await reader.ReadLineAsync().ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(firstLine))
+        {
+            return false;
+        }
+
+        if (firstLine.Contains('\0'))
+        {
+            return false;
+        }
+
+        return SupportedDelimiters.Any(firstLine.Contains);
     }
 
     private string? GetSampleDataPath()
