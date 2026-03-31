@@ -15,36 +15,36 @@
 
 ## Path Conventions
 
-- **Core library**: `DataSpark.Core/` (renamed from `Sql2Csv.Core/`)
-- **Web application**: `DataSpark.Web/` (promoted from `DataSpark.Web/`, absorbs `sql2csv.web/`)
-- **Console CLI**: `DataSpark.Console/` (renamed from `sql2csv.console/`)
-- **Tests**: `DataSpark.Tests/` (renamed from `Sql2Csv.Tests/`)
-- **Benchmarks**: `DataSpark.Benchmarks/` (renamed from `Sql2Csv.Benchmarks/`)
+- **Core library**: `DataSpark.Core/` (renamed from `DataSpark.Core/`)
+- **Web application**: `DataSpark.Web/` (promoted from `DataSpark.Web/`, absorbs `DataSpark.Web/`)
+- **Console CLI**: `DataSpark.Console/` (renamed from `DataSpark.Console/`)
+- **Tests**: `DataSpark.Tests/` (renamed from `DataSpark.Tests/`)
+- **Benchmarks**: `DataSpark.Benchmarks/` (renamed from `DataSpark.Benchmarks/`)
 
 ---
 
 ## Phase 1: Setup (Project Rename & Restructure)
 
-**Purpose**: Rebrand the entire solution from Sql2Csv to DataSpark per research.md R1 rename mapping. This is the single most impactful phase — every subsequent task depends on the renamed project structure.
+**Purpose**: Rebrand the entire solution from DataSpark to DataSpark per research.md R1 rename mapping. This is the single most impactful phase — every subsequent task depends on the renamed project structure.
 
-- [ ] T001 Rename solution file `sql2csv.sln` → `DataSpark.sln` and update all project references inside it
-- [ ] T002 Rename strong-name key file `Sql2Csv.snk` → `DataSpark.snk` and update .csproj references
-- [ ] T003 Rename folder `Sql2Csv.Core/` → `DataSpark.Core/` and rename `Sql2Csv.Core.csproj` → `DataSpark.Core.csproj`
-- [ ] T004 Rename folder `sql2csv.console/` → `DataSpark.Console/` and rename `Sql2Csv.csproj` → `DataSpark.Console.csproj`
-- [ ] T005 Rename folder `Sql2Csv.Tests/` → `DataSpark.Tests/` and rename `Sql2Csv.Tests.csproj` → `DataSpark.Tests.csproj`
-- [ ] T006 Rename folder `Sql2Csv.Benchmarks/` → `DataSpark.Benchmarks/` and rename `Sql2Csv.Benchmarks.csproj` → `DataSpark.Benchmarks.csproj`
-- [ ] T007 Update `RootNamespace` and `AssemblyName` in all 5 .csproj files to use `DataSpark.*` naming *(must complete before T009)*
-- [ ] T008 Global text replace `Sql2Csv` → `DataSpark` in all .cs files across all projects (namespaces, usings, class names like `Sql2CsvOptions` → `DataSparkOptions`)
-- [ ] T009 Global text replace `Sql2Csv` → `DataSpark` in all .csproj, .cshtml, .json, and .md files *(depends on T007; skip RootNamespace/AssemblyName properties already handled by T007)*
-- [ ] T010 Update `DataSpark.Web.csproj` project references to point to renamed `DataSpark.Core.csproj` path
-- [ ] T011 Update `DataSpark.Tests.csproj` project references to point to renamed Core and Web .csproj paths
-- [ ] T012 Update `DataSpark.Benchmarks.csproj` project references to point to renamed Core .csproj path
-- [ ] T013 Update `DataSpark.Console.csproj` project references to point to renamed Core .csproj path
-- [ ] T014 Remove `sql2csv.web/` project folder and its reference from `DataSpark.sln` (features absorbed in Phase 4)
-- [ ] T015 Run `dotnet build DataSpark.sln` and fix all compilation errors from the rename
-- [ ] T016 Run `dotnet test DataSpark.Tests` and fix all test failures from the rename
-- [ ] T017 Update `.github/copilot-instructions.md` AND `.github/agents/copilot-instructions.md` to replace all `sql2csv` references with `DataSpark`
-- [ ] T018 Update `README.md` to reflect DataSpark branding, project structure, and build instructions
+- [X] T001 Rename solution file `DataSpark.sln` → `DataSpark.sln` and update all project references inside it
+- [X] T002 Rename strong-name key file `DataSpark.snk` → `DataSpark.snk` and update .csproj references
+- [X] T003 Rename folder `DataSpark.Core/` → `DataSpark.Core/` and rename `DataSpark.Core.csproj` → `DataSpark.Core.csproj`
+- [X] T004 Rename folder `DataSpark.Console/` → `DataSpark.Console/` and rename `DataSpark.csproj` → `DataSpark.Console.csproj`
+- [X] T005 Rename folder `DataSpark.Tests/` → `DataSpark.Tests/` and rename `DataSpark.Tests.csproj` → `DataSpark.Tests.csproj`
+- [X] T006 Rename folder `DataSpark.Benchmarks/` → `DataSpark.Benchmarks/` and rename `DataSpark.Benchmarks.csproj` → `DataSpark.Benchmarks.csproj`
+- [X] T007 Update `RootNamespace` and `AssemblyName` in all 5 .csproj files to use `DataSpark.*` naming *(must complete before T009)*
+- [X] T008 Global text replace `DataSpark` → `DataSpark` in all .cs files across all projects (namespaces, usings, class names like `DataSparkOptions` → `DataSparkOptions`)
+- [X] T009 Global text replace `DataSpark` → `DataSpark` in all .csproj, .cshtml, .json, and .md files *(depends on T007; skip RootNamespace/AssemblyName properties already handled by T007)*
+- [X] T010 Update `DataSpark.Web.csproj` project references to point to renamed `DataSpark.Core.csproj` path
+- [X] T011 Update `DataSpark.Tests.csproj` project references to point to renamed Core and Web .csproj paths
+- [X] T012 Update `DataSpark.Benchmarks.csproj` project references to point to renamed Core .csproj path
+- [X] T013 Update `DataSpark.Console.csproj` project references to point to renamed Core .csproj path
+- [X] T014 Remove `DataSpark.Web/` project folder and its reference from `DataSpark.sln` (features absorbed in Phase 4)
+- [X] T015 Run `dotnet build DataSpark.sln` and fix all compilation errors from the rename
+- [X] T016 Run `dotnet test DataSpark.Tests` and fix all test failures from the rename
+- [X] T017 Update `.github/copilot-instructions.md` AND `.github/agents/copilot-instructions.md` to replace all `DataSpark` references with `DataSpark`
+- [X] T018 Update `README.md` to reflect DataSpark branding, project structure, and build instructions
 
 **Checkpoint**: Solution builds and all existing tests pass under the new DataSpark.* naming. The codebase is fully rebranded.
 
@@ -56,18 +56,18 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T019 Add `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` to `DataSpark.Tests/DataSpark.Tests.csproj` (constitution gap per research.md R7)
-- [ ] T020 Fix SQL injection in `DataSpark.Core/Services/DatabaseAnalysisService.cs` line ~729 — replace string concatenation in LIKE clause with parameterized query per research.md R2
-- [ ] T021 [P] Create `ApiEnvelope<T>` response model in `DataSpark.Core/Models/ApiEnvelope.cs` with `Status`, `Data`, `Error`, `Meta` fields per contracts/web-api.md
-- [ ] T022 [P] Create `ApiKeyAuthMiddleware` in `DataSpark.Web/Middleware/ApiKeyAuthMiddleware.cs` per research.md R3 — checks `X-Api-Key` header on `/api/*` routes, returns 401 if invalid
-- [ ] T023 Register `ApiKeyAuthMiddleware` in `DataSpark.Web/Program.cs` pipeline with `app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api"), ...)`
-- [ ] T024 Add API key configuration section to `DataSpark.Web/appsettings.json` with `ApiKey:HeaderName` and `ApiKey:Key` settings
-- [ ] T025 [P] Create `SampleDataService` in `DataSpark.Core/Services/SampleDataService.cs` and interface `ISampleDataService` in `DataSpark.Core/Interfaces/ISampleDataService.cs` — lists read-only sample CSV files from a configured directory
-- [ ] T026 [P] Copy 8 sample CSV datasets to `DataSpark.Web/wwwroot/sample-data/` per research.md R4: adult.csv, legislators.csv, mps.csv, TitanicManifest.csv, heroes_information.csv, SouthlakeCodeEnforcement.csv, Beverages.csv, DesktopOS.csv
-- [ ] T027 Register `SampleDataService` in DI container in `DataSpark.Web/Program.cs`
-- [ ] T028 [P] Add `[ValidateAntiForgeryToken]` attribute to all `[HttpPost]` *controller actions* missing it in `DataSpark.Web/Controllers/` (constitution Principle IV; view-level `@Html.AntiForgeryToken()` covered by T103)
-- [ ] T029 Run `dotnet build DataSpark.sln` with TreatWarningsAsErrors enabled and fix any new warnings
-- [ ] T030 Run `dotnet test DataSpark.Tests` and verify all tests pass with security fixes
+- [X] T019 Add `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` to `DataSpark.Tests/DataSpark.Tests.csproj` (constitution gap per research.md R7)
+- [X] T020 Fix SQL injection in `DataSpark.Core/Services/DatabaseAnalysisService.cs` line ~729 — replace string concatenation in LIKE clause with parameterized query per research.md R2
+- [X] T021 [P] Create `ApiEnvelope<T>` response model in `DataSpark.Core/Models/ApiEnvelope.cs` with `Status`, `Data`, `Error`, `Meta` fields per contracts/web-api.md
+- [X] T022 [P] Create `ApiKeyAuthMiddleware` in `DataSpark.Web/Middleware/ApiKeyAuthMiddleware.cs` per research.md R3 — checks `X-Api-Key` header on `/api/*` routes, returns 401 if invalid
+- [X] T023 Register `ApiKeyAuthMiddleware` in `DataSpark.Web/Program.cs` pipeline with `app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api"), ...)`
+- [X] T024 Add API key configuration section to `DataSpark.Web/appsettings.json` with `ApiKey:HeaderName` and `ApiKey:Key` settings
+- [X] T025 [P] Create `SampleDataService` in `DataSpark.Core/Services/SampleDataService.cs` and interface `ISampleDataService` in `DataSpark.Core/Interfaces/ISampleDataService.cs` — lists read-only sample CSV files from a configured directory
+- [X] T026 [P] Copy 8 sample CSV datasets to `DataSpark.Web/wwwroot/sample-data/` per research.md R4: adult.csv, legislators.csv, mps.csv, TitanicManifest.csv, heroes_information.csv, SouthlakeCodeEnforcement.csv, Beverages.csv, DesktopOS.csv
+- [X] T027 Register `SampleDataService` in DI container in `DataSpark.Web/Program.cs`
+- [X] T028 [P] Add `[ValidateAntiForgeryToken]` attribute to all `[HttpPost]` *controller actions* missing it in `DataSpark.Web/Controllers/` (constitution Principle IV; view-level `@Html.AntiForgeryToken()` covered by T103)
+- [X] T029 Run `dotnet build DataSpark.sln` with TreatWarningsAsErrors enabled and fix any new warnings
+- [X] T030 Run `dotnet test DataSpark.Tests` and verify all tests pass with security fixes
 
 **Checkpoint**: Foundation ready — API key middleware active, sample data available, SQL injection fixed, compiler strictness enforced. User story implementation can now begin.
 
@@ -83,18 +83,18 @@
 
 ### Implementation for User Story 1
 
-- [ ] T031 [P] [US1] Verify `DataFile` model exists or create in `DataSpark.Core/Models/DataFile.cs` with fields: FileName, FileType (enum CSV/SQLite), FileSize, UploadDate, RowCount, ColumnCount, StoragePath, RetentionExpiry, IsReadOnly, Description per data-model.md
-- [ ] T032 [P] [US1] Verify `DataColumn` model exists or create in `DataSpark.Core/Models/DataColumn.cs` with fields: Name, InferredDataType (enum), NullCount, UniqueCount, SampleValues, Statistics per data-model.md
-- [ ] T033 [P] [US1] Verify `ColumnStatistics` model exists or create in `DataSpark.Core/Models/ColumnStatistics.cs` with all 12 statistical fields per data-model.md (Mean, Median, Mode, StdDev, Variance, Min, Max, Q1, Q3, IQR, Skewness, Kurtosis)
-- [ ] T034 [US1] Verify file upload logic in `DataSpark.Web/Controllers/HomeController.cs` supports drag-and-drop CSV and SQLite upload with file type + size + content validation (FR-001, FR-002, FR-045)
-- [ ] T035 [US1] Verify CSV delimiter auto-detection in `DataSpark.Core/Services/CsvProcessingService.cs` supports comma, tab, pipe, and semicolon (FR-003)
-- [ ] T036 [US1] Verify column data type inference in `DataSpark.Core/Services/CsvProcessingService.cs` for numeric, categorical, datetime, boolean types (FR-004)
-- [ ] T037 [US1] Verify EDA report generation computes all required statistics per FR-008 (numeric: mean/median/mode/stddev/variance/min/max/Q1/Q3/IQR/skewness/kurtosis), FR-009 (categorical: unique count/mode/top-N frequency), and the overall data quality score per FR-007 (% non-null/non-empty across all columns)
-- [ ] T038 [US1] Verify file persistence service stores uploads in `DataSpark.Web/wwwroot/files/` with configurable retention (FR-005)
-- [ ] T039 [US1] Verify file name sanitization prevents path traversal in upload processing (FR-046)
-- [ ] T040 [US1] Ensure data preview grid in the EDA view supports server-side pagination, sorting, and search for datasets with 100K+ rows (FR-010)
-- [ ] T041 [US1] Integrate sample datasets from `SampleDataService` into the home page file listing — wire up data retrieval, show 8+ samples with read-only badge alongside user uploads *(UI description enrichment with names/row counts/domain tags handled in T099)*
-- [ ] T042 [US1] Verify upload error handling: file too large (> 50 MB) shows clear message, invalid file type shows clear message, corrupted SQLite shows "not a valid SQLite database"
+- [X] T031 [P] [US1] Verify `DataFile` model exists or create in `DataSpark.Core/Models/DataFile.cs` with fields: FileName, FileType (enum CSV/SQLite), FileSize, UploadDate, RowCount, ColumnCount, StoragePath, RetentionExpiry, IsReadOnly, Description per data-model.md
+- [X] T032 [P] [US1] Verify `DataColumn` model exists or create in `DataSpark.Core/Models/DataColumn.cs` with fields: Name, InferredDataType (enum), NullCount, UniqueCount, SampleValues, Statistics per data-model.md
+- [X] T033 [P] [US1] Verify `ColumnStatistics` model exists or create in `DataSpark.Core/Models/ColumnStatistics.cs` with all 12 statistical fields per data-model.md (Mean, Median, Mode, StdDev, Variance, Min, Max, Q1, Q3, IQR, Skewness, Kurtosis)
+- [X] T034 [US1] Verify file upload logic in `DataSpark.Web/Controllers/HomeController.cs` supports drag-and-drop CSV and SQLite upload with file type + size + content validation (FR-001, FR-002, FR-045)
+- [X] T035 [US1] Verify CSV delimiter auto-detection in `DataSpark.Core/Services/CsvProcessingService.cs` supports comma, tab, pipe, and semicolon (FR-003)
+- [X] T036 [US1] Verify column data type inference in `DataSpark.Core/Services/CsvProcessingService.cs` for numeric, categorical, datetime, boolean types (FR-004)
+- [X] T037 [US1] Verify EDA report generation computes all required statistics per FR-008 (numeric: mean/median/mode/stddev/variance/min/max/Q1/Q3/IQR/skewness/kurtosis), FR-009 (categorical: unique count/mode/top-N frequency), and the overall data quality score per FR-007 (% non-null/non-empty across all columns)
+- [X] T038 [US1] Verify file persistence service stores uploads in `DataSpark.Web/wwwroot/files/` with configurable retention (FR-005)
+- [X] T039 [US1] Verify file name sanitization prevents path traversal in upload processing (FR-046)
+- [X] T040 [US1] Ensure data preview grid in the EDA view supports server-side pagination, sorting, and search for datasets with 100K+ rows (FR-010)
+- [X] T041 [US1] Integrate sample datasets from `SampleDataService` into the home page file listing — wire up data retrieval, show 8+ samples with read-only badge alongside user uploads *(UI description enrichment with names/row counts/domain tags handled in T099)*
+- [X] T042 [US1] Verify upload error handling: file too large (> 50 MB) shows clear message, invalid file type shows clear message, corrupted SQLite shows "not a valid SQLite database"
 
 **Checkpoint**: Users can upload CSV/SQLite files and see a full EDA report with statistics, column analysis, and paginated data preview. Sample datasets also appear and are explorable.
 
@@ -110,13 +110,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T043 [P] [US2] Verify `ChartConfiguration` model exists or create in `DataSpark.Core/Models/ChartConfiguration.cs` with all fields per data-model.md (Id, Name, DataSource, ChartType enum with 14 types, XAxis, YAxis, Series, Filters, Palette, Is3D, dates)
-- [ ] T044 [P] [US2] Verify `ChartAxis`, `ChartSeries`, `ChartFilter` models exist or create in `DataSpark.Core/Models/` per data-model.md
-- [ ] T045 [US2] Verify chart configuration UI in `DataSpark.Web/Views/Chart/` allows selecting chart type, X/Y axes, aggregation function, series, and filters with real-time preview (FR-012)
-- [ ] T046 [US2] Verify all 14 chart types render correctly: Column, Bar, Line, Area, Pie, Doughnut, Scatter, Bubble, Radar, StackedColumn, StackedBar, Spline, StepLine, Combination (FR-011)
-- [ ] T047 [US2] Verify chart data filtering (include/exclude values, range filters) is applied before rendering in `DataSpark.Core/Services/ChartService.cs` (FR-013)
-- [ ] T048 [US2] Verify chart export supports PNG, JPEG, SVG, CSV (data), and JSON (configuration) formats (FR-014)
-- [ ] T049 [US2] Verify chart configuration save/load/duplicate/delete in `DataSpark.Web/Controllers/ChartController.cs` (FR-015)
+- [X] T043 [P] [US2] Verify `ChartConfiguration` model exists or create in `DataSpark.Core/Models/ChartConfiguration.cs` with all fields per data-model.md (Id, Name, DataSource, ChartType enum with 14 types, XAxis, YAxis, Series, Filters, Palette, Is3D, dates)
+- [X] T044 [P] [US2] Verify `ChartAxis`, `ChartSeries`, `ChartFilter` models exist or create in `DataSpark.Core/Models/` per data-model.md
+- [X] T045 [US2] Verify chart configuration UI in `DataSpark.Web/Views/Chart/` allows selecting chart type, X/Y axes, aggregation function, series, and filters with real-time preview (FR-012)
+- [X] T046 [US2] Verify all 14 chart types render correctly: Column, Bar, Line, Area, Pie, Doughnut, Scatter, Bubble, Radar, StackedColumn, StackedBar, Spline, StepLine, Combination (FR-011)
+- [X] T047 [US2] Verify chart data filtering (include/exclude values, range filters) is applied before rendering in `DataSpark.Core/Services/ChartService.cs` (FR-013)
+- [X] T048 [US2] Verify chart export supports PNG, JPEG, SVG, CSV (data), and JSON (configuration) formats (FR-014)
+- [X] T049 [US2] Verify chart configuration save/load/duplicate/delete in `DataSpark.Web/Controllers/ChartController.cs` (FR-015)
 
 **Checkpoint**: Full chart creation pipeline works — configure, preview, save, export. All 14 chart types render with sample data.
 
@@ -132,12 +132,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T050 [P] [US3] Verify `PivotConfiguration` model exists or create in `DataSpark.Core/Models/PivotConfiguration.cs` per data-model.md
-- [ ] T051 [US3] Verify PivotTable.js 2.23.0 drag-and-drop builder in `DataSpark.Web/Views/PivotTable/` supports row/column/value fields with Sum/Count/Average/Min/Max aggregation (FR-016, FR-017)
-- [ ] T052 [US3] Verify multiple pivot renderers (Table, Heatmap, BarChart, LineChart) switch without data loss (FR-018)
-- [ ] T053 [US3] Verify pivot export in CSV, TSV, JSON, and Excel formats via PivotTable.js export renderers (FR-019)
-- [ ] T054 [US3] Add localStorage persistence for pivot configurations per research.md R6 — save on config change, restore on page load, add "Clear Saved State" button (FR-020)
-- [ ] T055 [US3] Verify server-side pivot configuration save/load in `DataSpark.Web/Controllers/PivotTableController.cs` (FR-020)
+- [X] T050 [P] [US3] Verify `PivotConfiguration` model exists or create in `DataSpark.Core/Models/PivotConfiguration.cs` per data-model.md
+- [X] T051 [US3] Verify PivotTable.js 2.23.0 drag-and-drop builder in `DataSpark.Web/Views/PivotTable/` supports row/column/value fields with Sum/Count/Average/Min/Max aggregation (FR-016, FR-017)
+- [X] T052 [US3] Verify multiple pivot renderers (Table, Heatmap, BarChart, LineChart) switch without data loss (FR-018)
+- [X] T053 [US3] Verify pivot export in CSV, TSV, JSON, and Excel formats via PivotTable.js export renderers (FR-019)
+- [X] T054 [US3] Add localStorage persistence for pivot configurations per research.md R6 — save on config change, restore on page load, add "Clear Saved State" button (FR-020)
+- [X] T055 [US3] Verify server-side pivot configuration save/load in `DataSpark.Web/Controllers/PivotTableController.cs` (FR-020)
 
 **Checkpoint**: Pivot tables fully functional with drag-and-drop, multiple renderers, export, and dual persistence (localStorage + server).
 
@@ -145,7 +145,7 @@
 
 ## Phase 6: User Story 4 — SQLite Database Tools (Priority: P2)
 
-**Goal**: Upload SQLite databases, browse schema, export tables to CSV, generate C# DTOs. Absorb sql2csv.web features into DataSpark.Web.
+**Goal**: Upload SQLite databases, browse schema, export tables to CSV, generate C# DTOs. Absorb DataSpark.Web features into DataSpark.Web.
 
 **Independent Test**: Upload a SQLite .db with 3 tables. Verify schema display, export one table to CSV, generate C# DTOs.
 
@@ -156,7 +156,7 @@
 - [ ] T056 [P] [US4] Verify `SchemaInfo`, `TableInfo`, `ColumnInfo` models exist or create in `DataSpark.Core/Models/` per data-model.md
 - [ ] T057 [P] [US4] Verify `ExportResult` model exists or create in `DataSpark.Core/Models/ExportResult.cs` per data-model.md
 - [ ] T058 [US4] Create `DatabaseController` in `DataSpark.Web/Controllers/DatabaseController.cs` with actions: Upload, Analyze, AnalyzeTable, ExportTables, GenerateCode, ManageFiles, GetTableData per research.md R8
-- [ ] T059 [P] [US4] Create `DataSpark.Web/Views/Database/Index.cshtml` — SQLite upload + file management view (adapted from sql2csv.web to Bootstrap 5)
+- [ ] T059 [P] [US4] Create `DataSpark.Web/Views/Database/Index.cshtml` — SQLite upload + file management view (adapted from DataSpark.Web to Bootstrap 5)
 - [ ] T060 [P] [US4] Create `DataSpark.Web/Views/Database/Analyze.cshtml` — schema analysis results view showing tables, columns, types, row counts (FR-022)
 - [ ] T061 [P] [US4] Create `DataSpark.Web/Views/Database/AnalyzeTable.cshtml` — single table detail view with column stats and data preview
 - [ ] T062 [P] [US4] Create `DataSpark.Web/Views/Database/ExportResults.cshtml` — export confirmation view
@@ -166,7 +166,7 @@
 - [ ] T066 [US4] Verify C# DTO generation via existing Core `ICodeGenerationService` with PascalCase naming, correct type mappings (INTEGER→long, TEXT→string, REAL→double, BLOB→byte[]), and nullable annotations (FR-024)
 - [ ] T067 [US4] Add "Database" link to the main navigation in `DataSpark.Web/Views/Shared/_Layout.cshtml`
 
-**Checkpoint**: Full SQLite database workflow works in the web UI — upload, schema browse, table export, DTO generation. All sql2csv.web features absorbed into DataSpark.Web.
+**Checkpoint**: Full SQLite database workflow works in the web UI — upload, schema browse, table export, DTO generation. All DataSpark.Web features absorbed into DataSpark.Web.
 
 ---
 
@@ -318,16 +318,16 @@
 - [ ] T104 [P] Update `DataSpark.Benchmarks/` benchmark tests to reference renamed namespaces and verify benchmarks still compile and run
 - [ ] T105 Update `CONTRIBUTING.md` to reflect DataSpark project structure and contribution guidelines
 - [ ] T106 Update `README.md` with comprehensive DataSpark documentation: features, quickstart, API usage, screenshots
-- [ ] T107 [P] Update `DataSpark.Web/appsettings.json` configuration section from `Sql2Csv` to `DataSpark` with all new settings (ApiKey, sample data path)
-- [ ] T108 Update `DataSpark.Console/appsettings.json` configuration section from `Sql2Csv` to `DataSpark`
+- [ ] T107 [P] Update `DataSpark.Web/appsettings.json` configuration section from `DataSpark` to `DataSpark` with all new settings (ApiKey, sample data path)
+- [ ] T108 Update `DataSpark.Console/appsettings.json` configuration section from `DataSpark` to `DataSpark`
 - [ ] T109 Run full test suite `dotnet test DataSpark.Tests` and verify 85%+ code coverage on DataSpark.Core (FR-042)
 - [ ] T110 [P] Update DataAnalysisDemo README with deprecation notice redirecting to DataSpark repository (FR-051)
 - [ ] T111 Run `quickstart.md` validation — follow each step in the quickstart guide and verify they all work
 - [ ] T112 Final `dotnet build DataSpark.sln` — zero errors, zero warnings (TreatWarningsAsErrors enabled)
 - [ ] T113 Create integration tests for the end-to-end workflow in `DataSpark.Tests/Integration/` — upload CSV → EDA report → chart configuration → CSV export roundtrip (FR-043)
 - [ ] T114 [P] Verify CI configuration (`ci.yml` or equivalent) sets `MIN_COVERAGE` to 80 or higher for `DataSpark.Tests` coverage gate (constitution Principle II)
-- [ ] T115 Update `.documentation/memory/constitution.md` to replace all `Sql2Csv.*` / `sql2csv.*` naming with `DataSpark.*` throughout — reflects post-Phase-1 project rename *(requires constitution governance review per constitution Governance section)*
-- [ ] T116 Rename GitHub repository `markhazleton/sql2csv` → `markhazleton/DataSpark` via GitHub repository Settings → General → Repository name (FR-041; manual admin action; depends on T001)
+- [ ] T115 Update `.documentation/memory/constitution.md` to replace all `DataSpark.*` / `DataSpark.*` naming with `DataSpark.*` throughout — reflects post-Phase-1 project rename *(requires constitution governance review per constitution Governance section)*
+- [ ] T116 Rename GitHub repository `markhazleton/DataSpark` → `markhazleton/DataSpark` via GitHub repository Settings → General → Repository name (FR-041; manual admin action; depends on T001)
 - [ ] T117 Make `markhazleton/DataAnalysisDemo` repository private and archive it (set to read-only) via GitHub repository Settings → Danger Zone (FR-051; manual admin action; depends on T110 README update)
 - [ ] T118 Manual performance test: load a 50,000+ row CSV in the Pivot Table UI and verify no browser freeze or memory errors (SC-005)
 - [ ] T119 CLI batch test: run `dataspark discover` and `dataspark export` against 50+ test SQLite database files and verify zero failures (SC-006)

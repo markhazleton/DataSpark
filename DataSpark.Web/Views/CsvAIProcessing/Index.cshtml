@@ -1,7 +1,7 @@
-﻿@{
+@{
     ViewData["Title"] = "CSV AI Analysis";
-    var uploadedFiles = ViewBag.UploadedFiles as IReadOnlyList<Sql2Csv.Core.Models.UploadedCsvFile> ?? new
-    List<Sql2Csv.Core.Models.UploadedCsvFile>();
+    var uploadedFiles = ViewBag.UploadedFiles as IReadOnlyList<DataSpark.Core.Models.UploadedCsvFile> ?? new
+    List<DataSpark.Core.Models.UploadedCsvFile>();
     var availableFiles = ViewBag.AvailableFiles as List<string> ?? new List<string>();
     var selectedFile = ViewBag.SelectedFile as string ?? "";
     var errorMessage = ViewBag.ErrorMessage as string ?? "";

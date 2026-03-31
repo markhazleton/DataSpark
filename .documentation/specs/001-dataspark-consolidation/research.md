@@ -10,11 +10,11 @@ All NEEDS CLARIFICATION items from Technical Context have been resolved through 
 
 ## R1: Namespace Rename Strategy
 
-**Decision**: Global find-and-replace of `Sql2Csv` → `DataSpark` across all files, followed by project/folder renames.
+**Decision**: Global find-and-replace of `DataSpark` → `DataSpark` across all files, followed by project/folder renames.
 
-**Rationale**: The namespace `Sql2Csv` appears in 100+ C# files across all projects. A systematic rename is the cleanest approach since:
+**Rationale**: The namespace `DataSpark` appears in 100+ C# files across all projects. A systematic rename is the cleanest approach since:
 - All .csproj files use either explicit `RootNamespace` declarations or default to folder-based namespaces
-- All `using` statements follow the `Sql2Csv.Core.*`, `Sql2Csv.Web.*`, `Sql2Csv.Tests.*` pattern
+- All `using` statements follow the `DataSpark.Core.*`, `DataSpark.Web.*`, `DataSpark.Tests.*` pattern
 - The solution file references project paths that will change with folder renames
 
 **Alternatives considered**:
@@ -24,42 +24,42 @@ All NEEDS CLARIFICATION items from Technical Context have been resolved through 
 **Rename mapping**:
 | Old | New |
 |-----|-----|
-| `Sql2Csv.Core` | `DataSpark.Core` |
-| `Sql2Csv.Core.Services` | `DataSpark.Core.Services` |
-| `Sql2Csv.Core.Interfaces` | `DataSpark.Core.Interfaces` |
-| `Sql2Csv.Core.Models` | `DataSpark.Core.Models` |
-| `Sql2Csv.Core.Configuration` | `DataSpark.Core.Configuration` |
-| `Sql2Csv.Web` (sql2csv.web) | REMOVED (absorbed into DataSpark.Web) |
-| `Sql2Csv.Web.Models` | DataSpark.Web absorbs relevant models |
-| `Sql2Csv.Web.Services` | DataSpark.Web absorbs relevant services |
-| `Sql2Csv.Presentation.Commands` | `DataSpark.Console.Commands` |
-| `Sql2Csv.Tests` | `DataSpark.Tests` |
-| `Sql2Csv.Benchmarks` | `DataSpark.Benchmarks` |
+| `DataSpark.Core` | `DataSpark.Core` |
+| `DataSpark.Core.Services` | `DataSpark.Core.Services` |
+| `DataSpark.Core.Interfaces` | `DataSpark.Core.Interfaces` |
+| `DataSpark.Core.Models` | `DataSpark.Core.Models` |
+| `DataSpark.Core.Configuration` | `DataSpark.Core.Configuration` |
+| `DataSpark.Web` (DataSpark.Web) | REMOVED (absorbed into DataSpark.Web) |
+| `DataSpark.Web.Models` | DataSpark.Web absorbs relevant models |
+| `DataSpark.Web.Services` | DataSpark.Web absorbs relevant services |
+| `DataSpark.Presentation.Commands` | `DataSpark.Console.Commands` |
+| `DataSpark.Tests` | `DataSpark.Tests` |
+| `DataSpark.Benchmarks` | `DataSpark.Benchmarks` |
 | `DataSpark.Web` (already named) | `DataSpark.Web` (no change needed) |
-| `Sql2CsvOptions` | `DataSparkOptions` |
+| `DataSparkOptions` | `DataSparkOptions` |
 
 **Folder renames**:
 | Old folder | New folder |
 |------------|-----------|
-| `Sql2Csv.Core/` | `DataSpark.Core/` |
-| `sql2csv.console/` | `DataSpark.Console/` |
-| `sql2csv.web/` | REMOVED |
-| `Sql2Csv.Tests/` | `DataSpark.Tests/` |
-| `Sql2Csv.Benchmarks/` | `DataSpark.Benchmarks/` |
+| `DataSpark.Core/` | `DataSpark.Core/` |
+| `DataSpark.Console/` | `DataSpark.Console/` |
+| `DataSpark.Web/` | REMOVED |
+| `DataSpark.Tests/` | `DataSpark.Tests/` |
+| `DataSpark.Benchmarks/` | `DataSpark.Benchmarks/` |
 | `DataSpark.Web/` | `DataSpark.Web/` (unchanged) |
-| `sql2csv.sln` | `DataSpark.sln` |
-| `Sql2Csv.snk` | `DataSpark.snk` |
+| `DataSpark.sln` | `DataSpark.sln` |
+| `DataSpark.snk` | `DataSpark.snk` |
 
 **File rename steps** (ordered):
-1. Rename solution file: `sql2csv.sln` → `DataSpark.sln`
-2. Rename strong-name key: `Sql2Csv.snk` → `DataSpark.snk`
+1. Rename solution file: `DataSpark.sln` → `DataSpark.sln`
+2. Rename strong-name key: `DataSpark.snk` → `DataSpark.snk`
 3. Rename project folders (Core, Console, Tests, Benchmarks)
 4. Rename .csproj files inside each folder
 5. Update solution file project references
-6. Global text replace `Sql2Csv` → `DataSpark` in all .cs, .csproj, .cshtml, .json files
-7. Replace `sql2csv` (lowercase) → `DataSpark` in remaining references (copilot-instructions, README, etc.)
+6. Global text replace `DataSpark` → `DataSpark` in all .cs, .csproj, .cshtml, .json files
+7. Replace `DataSpark` (lowercase) → `DataSpark` in remaining references (copilot-instructions, README, etc.)
 8. Update `RootNamespace` and `AssemblyName` in all .csproj files
-9. Remove sql2csv.web project folder and solution references
+9. Remove DataSpark.Web project folder and solution references
 
 ---
 
@@ -138,7 +138,7 @@ Pipeline: app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api"), ...)
 - Configure SearchPanes in DataTables initialization JavaScript
 - No backend changes needed — SearchPanes works on client-side data or can leverage existing server-side endpoints
 
-**Note**: sql2csv.web uses a custom DataTables-like implementation with TailwindCSS. Since DataSpark.Web uses Bootstrap 5, it can use the standard DataTables library directly.
+**Note**: DataSpark.Web uses a custom DataTables-like implementation with TailwindCSS. Since DataSpark.Web uses Bootstrap 5, it can use the standard DataTables library directly.
 
 ---
 
@@ -159,28 +159,28 @@ Pipeline: app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api"), ...)
 
 ## R7: TreatWarningsAsErrors Gap
 
-**Decision**: Add `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` to Sql2Csv.Tests (the only project missing it) during the rename.
+**Decision**: Add `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` to DataSpark.Tests (the only project missing it) during the rename.
 
 **Current status**:
 | Project | Has TreatWarningsAsErrors |
 |---------|--------------------------|
-| Sql2Csv.Core | ✅ Yes |
-| Sql2Csv.Benchmarks | ✅ Yes |
-| sql2csv.console | ✅ Yes |
-| sql2csv.web | ✅ Yes |
+| DataSpark.Core | ✅ Yes |
+| DataSpark.Benchmarks | ✅ Yes |
+| DataSpark.Console | ✅ Yes |
 | DataSpark.Web | ✅ Yes |
-| **Sql2Csv.Tests** | **❌ No** |
+| DataSpark.Web | ✅ Yes |
+| **DataSpark.Tests** | **❌ No** |
 
 The Tests project is the only gap. This will be added when renaming to `DataSpark.Tests.csproj`.
 
 ---
 
-## R8: sql2csv.web Feature Absorption
+## R8: DataSpark.Web Feature Absorption
 
-**Decision**: Port sql2csv.web's unique features into DataSpark.Web via a new `DatabaseController`.
+**Decision**: Port DataSpark.Web's unique features into DataSpark.Web via a new `DatabaseController`.
 
-**Features to port** (from sql2csv.web/Controllers/HomeController.cs):
-| Feature | sql2csv.web action | DataSpark.Web target |
+**Features to port** (from DataSpark.Web/Controllers/HomeController.cs):
+| Feature | DataSpark.Web action | DataSpark.Web target |
 |---------|-------------------|---------------------|
 | SQLite upload | `Upload()` | DatabaseController.Upload() |
 | Schema analysis | `Analyze()` | DatabaseController.Analyze() |
@@ -190,7 +190,7 @@ The Tests project is the only gap. This will be added when renaming to `DataSpar
 | File management | `ManageFiles()` + `DeleteFile()` | DatabaseController.ManageFiles() |
 | DataTables endpoint | `GetTableData()` | DatabaseController.GetTableData() |
 
-**Views to create** (adapted from sql2csv.web to Bootstrap 5):
+**Views to create** (adapted from DataSpark.Web to Bootstrap 5):
 - `Views/Database/Index.cshtml` — Upload + file management
 - `Views/Database/Analyze.cshtml` — Schema analysis results
 - `Views/Database/AnalyzeTable.cshtml` — Table detail with stats

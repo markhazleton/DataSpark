@@ -1,21 +1,24 @@
-using Sql2Csv.Core.Interfaces;
-using Sql2Csv.Core.Models;
-using Sql2Csv.Core.Models.Analysis;
+using DataSpark.Core.Interfaces;
+using DataSpark.Core.Models;
+using DataSpark.Core.Models.Analysis;
 using DataSpark.Web.Services;
 using DataSpark.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Collections.Concurrent;
 
 namespace DataSpark.Web.Controllers;
 
 public class PivotTableController : BaseController
 {
+    private static readonly ConcurrentDictionary<string, List<PivotConfiguration>> SavedPivotConfigurations = new();
+
     public PivotTableController(
         IWebHostEnvironment env,
         ILogger<PivotTableController> logger,
     DataSpark.Web.Services.CsvFileService csvFileService,
-    Sql2Csv.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
+    DataSpark.Core.Services.Analysis.ICsvProcessingService csvProcessingService,
     IExportService exportService, IDataExportService dataExportService)
     : base(env, logger, csvFileService, csvProcessingService, exportService, dataExportService)
     {
@@ -116,23 +119,43 @@ public class PivotTableController : BaseController
                 });
             }
 
-            var config = new PivotTableConfiguration
+            var config = new PivotConfiguration
             {
+                Id = (int)(DateTime.UtcNow.Ticks % int.MaxValue),
                 Name = request.Name,
-                Description = request.Description,
-                CsvFile = request.CsvFile,
-                AggregatorName = request.AggregatorName,
-                RendererName = request.RendererName,
-                Cols = request.Cols,
-                Rows = request.Rows,
-                Vals = request.Vals,
-                IncludeValues = request.IncludeValues,
-                ExcludeValues = request.ExcludeValues,
-                CreatedAt = DateTime.Now
+                DataSource = request.CsvFile,
+                AggregationFunction = request.AggregatorName,
+                RendererType = request.RendererName,
+                RowFields = request.Rows,
+                ColumnFields = request.Cols,
+                ValueFields = request.Vals,
+                CreatedDate = DateTime.UtcNow
             };
 
-            // For now, we'll just log the configuration
-            // In a real application, you'd save this to a database
+            var sessionKey = GetSessionConfigurationKey();
+            var configs = SavedPivotConfigurations.GetOrAdd(sessionKey, _ => new List<PivotConfiguration>());
+            lock (configs)
+            {
+                var existing = configs.FirstOrDefault(c =>
+                    string.Equals(c.Name, config.Name, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(c.DataSource, config.DataSource, StringComparison.OrdinalIgnoreCase));
+
+                if (existing != null)
+                {
+                    existing.RowFields = config.RowFields;
+                    existing.ColumnFields = config.ColumnFields;
+                    existing.ValueFields = config.ValueFields;
+                    existing.AggregationFunction = config.AggregationFunction;
+                    existing.RendererType = config.RendererType;
+                    existing.CreatedDate = DateTime.UtcNow;
+                    config.Id = existing.Id;
+                }
+                else
+                {
+                    configs.Add(config);
+                }
+            }
+
             _logger.LogInformation("Pivot table configuration saved: {@Config}", config);
 
             return Json(new StandardResponse
@@ -149,6 +172,73 @@ public class PivotTableController : BaseController
                 Success = false,
                 Error = $"Error saving configuration: {ex.Message}"
             });
+        }
+    }
+
+    [HttpGet]
+    public IActionResult LoadConfigurations(string? fileName = null)
+    {
+        try
+        {
+            var sessionKey = GetSessionConfigurationKey();
+            var configs = SavedPivotConfigurations.GetValueOrDefault(sessionKey, new List<PivotConfiguration>());
+            var result = string.IsNullOrWhiteSpace(fileName)
+                ? configs
+                : configs.Where(c => string.Equals(c.DataSource, fileName, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            return Json(new
+            {
+                success = true,
+                data = result.OrderByDescending(c => c.CreatedDate).ToList()
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading pivot configurations");
+            return Json(new { success = false, error = "Error loading saved configurations." });
+        }
+    }
+
+    [HttpGet]
+    public IActionResult LoadConfiguration(string name, string fileName)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(fileName))
+            {
+                return Json(new { success = false, error = "Configuration name and file name are required." });
+            }
+
+            var sessionKey = GetSessionConfigurationKey();
+            var configs = SavedPivotConfigurations.GetValueOrDefault(sessionKey, new List<PivotConfiguration>());
+            var config = configs.FirstOrDefault(c =>
+                string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(c.DataSource, fileName, StringComparison.OrdinalIgnoreCase));
+
+            if (config == null)
+            {
+                return Json(new { success = false, error = "Configuration not found." });
+            }
+
+            return Json(new
+            {
+                success = true,
+                data = new
+                {
+                    aggregatorName = config.AggregationFunction,
+                    rendererName = config.RendererType,
+                    cols = config.ColumnFields,
+                    rows = config.RowFields,
+                    vals = config.ValueFields,
+                    inclusions = new Dictionary<string, object>(),
+                    exclusions = new Dictionary<string, object>()
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading pivot configuration {ConfigurationName}", name);
+            return Json(new { success = false, error = "Error loading configuration." });
         }
     }
 
@@ -199,5 +289,18 @@ public class PivotTableController : BaseController
             _logger.LogError(ex, "Error exporting pivot table data");
             return BadRequest($"Export failed: {ex.Message}");
         }
+    }
+
+    private string GetSessionConfigurationKey()
+    {
+        return HttpContext.Session.GetString("PivotConfigSessionKey")
+            ?? CreateSessionConfigurationKey();
+    }
+
+    private string CreateSessionConfigurationKey()
+    {
+        var key = Guid.NewGuid().ToString("N");
+        HttpContext.Session.SetString("PivotConfigSessionKey", key);
+        return key;
     }
 }

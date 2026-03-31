@@ -30,24 +30,24 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Restore
-        run: dotnet restore sql2csv.sln
+        run: dotnet restore DataSpark.sln
 
       - name: Build
-        run: dotnet build sql2csv.sln --configuration Release --no-restore
+        run: dotnet build DataSpark.sln --configuration Release --no-restore
 
       - name: Test with coverage
-        run: dotnet test Sql2Csv.Tests/Sql2Csv.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
+        run: dotnet test DataSpark.Tests/DataSpark.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
 
       - name: Run benchmarks (main only)
         if: github.ref == 'refs/heads/main'
         run: |
           echo "Running benchmarks..."
-          dotnet run -c Release --project Sql2Csv.Benchmarks -- --filter '*'
-          mkdir -p Sql2Csv.Benchmarks/baseline
-          LATEST_MD=$(ls -t Sql2Csv.Benchmarks/BenchmarkDotNet.Artifacts/results/*-report-github.md 2>/dev/null | head -n1 || true)
+          dotnet run -c Release --project DataSpark.Benchmarks -- --filter '*'
+          mkdir -p DataSpark.Benchmarks/baseline
+          LATEST_MD=$(ls -t DataSpark.Benchmarks/BenchmarkDotNet.Artifacts/results/*-report-github.md 2>/dev/null | head -n1 || true)
           if [ -f "$LATEST_MD" ]; then
             echo "Updating benchmark baseline from $LATEST_MD"
-            cp "$LATEST_MD" Sql2Csv.Benchmarks/baseline/BenchmarkBaseline.md
+            cp "$LATEST_MD" DataSpark.Benchmarks/baseline/BenchmarkBaseline.md
           else
             echo "No benchmark markdown found to update baseline."
           fi
@@ -75,9 +75,9 @@ jobs:
         run: |
           COVERAGE_FILE=$(find TestResults -name 'coverage.cobertura.xml' | head -n 1 || true)
           if [ -f "$COVERAGE_FILE" ]; then
-            mkdir -p sql2csv.web/data
-            cp "$COVERAGE_FILE" sql2csv.web/data/coverage.cobertura.xml
-            echo "Copied coverage XML to sql2csv.web/data/coverage.cobertura.xml"
+            mkdir -p DataSpark.Web/data
+            cp "$COVERAGE_FILE" DataSpark.Web/data/coverage.cobertura.xml
+            echo "Copied coverage XML to DataSpark.Web/data/coverage.cobertura.xml"
           else
             echo "coverage.cobertura.xml not found, skipping copy to web/data"
           fi
@@ -127,8 +127,8 @@ jobs:
             git add coverage-badge.json
             ADDED=1
           fi
-          if [ -f Sql2Csv.Benchmarks/baseline/BenchmarkBaseline.md ]; then
-            git add Sql2Csv.Benchmarks/baseline/BenchmarkBaseline.md
+          if [ -f DataSpark.Benchmarks/baseline/BenchmarkBaseline.md ]; then
+            git add DataSpark.Benchmarks/baseline/BenchmarkBaseline.md
             ADDED=1
           fi
           if [ $ADDED -eq 1 ]; then

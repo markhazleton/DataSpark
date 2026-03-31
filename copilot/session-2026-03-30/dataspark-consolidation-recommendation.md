@@ -1,28 +1,28 @@
-# DataSpark Consolidation: sql2csv + DataAnalysisDemo
+# DataSpark Consolidation: DataSpark + DataAnalysisDemo
 
 **Date**: 2026-03-30
 **Focus**: Deep-dive analysis of both repositories and recommendation for consolidation
 **Repositories Analyzed**:
-- `markhazleton/sql2csv` — .NET 10, C#, ASP.NET Core MVC, Clean Architecture
+- `markhazleton/DataSpark` — .NET 10, C#, ASP.NET Core MVC, Clean Architecture
 - `markhazleton/DataAnalysisDemo` — .NET Framework 4.8, VB.NET, ASP.NET WebForms
 
 ---
 
 ## Executive Summary
 
-You already have a strong foundation for the combined "DataSpark" product **inside the sql2csv repo**. The existing `DataSpark.Web` project already absorbs most of what DataAnalysisDemo does, but reimplemented in modern .NET 10 / C# / ASP.NET Core. The recommendation is to **stay in the sql2csv repo, rebrand it to DataSpark**, and selectively port the remaining unique features from DataAnalysisDemo rather than merging codebases. DataAnalysisDemo is a legacy .NET Framework 4.8 WebForms app — none of its code can be directly reused.
+You already have a strong foundation for the combined "DataSpark" product **inside the DataSpark repo**. The existing `DataSpark.Web` project already absorbs most of what DataAnalysisDemo does, but reimplemented in modern .NET 10 / C# / ASP.NET Core. The recommendation is to **stay in the DataSpark repo, rebrand it to DataSpark**, and selectively port the remaining unique features from DataAnalysisDemo rather than merging codebases. DataAnalysisDemo is a legacy .NET Framework 4.8 WebForms app — none of its code can be directly reused.
 
 ---
 
 ## Repository Comparison
 
-### sql2csv (this repo)
+### DataSpark (this repo)
 
 | Aspect | Details |
 |--------|---------|
 | **Framework** | .NET 10.0, C# 12, ASP.NET Core MVC |
 | **Architecture** | Clean Architecture with Core library, DI, Options pattern, async-first |
-| **Projects** | Core library, Console CLI, Web MVC (sql2csv.web), DataSpark.Web, Tests (115+), Benchmarks |
+| **Projects** | Core library, Console CLI, Web MVC (DataSpark.Web), DataSpark.Web, Tests (115+), Benchmarks |
 | **Data Sources** | SQLite databases + CSV files |
 | **CSV Processing** | CsvHelper + Microsoft.Data.Analysis DataFrames |
 | **Visualization** | ScottPlot, Chart.js, Plotly.js (DataSpark.Web) |
@@ -30,7 +30,7 @@ You already have a strong foundation for the combined "DataSpark" product **insi
 | **AI Integration** | OpenAI Assistants v2 for intelligent analysis (DataSpark.Web) |
 | **Schema Tools** | Database discovery, schema analysis, C# DTO code generation |
 | **Testing** | MSTest + Moq + FluentAssertions, 115+ tests, BenchmarkDotNet |
-| **UI Framework** | Tailwind CSS (sql2csv.web), Bootstrap 5 + Bootswatch theming (DataSpark.Web) |
+| **UI Framework** | Tailwind CSS (DataSpark.Web), Bootstrap 5 + Bootswatch theming (DataSpark.Web) |
 | **Logging** | Serilog structured logging |
 | **Security** | CSRF protection, input sanitization, path traversal prevention, CSV injection guards |
 
@@ -56,7 +56,7 @@ You already have a strong foundation for the combined "DataSpark" product **insi
 
 ## Feature-by-Feature Overlap Matrix
 
-| Feature | sql2csv (sql2csv.web) | sql2csv (DataSpark.Web) | DataAnalysisDemo | Gap in DataSpark? |
+| Feature | DataSpark (DataSpark.Web) | DataSpark (DataSpark.Web) | DataAnalysisDemo | Gap in DataSpark? |
 |---------|----------------------|------------------------|------------------|-------------------|
 | **CSV File Upload** | ✅ Drag-and-drop | ✅ Upload + file management | ✅ Static CSV directory | None |
 | **CSV Parsing** | ✅ CsvHelper | ✅ CsvHelper + DataFrames | ✅ GenericParser | None |
@@ -134,24 +134,24 @@ DataAnalysisDemo ships with **8 diverse CSV files** (adult.csv, legislators.csv,
 
 ### Phase 1: Rebrand & Consolidate (Repository Level)
 
-1. **Rename the repo** from `sql2csv` to `DataSpark` (or keep the repo URL and update branding in code/docs)
+1. **Rename the repo** from `DataSpark` to `DataSpark` (or keep the repo URL and update branding in code/docs)
 2. **Promote DataSpark.Web** to the primary web application
-3. **Deprecate sql2csv.web** by absorbing its unique features (SQLite upload, schema analysis, DTO generation) into DataSpark.Web
+3. **Deprecate DataSpark.Web** by absorbing its unique features (SQLite upload, schema analysis, DTO generation) into DataSpark.Web
 4. **Keep the Console CLI** — rename to `dataspark-cli` or `DataSpark.Console`
-5. **Rename Sql2Csv.Core** to `DataSpark.Core`
+5. **Rename DataSpark.Core** to `DataSpark.Core`
 6. **Update solution structure**:
    ```
    DataSpark.sln
-   ├── DataSpark.Core/        (was Sql2Csv.Core)
-   ├── DataSpark.Web/         (promoted, absorbs sql2csv.web features)
-   ├── DataSpark.Console/     (was sql2csv.console)
-   ├── DataSpark.Tests/       (was Sql2Csv.Tests)
-   └── DataSpark.Benchmarks/  (was Sql2Csv.Benchmarks)
+   ├── DataSpark.Core/        (was DataSpark.Core)
+   ├── DataSpark.Web/         (promoted, absorbs DataSpark.Web features)
+   ├── DataSpark.Console/     (was DataSpark.Console)
+   ├── DataSpark.Tests/       (was DataSpark.Tests)
+   └── DataSpark.Benchmarks/  (was DataSpark.Benchmarks)
    ```
 
-### Phase 2: Port sql2csv.web Features into DataSpark.Web
+### Phase 2: Port DataSpark.Web Features into DataSpark.Web
 
-These features exist in sql2csv.web but NOT in DataSpark.Web:
+These features exist in DataSpark.Web but NOT in DataSpark.Web:
 
 | Feature | What to Port |
 |---------|-------------|
@@ -210,7 +210,7 @@ DataSpark Solution
 ├── DataSpark.Web (ASP.NET Core MVC)
 │   ├── Controllers/          — MVC + API controllers
 │   │   ├── HomeController    — Landing, file management
-│   │   ├── DatabaseController — SQLite upload, discovery, schema, DTO gen (NEW - from sql2csv.web)
+│   │   ├── DatabaseController — SQLite upload, discovery, schema, DTO gen (NEW - from DataSpark.Web)
 │   │   ├── ChartController   — Chart CRUD + preview
 │   │   ├── PivotTableController — Interactive pivots
 │   │   ├── AnalysisController — Univariate, bivariate, complete EDA
@@ -239,7 +239,7 @@ DataSpark Solution
 | Phase | Description | Effort |
 |-------|-------------|--------|
 | **Phase 1** | Rebrand & rename projects | 1 session |
-| **Phase 2** | Port sql2csv.web DB features to DataSpark.Web | 1-2 sessions |
+| **Phase 2** | Port DataSpark.Web DB features to DataSpark.Web | 1-2 sessions |
 | **Phase 3** | Port DataAnalysisDemo unique features | 1-2 sessions |
 | **Phase 4** | Archive DataAnalysisDemo | Trivial |
 | **Ongoing** | Expand tests, complete bivariate UI, ML features | Incremental |
@@ -250,8 +250,8 @@ DataSpark Solution
 
 **DataSpark.Web is already 80% of the combined vision.** The DataAnalysisDemo repo is a legacy .NET Framework 4.8 WebForms app whose features have largely been reimplemented in modern C# / ASP.NET Core within DataSpark.Web. The main gaps are:
 
-1. **SQLite database features** (exist in sql2csv.web, need wiring into DataSpark.Web)
+1. **SQLite database features** (exist in DataSpark.Web, need wiring into DataSpark.Web)
 2. **A few client-side enhancements** (SearchPanes, pivot state persistence, sample datasets)
-3. **Branding and project rename** (sql2csv → DataSpark)
+3. **Branding and project rename** (DataSpark → DataSpark)
 
 The DataAnalysisDemo codebase itself (VB.NET, WebForms) should **not** be merged — it should be archived once its unique features are ported. The path forward is to complete DataSpark.Web as the single, modern, comprehensive data analysis platform.

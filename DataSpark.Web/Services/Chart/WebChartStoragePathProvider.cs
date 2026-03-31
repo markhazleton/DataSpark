@@ -1,4 +1,4 @@
-using Sql2Csv.Core.Services.Charts;
+using DataSpark.Core.Services.Charts;
 
 namespace DataSpark.Web.Services.Chart;
 

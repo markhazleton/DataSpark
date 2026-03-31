@@ -27,7 +27,7 @@
 
 ## Clarification Results (5 questions asked, 5 answered)
 
-- [x] Q1: sql2csv.web removal → Absorbed into DataSpark.Web (FR-041 updated)
+- [x] Q1: DataSpark.Web removal → Absorbed into DataSpark.Web (FR-041 updated)
 - [x] Q2: API authentication → API key auth required (FR-050 added)
 - [x] Q3: Sample dataset mutability → Read-only (FR-006 updated)
 - [x] Q4: Repository rename scope → Full rename including GitHub repo (FR-041 updated)

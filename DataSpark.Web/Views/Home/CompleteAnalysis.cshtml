@@ -73,6 +73,43 @@
                 </div>
             </div>
 
+            <div class="mb-4 p-3 bg-light rounded shadow-sm" id="previewSection">
+                <h2 class="mb-3"><i class="bi bi-grid"></i> Data Preview (Server-Side)</h2>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <input id="previewSearch" class="form-control" placeholder="Search across all columns..." />
+                    </div>
+                    <div class="col-md-2">
+                        <select id="previewPageSize" class="form-select">
+                            <option value="25" selected>25 rows</option>
+                            <option value="50">50 rows</option>
+                            <option value="100">100 rows</option>
+                            <option value="250">250 rows</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button id="previewSearchBtn" class="btn btn-primary w-100">Apply</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-bordered" id="previewTable">
+                        <thead></thead>
+                        <tbody>
+                            <tr><td class="text-muted">Loading preview...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small id="previewSummary" class="text-muted"></small>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button id="previewPrev" class="btn btn-outline-secondary" type="button">Previous</button>
+                        <button id="previewNext" class="btn btn-outline-secondary" type="button">Next</button>
+                    </div>
+                </div>
+            </div>
+
             <hr class="mt-5 mb-4">
             <div class="mb-4 p-3 bg-light rounded shadow-sm" id="bivariateSection">
                 <h2 class="mt-4 mb-3">Univariate Analysis</h2>
@@ -146,12 +183,44 @@
                                                 <td>@(double.IsNaN(column.Mean) ? "N/A" : column.Mean.ToString("F2"))</td>
                                             </tr>
                                             <tr>
+                                                <th>Median</th>
+                                                <td>@(double.IsNaN(column.Median) ? "N/A" : column.Median.ToString("F2"))</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Mode</th>
+                                                <td>@(column.Mode?.ToString() ?? "N/A")</td>
+                                            </tr>
+                                            <tr>
                                                 <th>Standard Deviation</th>
                                                 <td>@(double.IsNaN(column.StandardDeviation) ? "N/A" : column.StandardDeviation.ToString("F2"))</td>
                                             </tr>
                                             <tr>
+                                                <th>Variance</th>
+                                                <td>@(double.IsNaN(column.Variance) ? "N/A" : column.Variance.ToString("F2"))</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Q1</th>
+                                                <td>@(double.IsNaN(column.Q1) ? "N/A" : column.Q1.ToString("F2"))</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Q3</th>
+                                                <td>@(double.IsNaN(column.Q3) ? "N/A" : column.Q3.ToString("F2"))</td>
+                                            </tr>
+                                            <tr>
+                                                <th>IQR</th>
+                                                <td>@(double.IsNaN(column.IQR) ? "N/A" : column.IQR.ToString("F2"))</td>
+                                            </tr>
+                                            <tr>
                                                 <th>Skewness</th>
                                                 <td>@(double.IsNaN(column.Skewness) ? "N/A" : column.Skewness.ToString("F2"))</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Kurtosis</th>
+                                                <td>@(double.IsNaN(column.Kurtosis) ? "N/A" : column.Kurtosis.ToString("F2"))</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Data Quality Score</th>
+                                                <td>@column.DataQualityScore.ToString("F2")%</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -341,6 +410,113 @@
                 area.innerHTML = `<div class="alert ${isErr?'alert-danger':'alert-info'} py-2 mb-3">${msg}</div>`;
             }
         })();
+
+        (function () {
+            const fileName = '@Model.FileName';
+            if (!fileName) {
+                return;
+            }
+
+            const tableHead = document.querySelector('#previewTable thead');
+            const tableBody = document.querySelector('#previewTable tbody');
+            const summary = document.getElementById('previewSummary');
+            const searchInput = document.getElementById('previewSearch');
+            const pageSizeInput = document.getElementById('previewPageSize');
+            const prevButton = document.getElementById('previewPrev');
+            const nextButton = document.getElementById('previewNext');
+            const applyButton = document.getElementById('previewSearchBtn');
+
+            let start = 0;
+            let length = parseInt(pageSizeInput.value, 10);
+            let sortColumn = '';
+            let sortDirection = 'asc';
+            let recordsFiltered = 0;
+
+            async function loadPreview(resetPage) {
+                if (resetPage) {
+                    start = 0;
+                }
+
+                const searchValue = searchInput.value || '';
+                const params = new URLSearchParams({
+                    fileName,
+                    start: String(start),
+                    length: String(length),
+                    search: searchValue,
+                    sortColumn,
+                    sortDirection
+                });
+
+                const response = await fetch(`/api/files/data-table?${params.toString()}`);
+                if (!response.ok) {
+                    tableHead.innerHTML = '';
+                    tableBody.innerHTML = `<tr><td class="text-danger">Failed to load preview (${response.status})</td></tr>`;
+                    summary.textContent = '';
+                    return;
+                }
+
+                const payload = await response.json();
+                const columns = payload.columns || [];
+                const rows = payload.data || [];
+                recordsFiltered = payload.recordsFiltered || 0;
+
+                tableHead.innerHTML = `<tr>${columns.map(column => {
+                    const arrow = sortColumn === column ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
+                    return `<th><button class="btn btn-link btn-sm p-0 preview-sort" data-column="${column}">${column}${arrow}</button></th>`;
+                }).join('')}</tr>`;
+
+                if (!rows.length) {
+                    tableBody.innerHTML = '<tr><td class="text-muted" colspan="100%">No matching rows.</td></tr>';
+                } else {
+                    tableBody.innerHTML = rows
+                        .map(row => `<tr>${columns.map(column => `<td>${row[column] ?? ''}</td>`).join('')}</tr>`)
+                        .join('');
+                }
+
+                const from = recordsFiltered === 0 ? 0 : start + 1;
+                const to = Math.min(start + length, recordsFiltered);
+                summary.textContent = `Showing ${from}-${to} of ${recordsFiltered} filtered rows`;
+
+                prevButton.disabled = start <= 0;
+                nextButton.disabled = start + length >= recordsFiltered;
+
+                document.querySelectorAll('.preview-sort').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const column = button.getAttribute('data-column');
+                        if (sortColumn === column) {
+                            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                        } else {
+                            sortColumn = column;
+                            sortDirection = 'asc';
+                        }
+                        loadPreview(true);
+                    });
+                });
+            }
+
+            applyButton.addEventListener('click', () => loadPreview(true));
+            searchInput.addEventListener('keydown', event => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    loadPreview(true);
+                }
+            });
+            pageSizeInput.addEventListener('change', () => {
+                length = parseInt(pageSizeInput.value, 10);
+                loadPreview(true);
+            });
+            prevButton.addEventListener('click', () => {
+                start = Math.max(0, start - length);
+                loadPreview(false);
+            });
+            nextButton.addEventListener('click', () => {
+                start += length;
+                loadPreview(false);
+            });
+
+            loadPreview(true);
+        })();
+
         $(document).ready(function ()
         {
             // Load the analysis when an accordion item is expanded

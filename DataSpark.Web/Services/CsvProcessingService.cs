@@ -1,5 +1,5 @@
-﻿using Sql2Csv.Core.Models.Analysis;
-using Sql2Csv.Core.Services;
+using DataSpark.Core.Models.Analysis;
+using DataSpark.Core.Services;
 using Microsoft.Data.Analysis;
 using System.Data;
 using System.Text.Json;

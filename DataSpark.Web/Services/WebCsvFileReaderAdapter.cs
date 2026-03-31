@@ -1,6 +1,6 @@
 using Microsoft.Data.Analysis;
-using Sql2Csv.Core.Interfaces;
-using Sql2Csv.Core.Models;
+using DataSpark.Core.Interfaces;
+using DataSpark.Core.Models;
 
 namespace DataSpark.Web.Services;
 

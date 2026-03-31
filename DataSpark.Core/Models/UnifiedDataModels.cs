@@ -1,0 +1,306 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace DataSpark.Core.Models;
+
+/// <summary>
+/// Represents the type of data source.
+/// </summary>
+public enum DataSourceType
+{
+    Database,
+    Csv
+}
+
+/// <summary>
+/// Unified configuration for both database and CSV data sources.
+/// </summary>
+public class DataSourceConfiguration
+{
+    /// <summary>
+    /// Gets or sets the unique identifier.
+    /// </summary>
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the data source name.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the file path.
+    /// </summary>
+    public string FilePath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the data source type.
+    /// </summary>
+    public DataSourceType Type { get; set; }
+
+    /// <summary>
+    /// Gets or sets the table name (for database sources).
+    /// </summary>
+    public string? TableName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the connection string (for database sources).
+    /// </summary>
+    public string? ConnectionString { get; set; }
+
+    /// <summary>
+    /// Gets or sets the file size in bytes.
+    /// </summary>
+    public long FileSize { get; set; }
+
+    /// <summary>
+    /// Gets or sets the creation date.
+    /// </summary>
+    public DateTime CreatedDate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the last modified date.
+    /// </summary>
+    public DateTime LastModified { get; set; }
+
+    /// <summary>
+    /// Gets or sets additional metadata.
+    /// </summary>
+    public Dictionary<string, string> Metadata { get; set; } = new();
+}
+
+/// <summary>
+/// Unified analysis results for database tables.
+/// </summary>
+public class UnifiedAnalysisResult
+{
+    /// <summary>
+    /// Gets or sets the data source configuration.
+    /// </summary>
+    public DataSourceConfiguration DataSource { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the display name for the data source.
+    /// </summary>
+    public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the total number of rows.
+    /// </summary>
+    public long RowCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of columns.
+    /// </summary>
+    public int ColumnCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the column analyses.
+    /// </summary>
+    public List<ColumnAnalysis> ColumnAnalyses { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets any errors encountered during analysis.
+    /// </summary>
+    public List<string> Errors { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the analysis timestamp.
+    /// </summary>
+    public DateTime AnalysisDate { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Flags describing which metrics were populated (bitwise OR of <see cref="UnifiedAnalysisCapabilities"/>).
+    /// </summary>
+    public UnifiedAnalysisCapabilities Capabilities { get; set; } = UnifiedAnalysisCapabilities.None;
+
+    /// <summary>
+    /// Indicates that deeper statistics for this source type are not implemented.
+    /// </summary>
+    public bool IsPartial { get; set; }
+}
+
+/// <summary>
+/// Unified column analysis for database columns.
+/// </summary>
+public class ColumnAnalysis
+{
+    /// <summary>
+    /// Gets or sets the column name.
+    /// </summary>
+    public string ColumnName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the column index.
+    /// </summary>
+    public int ColumnIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets the data type.
+    /// </summary>
+    public string DataType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets whether the column allows null values.
+    /// </summary>
+    public bool IsNullable { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the column is a primary key.
+    /// </summary>
+    public bool IsPrimaryKey { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default value for the column.
+    /// </summary>
+    public string? DefaultValue { get; set; }
+
+    /// <summary>
+    /// Gets or sets the total number of values.
+    /// </summary>
+    public long TotalCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of non-null values.
+    /// </summary>
+    public long NonNullCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of null values.
+    /// </summary>
+    public long NullCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of unique values.
+    /// </summary>
+    public long UniqueCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the data quality score.
+    /// </summary>
+    public double DataQualityScore { get; set; }
+
+    /// <summary>
+    /// Gets or sets the top values by frequency.
+    /// </summary>
+    public List<ValueFrequency> TopValues { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the minimum value.
+    /// </summary>
+    public string? MinValue { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum value.
+    /// </summary>
+    public string? MaxValue { get; set; }
+
+    /// <summary>
+    /// Gets or sets the mean value (for numeric columns).
+    /// </summary>
+    public double? Mean { get; set; }
+
+    /// <summary>
+    /// Gets or sets the mean value (alias for compatibility).
+    /// </summary>
+    public double? MeanValue { get => Mean; set => Mean = value; }
+
+    /// <summary>
+    /// Gets or sets the median value (for numeric columns).
+    /// </summary>
+    public double? MedianValue { get; set; }
+
+    /// <summary>
+    /// Gets or sets the standard deviation (for numeric columns).
+    /// </summary>
+    public double? StandardDeviation { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum text length (for text columns).
+    /// </summary>
+    public int? MinLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum text length (for text columns).
+    /// </summary>
+    public int? MaxLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets the average text length (for text columns).
+    /// </summary>
+    public double? AverageLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum date value (for date columns).
+    /// </summary>
+    public DateTime? MinDate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum date value (for date columns).
+    /// </summary>
+    public DateTime? MaxDate { get; set; }
+
+    /// <summary>
+    /// Gets or sets sample values from the column.
+    /// </summary>
+    public List<string> SampleValues { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets additional statistics specific to the data type.
+    /// </summary>
+    public Dictionary<string, object> AdditionalStats { get; set; } = new();
+}
+
+/// <summary>
+/// Unified data results for database tables.
+/// </summary>
+public class UnifiedDataResult
+{
+    /// <summary>
+    /// Gets or sets the data source configuration.
+    /// </summary>
+    public DataSourceConfiguration DataSource { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the column names.
+    /// </summary>
+    public List<string> Columns { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the data rows.
+    /// </summary>
+    public List<Dictionary<string, object?>> Rows { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the total number of rows available.
+    /// </summary>
+    public long TotalRows { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of rows returned.
+    /// </summary>
+    public int ReturnedRows { get; set; }
+
+    /// <summary>
+    /// Gets or sets the starting row index.
+    /// </summary>
+    public int StartIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets any errors encountered.
+    /// </summary>
+    public List<string> Errors { get; set; } = new();
+}
+
+/// <summary>
+/// Capability flags for unified analysis results.
+/// </summary>
+[Flags]
+public enum UnifiedAnalysisCapabilities
+{
+    None = 0,
+    RowCount = 1 << 0,
+    ColumnCount = 1 << 1,
+    ColumnStatistics = 1 << 2,
+    NumericStats = 1 << 3,
+    SampleValues = 1 << 4,
+    // Future: Distribution = 1 << 5,
+}

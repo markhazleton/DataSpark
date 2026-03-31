@@ -1,4 +1,4 @@
-# Refactoring Plan: Move Services and Models from sql2csv.web to Sql2Csv.Core
+# Refactoring Plan: Move Services and Models from DataSpark.Web to DataSpark.Core
 
 **Date**: 2025-09-07  
 **Focus**: Reduce web project size by moving business logic to core library  
@@ -8,19 +8,19 @@
 
 ### Services to Move to Core
 
-1. **PersistedFileService.cs** → Move to `Sql2Csv.Core/Services/`
+1. **PersistedFileService.cs** → Move to `DataSpark.Core/Services/`
    - Business logic for file persistence
    - No web-specific dependencies except IFormFile (will need interface abstraction)
 
 2. **WebDatabaseService.cs** → Split functionality
-   - Core database operations → Move to `Sql2Csv.Core/Services/DatabaseAnalysisService.cs`
+   - Core database operations → Move to `DataSpark.Core/Services/DatabaseAnalysisService.cs`
    - Web-specific file upload logic → Keep minimal wrapper in web project
 
 3. **Performance Services** → Already appropriate for web project (metrics, monitoring)
 
 ### Models to Move to Core
 
-1. **PersistedFileModels.cs** → Move to `Sql2Csv.Core/Models/`
+1. **PersistedFileModels.cs** → Move to `DataSpark.Core/Models/`
    - Core business entities
    - Remove web-specific attributes
 

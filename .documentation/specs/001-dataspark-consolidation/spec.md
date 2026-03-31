@@ -3,7 +3,7 @@
 **Feature Branch**: `001-dataspark-consolidation`  
 **Created**: 2026-03-30  
 **Status**: Draft  
-**Input**: User description: "Consolidate sql2csv, DataAnalysisDemo, and similar repos into a single rebranded DataSpark platform as part of the WebSpark suite. Full consolidation of all features from all repos into a single updated repo. When done, this will fully replace sql2csv, DataAnalysisDemo, and other similar code/repos. Make it awesome, complete, and a one-stop shop for data analysis features."
+**Input**: User description: "Consolidate DataSpark, DataAnalysisDemo, and similar repos into a single rebranded DataSpark platform as part of the WebSpark suite. Full consolidation of all features from all repos into a single updated repo. When done, this will fully replace DataSpark, DataAnalysisDemo, and other similar code/repos. Make it awesome, complete, and a one-stop shop for data analysis features."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -214,7 +214,7 @@ A first-time user sees a curated set of sample datasets (8+ CSV files covering d
 
 ### Session 2026-03-30
 
-- Q: Should sql2csv.web be removed after absorbing its SQLite features into DataSpark.Web, kept alongside, or merged? → A: Remove sql2csv.web entirely after absorbing its SQLite features into DataSpark.Web (single web app).
+- Q: Should DataSpark.Web be removed after absorbing its SQLite features into DataSpark.Web, kept alongside, or merged? → A: Remove DataSpark.Web entirely after absorbing its SQLite features into DataSpark.Web (single web app).
 - Q: Should the RESTful API require authentication? → A: Yes, simple API key authentication via request header for all API endpoints.
 - Q: Should sample datasets be read-only or deletable by the user? → A: Read-only. Sample datasets are always available and cannot be deleted or overwritten.
 - Q: Should the GitHub repository be renamed alongside internal branding? → A: Yes, rename everything — GitHub repository, solution file, projects, and namespaces — all to DataSpark.
@@ -284,7 +284,7 @@ A first-time user sees a curated set of sample datasets (8+ CSV files covering d
 - **FR-038**: System MUST be branded as "DataSpark" with visual identity as part of the WebSpark suite, using shared WebSpark navigation components and Bootswatch theme switching.
 - **FR-039**: System MUST support 20+ Bootswatch themes with real-time switching and persistent user preference.
 - **FR-040**: System MUST be fully responsive across desktop, tablet, and mobile viewports.
-- **FR-041**: ALL library projects, assemblies, and root namespaces MUST start with `DataSpark`. Specific project names: DataSpark.Core, DataSpark.Web, DataSpark.Console, DataSpark.Tests, DataSpark.Benchmarks. All C# namespaces throughout the codebase MUST use the `DataSpark` prefix (e.g., `DataSpark.Core.Services`, `DataSpark.Web.Controllers`). The sql2csv.web project MUST be removed after its SQLite database features (upload, schema analysis, DTO generation, CSV export) are absorbed into DataSpark.Web, resulting in a single web application. The GitHub repository MUST be renamed from `sql2csv` to `DataSpark`, and the solution file MUST be renamed to `DataSpark.sln`.
+- **FR-041**: ALL library projects, assemblies, and root namespaces MUST start with `DataSpark`. Specific project names: DataSpark.Core, DataSpark.Web, DataSpark.Console, DataSpark.Tests, DataSpark.Benchmarks. All C# namespaces throughout the codebase MUST use the `DataSpark` prefix (e.g., `DataSpark.Core.Services`, `DataSpark.Web.Controllers`). The DataSpark.Web project MUST be removed after its SQLite database features (upload, schema analysis, DTO generation, CSV export) are absorbed into DataSpark.Web, resulting in a single web application. The GitHub repository MUST be renamed from `DataSpark` to `DataSpark`, and the solution file MUST be renamed to `DataSpark.sln`.
 - **FR-051**: Upon completion of the consolidation, the `markhazleton/DataAnalysisDemo` GitHub repository MUST be made private and archived (read-only). Its README MUST be updated with a notice redirecting users to the new DataSpark repository before archival.
 
 **Quality & Testing**
@@ -338,7 +338,7 @@ A first-time user sees a curated set of sample datasets (8+ CSV files covering d
 - PivotTable.js is the pivot table library for the web interface.
 - OpenAI integration uses the Assistants v2 API and requires user-provided API keys.
 - The legacy DataAnalysisDemo (VB.NET / WebForms / .NET Framework 4.8) code will NOT be ported directly — features are reimplemented in modern C# / ASP.NET Core. Upon consolidation completion, the DataAnalysisDemo repository will be made private and archived.
-- ALL library projects, assemblies, and C# namespaces will start with `DataSpark`. The solution file will be `DataSpark.sln`. The GitHub repository will be renamed from `sql2csv` to `DataSpark`.
+- ALL library projects, assemblies, and C# namespaces will start with `DataSpark`. The solution file will be `DataSpark.sln`. The GitHub repository will be renamed from `DataSpark` to `DataSpark`.
 - SQLite is the only supported database format at launch; additional database connectors may be added later.
 - The application targets single-user local deployment primarily, with multi-user scenarios as a future consideration.
 - Machine learning features (anomaly detection, forecasting, clustering via Microsoft.ML) are explicitly deferred to a future release. ML.NET package references may remain in the project but no ML-specific UI, workflows, or user stories are in scope for the initial consolidation.

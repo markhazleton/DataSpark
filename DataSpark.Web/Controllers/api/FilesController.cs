@@ -1,5 +1,6 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
+using DataSpark.Core.Interfaces;
 using DataSpark.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ML;
@@ -15,13 +16,20 @@ public class FilesController : Controller
     private readonly IWebHostEnvironment _env;
     private readonly CsvFileService _csvFileService;
     private readonly CsvProcessingService _csvProcessingService;
+    private readonly ISampleDataService _sampleDataService;
     private readonly ILogger<FilesController> _logger;
 
-    public FilesController(IWebHostEnvironment env, CsvFileService csvFileService, CsvProcessingService csvProcessingService, ILogger<FilesController> logger)
+    public FilesController(
+        IWebHostEnvironment env,
+        CsvFileService csvFileService,
+        CsvProcessingService csvProcessingService,
+        ISampleDataService sampleDataService,
+        ILogger<FilesController> logger)
     {
         _env = env;
         _csvFileService = csvFileService;
         _csvProcessingService = csvProcessingService;
+        _sampleDataService = sampleDataService;
         _logger = logger;
     }
 
@@ -853,6 +861,84 @@ public class FilesController : Controller
     }
 
     /// <summary>
+    /// Get paged CSV data with optional search and sorting for EDA preview tables.
+    /// </summary>
+    [HttpGet("data-table")]
+    public async Task<IActionResult> GetCsvDataTable(
+        [FromQuery] string fileName,
+        [FromQuery] int start = 0,
+        [FromQuery] int length = 25,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortColumn = null,
+        [FromQuery] string? sortDirection = "asc")
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return BadRequest(new { error = "File name is required." });
+        }
+
+        if (length <= 0)
+        {
+            length = 25;
+        }
+
+        if (length > 500)
+        {
+            length = 500;
+        }
+
+        try
+        {
+            var delimiter = await _csvFileService.DetectDelimiterAsync(fileName).ConfigureAwait(false);
+            var result = await _csvFileService.ReadCsvRecordsAsync(fileName, delimiter).ConfigureAwait(false);
+            if (!result.Success)
+            {
+                return NotFound(new { error = result.ErrorMessage });
+            }
+
+            var rows = result.Data
+                .Select(record => (IDictionary<string, object>)record)
+                .Select(record => record.ToDictionary(k => k.Key, v => v.Value?.ToString() ?? string.Empty, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            var columns = rows.FirstOrDefault()?.Keys.ToList() ?? [];
+            var filtered = rows.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                filtered = filtered.Where(row =>
+                    row.Values.Any(value => value.Contains(search, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(sortColumn) && columns.Contains(sortColumn, StringComparer.OrdinalIgnoreCase))
+            {
+                filtered = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase)
+                    ? filtered.OrderByDescending(row => row.TryGetValue(sortColumn, out var value) ? value : string.Empty, StringComparer.OrdinalIgnoreCase)
+                    : filtered.OrderBy(row => row.TryGetValue(sortColumn, out var value) ? value : string.Empty, StringComparer.OrdinalIgnoreCase);
+            }
+
+            var filteredList = filtered.ToList();
+            var paged = filteredList.Skip(start).Take(length).ToList();
+
+            return Ok(new
+            {
+                fileName,
+                columns,
+                recordsTotal = rows.Count,
+                recordsFiltered = filteredList.Count,
+                start,
+                length,
+                data = paged
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load data-table preview for {FileName}", fileName);
+            return StatusCode(500, new { error = $"Failed to get data table: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
     /// Convert CSV to JSON format
     /// </summary>
     [HttpGet("json")]
@@ -993,7 +1079,7 @@ public class FilesController : Controller
     {
         try
         {
-            var files = _csvFileService.GetCsvFileNames();
+            var files = _csvFileService.GetDataFileNames();
             var summaries = files.Select(fileName =>
             {
                 try
@@ -1002,17 +1088,31 @@ public class FilesController : Controller
                     if (filePath == null) return null;
 
                     var fileInfo = new FileInfo(filePath);
-                    var csvData = _csvFileService.ReadCsvForVisualization(fileName);
+                    var extension = Path.GetExtension(fileName);
+                    var isCsv = string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase);
+
+                    long? rowCount = null;
+                    int? columnCount = null;
+                    List<string>? headers = null;
+                    if (isCsv)
+                    {
+                        var csvData = _csvFileService.ReadCsvForVisualization(fileName);
+                        rowCount = csvData.Records.Count;
+                        columnCount = csvData.Headers.Count;
+                        headers = csvData.Headers;
+                    }
 
                     return new
                     {
                         fileName,
+                        fileType = isCsv ? "csv" : "sqlite",
                         fileSize = fileInfo.Length,
                         fileSizeKB = Math.Round(fileInfo.Length / 1024.0, 2),
                         lastModified = fileInfo.LastWriteTime,
-                        rowCount = csvData.Records.Count,
-                        columnCount = csvData.Headers.Count,
-                        headers = csvData.Headers
+                        rowCount,
+                        columnCount,
+                        headers,
+                        isReadOnly = false
                     };
                 }
                 catch
@@ -1021,16 +1121,74 @@ public class FilesController : Controller
                 }
             }).Where(s => s != null).ToList();
 
+            var sampleSummaries = _sampleDataService
+                .GetSampleFiles()
+                .Select(sample =>
+                {
+                    try
+                    {
+                        var (rowCount, columnCount, headers) = ReadCsvShape(sample.FullPath);
+                        return new
+                        {
+                            fileName = sample.FileName,
+                            fileType = "csv",
+                            fileSize = sample.FileSizeBytes,
+                            fileSizeKB = Math.Round(sample.FileSizeBytes / 1024.0, 2),
+                            lastModified = DateTime.UtcNow,
+                            rowCount = (long?)rowCount,
+                            columnCount = (int?)columnCount,
+                            headers = (List<string>?)headers,
+                            isReadOnly = true
+                        };
+                    }
+                    catch
+                    {
+                        return new
+                        {
+                            fileName = sample.FileName,
+                            fileType = "csv",
+                            fileSize = sample.FileSizeBytes,
+                            fileSizeKB = Math.Round(sample.FileSizeBytes / 1024.0, 2),
+                            lastModified = DateTime.UtcNow,
+                            rowCount = (long?)null,
+                            columnCount = (int?)null,
+                            headers = (List<string>?)null,
+                            isReadOnly = true
+                        };
+                    }
+                })
+                .ToList();
+
             return Ok(new
             {
-                totalFiles = files.Count,
-                files = summaries
+                totalFiles = summaries.Count + sampleSummaries.Count,
+                files = summaries.Concat(sampleSummaries)
             });
         }
         catch (Exception ex)
         {
             return StatusCode(500, new { error = $"Failed to get files summary: {ex.Message}" });
         }
+    }
+
+    private static (long RowCount, int ColumnCount, List<string> Headers) ReadCsvShape(string filePath)
+    {
+        using var reader = new StreamReader(filePath);
+        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture));
+
+        if (!csv.Read() || !csv.ReadHeader())
+        {
+            return (0, 0, []);
+        }
+
+        var headers = csv.HeaderRecord?.ToList() ?? [];
+        long rows = 0;
+        while (csv.Read())
+        {
+            rows++;
+        }
+
+        return (rows, headers.Count, headers);
     }
 
     /// <summary>

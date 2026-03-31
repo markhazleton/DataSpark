@@ -6,21 +6,21 @@
 
 ### I. Clean Architecture — Core-First (MANDATORY)
 
-All business logic, database access, and data transformation MUST reside in `Sql2Csv.Core`.
-The `sql2csv.web` and `sql2csv.console` projects are presentation layers only — they wire up DI,
+All business logic, database access, and data transformation MUST reside in `DataSpark.Core`.
+The `DataSpark.Web` and `DataSpark.Console` projects are presentation layers only — they wire up DI,
 handle HTTP/CLI concerns, and delegate all work to Core services.
 
 - (MUST) No database queries in Web controllers or Console commands
 - (MUST) No business logic in ViewModels, Views, or Presentation classes
-- (MUST) `Sql2Csv.Core` has zero dependencies on `sql2csv.web` or `sql2csv.console`
+- (MUST) `DataSpark.Core` has zero dependencies on `DataSpark.Web` or `DataSpark.Console`
 - (MUST) New features start as Core service interfaces before any presentation wiring
 
-**Evidence**: `Sql2Csv.Core/Services/` contains all 18 service implementations; controllers
+**Evidence**: `DataSpark.Core/Services/` contains all 18 service implementations; controllers
 contain only thin delegation to Core services.
 
 ### II. Testing Standards (MANDATORY)
 
-All production code in `Sql2Csv.Core` MUST have corresponding tests in `Sql2Csv.Tests`.
+All production code in `DataSpark.Core` MUST have corresponding tests in `DataSpark.Tests`.
 The CI pipeline MUST enforce an 80% minimum coverage floor.
 
 - (MUST) Test framework: MSTest with `[TestMethod]`, `[TestClass]`, `[TestInitialize]`, `[TestCleanup]`
@@ -29,19 +29,19 @@ The CI pipeline MUST enforce an 80% minimum coverage floor.
 - (MUST) Test naming: `Method_Scenario_ExpectedBehavior` (e.g. `Constructor_WithNullLogger_ShouldThrowArgumentNullException`)
 - (MUST) SQLite-dependent tests MUST extend `DatabaseTestBase` for consistent setup/teardown
 - (MUST) CI `MIN_COVERAGE` must be set to `80` or higher in `ci.yml`
-- (SHOULD) Integration tests live in `Sql2Csv.Tests/Integration/`; unit tests in subdirectories mirroring `Sql2Csv.Core`
+- (SHOULD) Integration tests live in `DataSpark.Tests/Integration/`; unit tests in subdirectories mirroring `DataSpark.Core`
 
 **Evidence**: 126 test methods across 21 test files; `DatabaseTestBase` used by all DB-touching tests.
 
 ### III. Async/Await Discipline (MANDATORY)
 
-All I/O operations MUST be async. Library code in `Sql2Csv.Core` MUST use `ConfigureAwait(false)`
+All I/O operations MUST be async. Library code in `DataSpark.Core` MUST use `ConfigureAwait(false)`
 on every `await` expression to prevent deadlocks when consumed from synchronous contexts.
 
 - (MUST) All database, file, and network I/O must use `async`/`await` — never `.Result` or `.Wait()`
-- (MUST) Every `await` in `Sql2Csv.Core` MUST append `.ConfigureAwait(false)`
+- (MUST) Every `await` in `DataSpark.Core` MUST append `.ConfigureAwait(false)`
 - (MUST) All public async methods MUST accept `CancellationToken cancellationToken = default`
-- (MAY) `ConfigureAwait(false)` is optional in `sql2csv.web` and `sql2csv.console` (ASP.NET Core and hosted services have no sync context)
+- (MAY) `ConfigureAwait(false)` is optional in `DataSpark.Web` and `DataSpark.Console` (ASP.NET Core and hosted services have no sync context)
 
 **Evidence**: All 18+ Core services use `await using`; cancellation tokens present throughout.
 
@@ -71,7 +71,7 @@ null-reference exceptions and silent quality degradation.
 - (SHOULD) Prefer `sealed` on service implementation classes that are not designed for inheritance
 
 **Evidence**: All 4 projects have `<Nullable>enable</Nullable>`; `TreatWarningsAsErrors` currently
-missing from `sql2csv.web` and `sql2csv.console`.
+missing from `DataSpark.Web` and `DataSpark.Console`.
 
 ### VI. Database Access — SQL Safety (MANDATORY)
 
@@ -94,7 +94,7 @@ MUST use Serilog as the logging provider.
 - (MUST) All classes that log MUST receive `ILogger<T>` via constructor injection — never `LoggerFactory.Create` or static loggers
 - (MUST) Log messages MUST use structured templates: `_logger.LogInformation("Found {Count} tables", count)` — never string interpolation in log calls
 - (MUST) Log levels: `LogInformation` for normal flow, `LogWarning` for recoverable issues, `LogError` for exceptions with the exception as first argument
-- (MUST) `sql2csv.web` MUST configure Serilog via `UseSerilog()` in `Program.cs`
+- (MUST) `DataSpark.Web` MUST configure Serilog via `UseSerilog()` in `Program.cs`
 - (MUST NOT) `Console.Write*` or `Debug.Write*` in production code — use `ILogger` exclusively
 
 **Evidence**: All 18+ Core services use `ILogger<T>` with structured templates; `Serilog.AspNetCore`

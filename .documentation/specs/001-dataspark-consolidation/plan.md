@@ -5,7 +5,7 @@
 
 ## Summary
 
-Rebrand and consolidate the sql2csv repository (including sql2csv.web, DataSpark.Web, Sql2Csv.Core, sql2csv.console, Sql2Csv.Tests, Sql2Csv.Benchmarks) into a unified DataSpark platform. Absorb sql2csv.web's SQLite database features into DataSpark.Web, rename all projects/namespaces to `DataSpark.*`, rename the GitHub repository and solution file, add sample datasets, API key authentication, SearchPanes, and pivot localStorage persistence. The legacy DataAnalysisDemo repository will be archived separately.
+Rebrand and consolidate the DataSpark repository (including DataSpark.Web, DataSpark.Web, DataSpark.Core, DataSpark.Console, DataSpark.Tests, DataSpark.Benchmarks) into a unified DataSpark platform. Absorb DataSpark.Web's SQLite database features into DataSpark.Web, rename all projects/namespaces to `DataSpark.*`, rename the GitHub repository and solution file, add sample datasets, API key authentication, SearchPanes, and pivot localStorage persistence. The legacy DataAnalysisDemo repository will be archived separately.
 
 ## Technical Context
 
@@ -17,7 +17,7 @@ Rebrand and consolidate the sql2csv repository (including sql2csv.web, DataSpark
 **Project Type**: Web application (MVC) + CLI tool + shared Core library
 **Performance Goals**: EDA report < 5s for files under 10 MB; chart preview update < 2s; data grid page load < 2s for 100K+ rows; CLI batch operations for 50+ databases
 **Constraints**: Max upload 50 MB default, 1 GB total storage, single-user primary deployment, API key auth on all API endpoints
-**Scale/Scope**: 6 projects → 5 projects (sql2csv.web removed), 51 functional requirements, 14 chart types, 8+ sample datasets, 20+ themes
+**Scale/Scope**: 6 projects → 5 projects (DataSpark.Web removed), 51 functional requirements, 14 chart types, 8+ sample datasets, 20+ themes
 
 ## Constitution Check
 
@@ -29,7 +29,7 @@ Rebrand and consolidate the sql2csv repository (including sql2csv.web, DataSpark
 | **II. Testing Standards** | ✅ PASS | Tests rename to DataSpark.Tests. MSTest/FluentAssertions/Moq retained. Test naming convention unchanged. Coverage target 85% (exceeds constitution minimum of 80%). |
 | **III. Async/Await Discipline** | ✅ PASS | All existing Core services already async with ConfigureAwait(false) and CancellationToken. No changes to async patterns needed — only namespace renaming. |
 | **IV. Security — CSRF & Input Validation** | ✅ PASS | FR-045–FR-049 align with constitution requirements. FR-050 adds API key auth (new, does not conflict). All POST actions require CSRF tokens per constitution. |
-| **V. Code Quality — Nullable & Compiler Strictness** | ⚠️ ACTION NEEDED | Constitution requires `TreatWarningsAsErrors` in ALL .csproj files. Currently missing from `Sql2Csv.Tests` only (per research.md R7). Must add when renaming to `DataSpark.Tests.csproj`. |
+| **V. Code Quality — Nullable & Compiler Strictness** | ⚠️ ACTION NEEDED | Constitution requires `TreatWarningsAsErrors` in ALL .csproj files. Currently missing from `DataSpark.Tests` only (per research.md R7). Must add when renaming to `DataSpark.Tests.csproj`. |
 | **VI. Database Access — SQL Safety** | ✅ PASS | Parameterized queries throughout. Critical SQL injection found in `DatabaseAnalysisService.cs` line ~729 (LIKE clause using string concat) — fix tracked in corrective action #2 and T020. |
 | **VII. Structured Logging** | ✅ PASS | Serilog configured in web. All Core services use ILogger<T> with structured templates. DataSpark.Console should also use Serilog (currently uses Microsoft.Extensions.Logging — acceptable per constitution since console is not web). |
 
@@ -54,17 +54,17 @@ Rebrand and consolidate the sql2csv repository (including sql2csv.web, DataSpark
 ### Source Code (repository root)
 
 ```text
-DataSpark.sln                          # Renamed from sql2csv.sln
-├── DataSpark.Core/                    # Renamed from Sql2Csv.Core/
-│   ├── Configuration/                 # Sql2CsvOptions → DataSparkOptions
+DataSpark.sln                          # Renamed from DataSpark.sln
+├── DataSpark.Core/                    # Renamed from DataSpark.Core/
+│   ├── Configuration/                 # DataSparkOptions → DataSparkOptions
 │   ├── Interfaces/                    # All service contracts
 │   ├── Models/                        # Domain models (CSV, DB, Chart, Analysis)
 │   └── Services/                      # Business logic (Discovery, Export, Schema, Charts, AI, Analysis)
 │
-├── DataSpark.Web/                     # Promoted from DataSpark.Web/ (absorbs sql2csv.web)
+├── DataSpark.Web/                     # Promoted from DataSpark.Web/ (absorbs DataSpark.Web)
 │   ├── Controllers/                   # MVC + API controllers
 │   │   ├── HomeController.cs          # Landing, file upload/management
-│   │   ├── DatabaseController.cs      # NEW: SQLite upload, schema, export, DTO gen (from sql2csv.web)
+│   │   ├── DatabaseController.cs      # NEW: SQLite upload, schema, export, DTO gen (from DataSpark.Web)
 │   │   ├── ChartController.cs         # Chart CRUD + preview
 │   │   ├── PivotTableController.cs    # Interactive pivots
 │   │   ├── UnivariateController.cs    # Univariate analysis
@@ -79,21 +79,21 @@ DataSpark.sln                          # Renamed from sql2csv.sln
 │       ├── files/                     # User uploads
 │       └── sample-data/               # NEW: Read-only sample CSVs (8+ files)
 │
-├── DataSpark.Console/                 # Renamed from sql2csv.console/
+├── DataSpark.Console/                 # Renamed from DataSpark.Console/
 │   └── Presentation/Commands/         # CLI commands (discover, export, schema, generate)
 │
-├── DataSpark.Tests/                   # Renamed from Sql2Csv.Tests/
+├── DataSpark.Tests/                   # Renamed from DataSpark.Tests/
 │   ├── Configuration/
 │   ├── Controllers/
 │   ├── Integration/
 │   ├── Models/
 │   └── Services/
 │
-└── DataSpark.Benchmarks/              # Renamed from Sql2Csv.Benchmarks/
+└── DataSpark.Benchmarks/              # Renamed from DataSpark.Benchmarks/
     └── (discovery, export, schema benchmarks)
 ```
 
-**Structure Decision**: This is a multi-project .NET solution following Clean Architecture (Core library + presentation layers). The consolidation reduces from 6 projects to 5 by removing sql2csv.web and absorbing its features into DataSpark.Web. This aligns with Constitution Principle I (Core-First) and avoids the complexity violation that two overlapping web projects would create.
+**Structure Decision**: This is a multi-project .NET solution following Clean Architecture (Core library + presentation layers). The consolidation reduces from 6 projects to 5 by removing DataSpark.Web and absorbing its features into DataSpark.Web. This aligns with Constitution Principle I (Core-First) and avoids the complexity violation that two overlapping web projects would create.
 
 ## Complexity Tracking
 

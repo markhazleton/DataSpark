@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "Upload CSV File";
+    ViewData["Title"] = "Upload Data File";
 }
 
 <div class="container py-4">
@@ -48,7 +48,7 @@
         </div>
     </div>
     <div class="card mb-4">
-        <div class="card-header">Upload CSV File</div>
+        <div class="card-header">Upload Data File</div>
         <div class="card-body">
             @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
             {
@@ -64,8 +64,8 @@
             }
             <form method="post" enctype="multipart/form-data" asp-action="UploadCSV" asp-controller="Home">
                 <div class="mb-3">
-                    <label for="csvFile" class="form-label">Choose a CSV file:</label>
-                    <input type="file" name="file" id="csvFile" class="form-control" accept=".csv" required />
+                    <label for="csvFile" class="form-label">Choose a CSV or SQLite file:</label>
+                    <input type="file" name="file" id="csvFile" class="form-control" accept=".csv,.db,.sqlite,.sqlite3" required />
                 </div>
                 <button type="submit" class="btn btn-primary">Upload</button>
             </form>
@@ -153,11 +153,14 @@
                 tbody.innerHTML='';
                 files.forEach(f=>{
                     const tr=document.createElement('tr');
+                    const rowCount = f.rowCount ?? '-';
+                    const columnCount = f.columnCount ?? '-';
+                    const readOnlyBadge = f.isReadOnly ? " <span class='badge bg-secondary'>read-only sample</span>" : "";
                     tr.innerHTML = `
-                        <td>${f.fileName}</td>
+                        <td>${f.fileName}${readOnlyBadge}</td>
                         <td class='text-end'>${f.fileSizeKB}</td>
-                        <td class='text-end'>${f.rowCount}</td>
-                        <td class='text-end'>${f.columnCount}</td>
+                        <td class='text-end'>${rowCount}</td>
+                        <td class='text-end'>${columnCount}</td>
                         <td>${new Date(f.lastModified).toLocaleString()}</td>
                                                 <td class='text-end'>
                                                     <div class="btn-group btn-group-sm" role="group">

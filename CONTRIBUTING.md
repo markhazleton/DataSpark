@@ -29,7 +29,7 @@ In short, when you submit code changes, your submissions are understood to be un
 
 ## Report bugs using GitHub Issues
 
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/markhazleton/sql2csv/issues/new).
+We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/markhazleton/DataSpark/issues/new).
 
 **Great Bug Reports** tend to have:
 

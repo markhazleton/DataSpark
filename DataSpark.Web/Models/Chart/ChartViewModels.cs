@@ -1,5 +1,5 @@
-using Sql2Csv.Core.Models.Charts; // Core domain
-using Sql2Csv.Core.Models.Analysis; // ColumnInfo
+using DataSpark.Core.Models.Charts; // Core domain
+using DataSpark.Core.Models.Analysis; // ColumnInfo
 
 namespace DataSpark.Web.Models.Chart;
 
@@ -124,6 +124,15 @@ public class ChartPreviewRequest
     public string DataSource { get; set; } = string.Empty;
     public int? MaxRows { get; set; }
     public int? MaxDataPoints { get; set; }
+    public bool IncludeData { get; set; } = true;
+}
+
+public class ChartExportRequest
+{
+    public int ChartId { get; set; }
+    public string Format { get; set; } = "CSV";
+    public int? Width { get; set; }
+    public int? Height { get; set; }
     public bool IncludeData { get; set; } = true;
 }
 

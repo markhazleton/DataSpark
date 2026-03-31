@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <AssemblyName>DataSpark.Benchmarks</AssemblyName>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <LangVersion>latest</LangVersion>
+        <IsPackable>false</IsPackable>
+        <RootNamespace>DataSpark.Benchmarks</RootNamespace>
+        <AssemblyTitle>DataSpark Benchmarks</AssemblyTitle>
+        <AssemblyDescription>BenchmarkDotNet performance benchmarks for core DataSpark services</AssemblyDescription>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.5" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.5" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\DataSpark.Core\DataSpark.Core.csproj" />
+    </ItemGroup>
+</Project>
