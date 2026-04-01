@@ -7,6 +7,7 @@ using DataSpark.Core.Services;
 using DataSpark.Core.Services.Analysis;
 using DataSpark.Core.Services.Charts;
 using WebSpark.Bootswatch;
+using WebSpark.HttpClientUtility;
 using DataSpark.Web.Middleware;
 using WebCsvFileService = DataSpark.Web.Services.CsvFileService;
 using CoreCsvProcessingService = DataSpark.Core.Services.Analysis.CsvProcessingService;
@@ -69,16 +70,15 @@ builder.Services.AddScoped<IChartConfigurationViewModelBuilder, DataSpark.Core.S
 
 // Add memory cache services
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<WebSpark.HttpClientUtility.MemoryCache.IMemoryCacheManager, WebSpark.HttpClientUtility.MemoryCache.MemoryCacheManager>();
+
+// Register WebSpark.HttpClientUtility before Bootswatch
+builder.Services.AddHttpClientUtility();
 
 // Add Bootswatch theme switcher services (includes StyleCache)
 builder.Services.AddBootswatchThemeSwitcher();
 
 // Register IHttpContextAccessor as required by Bootswatch for theme switching tag helper
 builder.Services.AddHttpContextAccessor();
-
-// Register WebSpark.HttpClientUtility services required by Bootswatch
-builder.Services.AddScoped<WebSpark.HttpClientUtility.RequestResult.IHttpRequestResultService, WebSpark.HttpClientUtility.RequestResult.HttpRequestResultService>();
 
 // Configure OpenAI options
 builder.Services.Configure<OpenAIOptions>(builder.Configuration.GetSection("OpenAI"));
